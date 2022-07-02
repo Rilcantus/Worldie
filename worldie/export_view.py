@@ -1,5 +1,3 @@
-import re
-
 
 
 class ExportData:
@@ -12,6 +10,8 @@ class ExportData:
 
         self._find_keys()
 
+    def _load_json(self):
+        
 
     def _find_keys(self):
         items = self.data.split('\n')
@@ -25,7 +25,10 @@ class ExportData:
                     continue
                 if marker in element:
                     list_ele = element.split(marker)
-                    self.keys.append(list_ele[0])
+                    if list_ele[0] != '\t':
+                        self.keys.append(list_ele[0])
+                    else:
+                        continue
                 
 
         print(self.keys)            
