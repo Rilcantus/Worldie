@@ -8,13 +8,16 @@ class JsonHand:
         self.title = title
         self.info = info
 
+
         self._convert()
 
 
     def _convert(self):
         data = {self.title : self.info}
 
-        dumped = json.dumps(data)
+        with open('data.json', 'w') as outfile:
+            json.dump(data, outfile)
         
+
         
         
