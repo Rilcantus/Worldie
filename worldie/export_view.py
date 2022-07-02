@@ -1,4 +1,4 @@
-
+from json_handler import JsonHand
 
 class ExportData:
     """class to handle information for the export function"""
@@ -9,8 +9,11 @@ class ExportData:
         self.markers = ['-', ':']
 
         self._find_keys()
+        self._load_json()
 
     def _load_json(self):
+        name = input('Name of work-> ')
+        JsonHand(name, self.keys[:])
         
 
     def _find_keys(self):
