@@ -7,50 +7,28 @@ class JsonHand:
     def __init__(self, title, info):
         self.title = title
         self.info = info
-        self.converted = {}
+        self.outfile = r"worldie\data.json"
+        self.work_types = {}
         self.current_json = {}
-        self.compared = ['']
 
         self._pull()
-        self._convert()
-        self._compare()
-        self._push()
-
-        print(self.converted)
-        print(self.compared)
-
-
-    def _pull(self):
-        
-        j_file = open('worldie\data.json')
-        self.current_json = json.load(j_file)
     
-    def _convert(self):
-        self.converted = {self.title: self.info}
+    def _pull(self):
+        # pull data from .json file
+        self.current_json = json.load("worldie\data.json")
+        print(self.current_json)
+
+    def _covert(self):
+        # converts in coming title and info to json ready
+        pass
 
     def _compare(self):
-        for type, elements in self.current_json.items():
-            for new_type, new_elements in self.converted.items():
-                if type == new_type:
-                    for item in new_elements:
-                        if item not in elements:
-                            self.compared = item
-                if new_type not in type:
-                    self.current_json
-
-                    with open('worldie\data.json', 'a') as outfile:
-                        json.dump(self.current_json, outfile)
+        # check stored list to the incoming list and add only new info(keys)
+        pass
 
     def _push(self):
-        for work, elements in self.current_json.items():
-            if type(self.compared) == str:
-                elements.append(self.compared)
-            elif type(self.compared) == list:
-                for item in self.compared:
-                    elements.append(item)
-        
-        with open('worldie\data.json', 'w') as outfile:
-            json.dump(self.current_json, outfile)
+        # add new keys from compared to stored list then push back
+        pass
 
        
         
