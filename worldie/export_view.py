@@ -27,7 +27,7 @@ class ExportData:
                 if element == self.keys:
                     continue
                 if marker in element:
-                    list_ele = element.split(marker)
+                    list_ele = element.split(marker, 1)
                     if list_ele[0] != '\t':
                         self.keys.append(list_ele[0])
                     else:

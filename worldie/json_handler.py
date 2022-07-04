@@ -16,7 +16,9 @@ class JsonHand:
         self._compare()
         self._push()
 
+        print(self.converted)
         print(self.compared)
+
 
     def _pull(self):
         
@@ -33,6 +35,11 @@ class JsonHand:
                     for item in new_elements:
                         if item not in elements:
                             self.compared = item
+                if new_type not in type:
+                    self.current_json
+
+                    with open('worldie\data.json', 'a') as outfile:
+                        json.dump(self.current_json, outfile)
 
     def _push(self):
         for work, elements in self.current_json.items():
