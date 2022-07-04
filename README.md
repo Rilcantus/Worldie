@@ -1,4 +1,18 @@
-Worldie App
+# Worldie App
+    This will become a world buidling social applicaiton. Users are able to create different works. while producing works they are able to create others for later use. 
+
+    instead of keeping worlds and races on paper, this will allow users to visualize connections. these connections will be able to show when someone used and item and its "history"
+
+    example:
+
+    i create a sword "Blade of Code" it was made by XYZ on planet ABC. it was wused by PEOPLE. PERSON currently has it.
+
+    the blade of code is the current work im working on
+
+    -   XYZ is someone who made it, i can give them a name and a few traits at this time
+    -   ABC is a world, quick create a name and give some traits
+    -   PEOPLE and PERSON are who have used it and have it. these would be connected to other works made
+
 
 # Overview:
     this application has 4 unique featues. each will be built in phases
