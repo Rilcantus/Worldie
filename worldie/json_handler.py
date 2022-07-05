@@ -12,12 +12,14 @@ class JsonHand:
         self.current_json = {}
         self.converted = {}
         self.compared = {}
+    
 
+    def export_data(self):
         self._pull()
         self._covert()
         self._compare()
         self._push()
-    
+
     def _pull(self):
         # pull data from .json file
         try:
