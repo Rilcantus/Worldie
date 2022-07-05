@@ -1,4 +1,11 @@
 {
+    "Character": [
+        "Name ",
+        "Age ",
+        "Job",
+        "Relationship",
+        "Computer skill"
+    ],
     "World": [
         "Name: XeroX",
         "Name",

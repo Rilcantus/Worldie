@@ -21,8 +21,9 @@ class JsonHand:
     def _pull(self):
         # pull data from .json file
         try:
-            self.current_json = json.load(self.outfile)
-            print(self.current_json.items())
+            with open(self.outfile, 'r') as outfile:
+                self.current_json = json.load(outfile)
+                print(self.current_json)
         
         except:
             print("no data")
@@ -43,8 +44,8 @@ class JsonHand:
 
     def _push(self):
         # add new keys from compared to stored list then push back
-        self.current_json[self.title = ]
-        with open (self.outfile, 'w') as outfile:
+        self.current_json.update(self.compared)
+        with open(self.outfile, 'w') as outfile:
             json.dump(self.current_json, outfile, indent=4)
 
         
