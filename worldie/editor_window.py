@@ -9,12 +9,15 @@ from export_view import ExportData
 
 class Main:
     """Main view for Worldie"""
-    def __init__(self, title):
-        self.title = title 
+    def __init__(self, title, tk_root, text_root, menu_root):
+        self.title = title
+        self.window = tk_root
+        self.text = text_root
+        self.menu = menu_root 
         self.no_file_opened_str = 'New File'
         self.currentPath = self.no_file_opened_str
         self.file_types = [("Text Document", "*.txt"), ("Markdown", "*.md")]
-        self.window = tk.Tk()
+        
 
         # Run set up script for main view
         # text is mains active text area
@@ -84,7 +87,7 @@ class Main:
         win.columnconfigure(1, minsize=600, weight=1)
 
         # Widjets for main
-        txt_edit = scrolledtext.ScrolledText(win)
+        txt_edit = self.text
         txt_edit.grid(row=0, column=1, sticky="nsew")
 
         frm_connections = tk.Frame(win, bd=2)
@@ -94,7 +97,7 @@ class Main:
         lbl_connections.grid(row=0, column=0, sticky="n")
 
         # Create Menu widget
-        menu = Menu(win)
+        menu = self.menu
 
         # Create File cascade
         file_dropdown = Menu(menu, tearoff=False)
