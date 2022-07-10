@@ -5,6 +5,7 @@ from tkinter import INSERT, END, Menu, scrolledtext, filedialog
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 
 from export_view import ExportData
+from menu_setup import File_Drop, View_Drop
 
 
 class Main:
@@ -17,7 +18,6 @@ class Main:
         self.no_file_opened_str = 'New File'
         self.currentPath = self.no_file_opened_str
         self.file_types = [("Text Document", "*.txt"), ("Markdown", "*.md")]
-        
 
         # Run set up script for main view
         # text is mains active text area
@@ -77,24 +77,55 @@ class Main:
             data = ExportData(text)
             
 
-    def _setup(self):
-        """Setup for primary window for editor"""
-        win = self.window
+    def _setup_main_window(self):
+        """Create Main window display"""
 
-        # Main diplay for window
-        win.title(f"{self.title}")
-        win.rowconfigure(0, minsize=600, weight=1)
-        win.columnconfigure(1, minsize=600, weight=1)
+        self.window.title(f"{self.title}")
+        self.window.rowconfigure(0, minsize=600, weight=1)
+        self.window.columnconfigure(1, minsize=600, weight=1)
 
-        # Widjets for main
+    def _setup_main_text(self):
+        """Create Main text area"""
+
         txt_edit = self.text
         txt_edit.grid(row=0, column=1, sticky="nsew")
 
-        frm_connections = tk.Frame(win, bd=2)
+    def _setup_main_frame(self):
+        """Create Main frame area on left side of text"""
+
+        frm_connections = tk.Frame(self.window, bd=2)
         lbl_connections = tk.Label(frm_connections, text="Connections..", bd=2)
-        
+
         frm_connections.grid(row=0, column=0, sticky="ns")
         lbl_connections.grid(row=0, column=0, sticky="n")
+
+    def _setup_main_menu(self):
+        """Create Main top meny widget"""
+        # Create dict of possible file actions
+        file_actions = {
+            'New' : 'new',
+            'Open' : 'open',
+            'Save' : 'save', 
+            'Save As' : 'saveAs'
+        }
+        # Create dict of possible view actions
+        view_actions = {
+            'Find Keys' : 'keys'
+        }
+
+        # create respective drop menus
+        File_Drop(self.menu, self.text, file_actions).add_to_file()
+        
+        View_Drop(view_drop, self.text, view_actions)
+
+
+    def _setup(self):
+        """Setup for primary window for editor"""
+        
+        self._setup_main_window()
+        self._setup_main_text()
+        self._setup_main_frame()
+        self._setup_main_menu()
 
         # Create Menu widget
         menu = self.menu
@@ -102,25 +133,24 @@ class Main:
         # Create File cascade
         file_dropdown = Menu(menu, tearoff=False)
 
-        file_dropdown.add_command(label="New", command=lambda: self._file_drop_handler('new',txt_edit))
-        file_dropdown.add_command(label="Open", command=lambda: self._file_drop_handler('open',txt_edit))
+        file_dropdown.add_command(label="New", command=lambda: self._file_drop_handler('new',self.text))
+        file_dropdown.add_command(label="Open", command=lambda: self._file_drop_handler('open',self.text))
 
         file_dropdown.add_separator()
-        file_dropdown.add_command(label="Save", command=lambda: self._file_drop_handler('save',txt_edit))
-        file_dropdown.add_command(label="Save as", command=lambda: self._file_drop_handler('saveAs',txt_edit))
+        file_dropdown.add_command(label="Save", command=lambda: self._file_drop_handler('save',self.text))
+        file_dropdown.add_command(label="Save as", command=lambda: self._file_drop_handler('saveAs',self.text))
         menu.add_cascade(label='File', menu=file_dropdown)
 
         # Create View cascade (Woldie specfic functions)
         view_dropdown = Menu(menu, tearoff=False)
 
-        view_dropdown.add_command(label='Export Data', command=lambda: self._view_drop_handler('export',txt_edit))
+        view_dropdown.add_command(label='Export Data', command=lambda: self._view_drop_handler('export',self.text))
 
         menu.add_cascade(label='View', menu=view_dropdown)
 
-        win.config(menu=menu)
-        win.mainloop()
+        self.window.config(menu=menu)
+        self.window.mainloop()
 
-        return txt_edit
         
 
         
