@@ -106,7 +106,7 @@ class Main:
             'New' : 'new',
             'Open' : 'open',
             'Save' : 'save', 
-            'Save As' : 'saveAs'
+            'Save As' : 'saveAs',
         }
         # Create dict of possible view actions
         view_actions = {
@@ -114,9 +114,15 @@ class Main:
         }
 
         # create respective drop menus
-        File_Drop(self.menu, self.text, file_actions).add_to_file()
-        
-        View_Drop(view_drop, self.text, view_actions)
+        file = File_Drop(
+            self.title,
+            self.window,
+            self.menu,
+            self.text,
+            file_actions
+        )
+        file.add_to_file()
+        #View_Drop(view_drop, self.text, view_actions)
 
 
     def _setup(self):
@@ -139,7 +145,7 @@ class Main:
         file_dropdown.add_separator()
         file_dropdown.add_command(label="Save", command=lambda: self._file_drop_handler('save',self.text))
         file_dropdown.add_command(label="Save as", command=lambda: self._file_drop_handler('saveAs',self.text))
-        menu.add_cascade(label='File', menu=file_dropdown)
+        #menu.add_cascade(label='File', menu=file_dropdown)
 
         # Create View cascade (Woldie specfic functions)
         view_dropdown = Menu(menu, tearoff=False)
