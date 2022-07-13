@@ -1,8 +1,9 @@
-import tkinter as tk
 import sys
 from tkinter import *
 from tkinter import filedialog
 from tkinter.filedialog import askopenfilename, asksaveasfilename
+
+from export_view import ExportData
 
 class Menu_Setup():
     """Class to create menu bar at top of tkinter"""
@@ -30,8 +31,6 @@ class Menu_Setup():
 
     def _file_drop_handler(self, action, text_area):
         """File menu drop down handler""" 
-        print(action)
-
         # open a file       
         if action == "open":
             file = filedialog.askopenfilename(filetypes = self.file_types)
@@ -57,12 +56,16 @@ class Menu_Setup():
                     )
             with open(self.currentPath, 'w') as f:
                 f.write(text_area.get('1.0','end'))
-            self.window.title(self.title + ' - ' + self.currentPath)
-                        
+            self.window.title(self.title + ' - ' + self.currentPath)                
 
         
-    def _view_drop_handler(self):
-        pass
+    def _view_drop_handler(self, action, text_area):
+        """View menu drop down handler"""
+        # export text from text_area
+        if action == 'export':
+            text = text_area.get('1.0','end')
+            data = ExportData(text)
+
 
 class File_Drop(Menu_Setup):
     """Class to handle the File drop part of menu"""
@@ -74,14 +77,22 @@ class File_Drop(Menu_Setup):
     def add_to_file(self):
         for name, action in self.actions.items():
             print(name + action)
-            self.file_drop.add_command(label=name, command=lambda action=action: self._file_drop_handler(action, self.text_area))
-        self.menu.add_cascade(label='File2', menu=self.file_drop)
+            self.file_drop.add_command(label=name,
+                command=lambda action=action: self._file_drop_handler(action, self.text_area)
+            )
+        self.menu.add_cascade(label='File', menu=self.file_drop)
 
 
 class View_Drop(Menu_Setup):
     """Class to handle the View drop part of menu"""
-    def __init__(self, menu, text_area, actions):
-        super().__init__(menu, text_area, actions)
+    def __init__(self, title, root, menu, text_area, actions):
+        super().__init__(title, root, menu, text_area, actions)
+        self.view_drop = Menu(menu, tearoff=False)
 
     def add_to_view(self):
-        pass
+        for name, action in self.actions.items():
+            print(name + action)
+            self.view_drop.add_command(label=name,
+                command=lambda action=action: self._view_drop_handler(action, self.text_area)
+            )
+        self.menu.add_cascade(label="View", menu=self.view_drop)

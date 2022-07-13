@@ -1,10 +1,5 @@
 import tkinter as tk
-import sys
-import ctypes
-from tkinter import INSERT, END, Menu, scrolledtext, filedialog
-from tkinter.filedialog import askopenfilename, asksaveasfilename
 
-from export_view import ExportData
 from menu_setup import File_Drop, View_Drop
 
 
@@ -20,27 +15,7 @@ class Main:
         self.file_types = [("Text Document", "*.txt"), ("Markdown", "*.md")]
 
         # Run set up script for main view
-        # text is mains active text area
-        text = self._setup()
-
-        # enable "open with" second argument passed
-        if len(sys.argv) == 2:
-            self.currentPath = sys.argv[1]
-
-            self.window.title(f'{self.title} - ' + self.currentPath)
-
-            with open(self.currentPath, 'r') as f:
-                text.delete(1.0,END)
-                text.insert(INSERT,f.read())
-
-    def _view_drop_handler(self, action, text_area):
-        """View menu drop down handler"""
-
-        # export text from text_area
-        if action == 'export':
-            text = text_area.get('1.0','end')
-            data = ExportData(text)
-            
+        self._setup()
 
     def _setup_main_window(self):
         """Create Main window display"""
@@ -87,8 +62,15 @@ class Main:
             file_actions
         )
         file.add_to_file()
-        #View_Drop(view_drop, self.text, view_actions)
 
+        view = View_Drop(
+            self.title,
+            self.window,
+            self.menu,
+            self.text,
+            view_actions
+        )
+        view.add_to_view()
 
     def _setup(self):
         """Setup for primary window for editor"""
@@ -98,20 +80,8 @@ class Main:
         self._setup_main_frame()
         self._setup_main_menu()
 
-        # Create Menu widget
-        menu = self.menu
-
-        # Create View cascade (Woldie specfic functions)
-        view_dropdown = Menu(menu, tearoff=False)
-
-        view_dropdown.add_command(label='Export Data', command=lambda: self._view_drop_handler('export',self.text))
-
-        menu.add_cascade(label='View', menu=view_dropdown)
-
-        self.window.config(menu=menu)
+        self.window.config(menu=self.menu)
         self.window.mainloop()
-
-        
 
         
          
