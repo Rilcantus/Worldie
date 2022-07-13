@@ -30,6 +30,7 @@ class Menu_Setup():
 
     def _file_drop_handler(self, action, text_area):
         """File menu drop down handler""" 
+        print(action)
 
         # open a file       
         if action == "open":
@@ -73,8 +74,7 @@ class File_Drop(Menu_Setup):
     def add_to_file(self):
         for name, action in self.actions.items():
             print(name + action)
-            self.file_drop.add_command(label=name,
-                command=lambda: self._file_drop_handler(action, self.text_area))
+            self.file_drop.add_command(label=name, command=lambda action=action: self._file_drop_handler(action, self.text_area))
         self.menu.add_cascade(label='File2', menu=self.file_drop)
 
 

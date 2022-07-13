@@ -33,41 +33,6 @@ class Main:
                 text.delete(1.0,END)
                 text.insert(INSERT,f.read())
 
-
-
-    # Internal functions for Main view control
-
-    def _file_drop_handler(self, action, text_area):
-        """File menu drop down handler""" 
-
-        # open a file       
-        if action == "open":
-            file = filedialog.askopenfilename(filetypes = self.file_types)
-            self.window.title(self.title + ' - ' + file)
-            self.currentPath = file
-        
-            with open(file, 'r') as f:
-                text_area.delete(1.0,END)
-                text_area.insert(INSERT, f.read())
-        
-        # Create a new file
-        elif action == "new":
-            self.currentPath = self.no_file_opened_str
-            text_area.delete(1.0, END)
-            self.window.title(self.title + ' - ' + self.currentPath)
-
-        # Save file
-        elif action == "save" or action == "saveAs":
-            if self.currentPath == self.no_file_opened_str or action =='saveAs':
-                self.currentPath = filedialog.asksaveasfilename(
-                        defaultextension=".txt",
-                        filetypes= self.file_types
-                    )
-            with open(self.currentPath, 'w') as f:
-                f.write(text_area.get('1.0','end'))
-            self.window.title(self.title + ' - ' + self.currentPath)
-
-
     def _view_drop_handler(self, action, text_area):
         """View menu drop down handler"""
 
@@ -135,17 +100,6 @@ class Main:
 
         # Create Menu widget
         menu = self.menu
-
-        # Create File cascade
-        file_dropdown = Menu(menu, tearoff=False)
-
-        file_dropdown.add_command(label="New", command=lambda: self._file_drop_handler('new',self.text))
-        file_dropdown.add_command(label="Open", command=lambda: self._file_drop_handler('open',self.text))
-
-        file_dropdown.add_separator()
-        file_dropdown.add_command(label="Save", command=lambda: self._file_drop_handler('save',self.text))
-        file_dropdown.add_command(label="Save as", command=lambda: self._file_drop_handler('saveAs',self.text))
-        #menu.add_cascade(label='File', menu=file_dropdown)
 
         # Create View cascade (Woldie specfic functions)
         view_dropdown = Menu(menu, tearoff=False)
