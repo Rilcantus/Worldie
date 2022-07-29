@@ -4,7 +4,10 @@
         "Age ",
         "Job",
         "Relationship",
-        "Computer skill"
+        "Computer skill",
+        "Joke skills",
+        "Employer",
+        "Height"
     ],
     "World": [
         "Name: XeroX",
@@ -12,5 +15,10 @@
         "Overview",
         "Atmosphere",
         "Lifeforms"
+    ],
+    "Spaceship": [
+        "Name",
+        "Size",
+        "Engine"
     ]
 }

@@ -12,12 +12,14 @@ class JsonHand:
         self.current_json = {}
         self.converted = {}
         self.compared = {}
+    
 
+    def export_data(self):
         self._pull()
         self._covert()
         self._compare()
         self._push()
-    
+
     def _pull(self):
         # pull data from .json file
         try:
@@ -36,7 +38,13 @@ class JsonHand:
     def _compare(self):
         # check stored list to the incoming list and add only new info(keys)
         if self.title in self.current_json:
-            print("yes")
+            for key in self.converted[self.title]:
+                if key not in self.current_json[self.title]:
+                    self.compared = self.current_json[self.title].copy()
+                    self.compared.append(key)
+                    self.compared = {self.title : self.compared}
+                    print(self.compared)
+                 
         elif self.title not in self.current_json:
             print("no {}".format(self.title))
             self.compared = self.converted 

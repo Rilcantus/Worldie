@@ -13,9 +13,9 @@ class ExportData:
 
     def _load_json(self):
         name = input('Name of work-> ')
-        JsonHand(name, self.keys[:])
+        loaded = JsonHand(name, self.keys[:])
+        loaded.export_data()
         
-
     def _find_keys(self):
         items = self.data.split('\n')
         for line in items:
