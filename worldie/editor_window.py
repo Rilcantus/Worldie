@@ -3,6 +3,8 @@ import tkinter as tk
 from backend.menu_setup import File_Drop, View_Drop
 
 
+"""This module is what sets up the initial look for the browser, this is UI portion"""
+
 class Main:
     """Main view for Worldie"""
     def __init__(self, title, tk_root, text_root, menu_root):

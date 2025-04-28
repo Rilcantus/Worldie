@@ -31,7 +31,7 @@ class Menu_Setup():
 
     def _file_drop_handler(self, action, text_area):
         """File menu drop down handler""" 
-        # open a file       
+        # Open a file       
         if action == "open":
             file = filedialog.askopenfilename(filetypes = self.file_types)
             self.window.title(self.title + ' - ' + file)
