@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from menu_setup import File_Drop, View_Drop
+from backend.menu_setup import File_Drop, View_Drop
 
 
 class Main:

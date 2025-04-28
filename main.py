@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import Menu, scrolledtext
-from editor_window import Main
+from worldie.editor_window import Main
 
 
 class Worldie:
