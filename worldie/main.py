@@ -15,6 +15,6 @@ class Worldie:
 
  
 
-app = Worldie('Worlie')
+app = Worldie('Worldie')
 app = Main(app.title, app.worldie, app.text_area, app.worldie_menu)
 

@@ -3,7 +3,7 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 
-from export_view import ExportData
+#from export_view import ExportData
 
 class Menu_Setup():
     """Class to create menu bar at top of tkinter"""
@@ -58,13 +58,13 @@ class Menu_Setup():
                 f.write(text_area.get('1.0','end'))
             self.window.title(self.title + ' - ' + self.currentPath)                
 
-        
-    def _view_drop_handler(self, action, text_area):
-        """View menu drop down handler"""
-        # export text from text_area
-        if action == 'export':
-            text = text_area.get('1.0','end')
-            data = ExportData(text)
+    ### old Export view, swapping to sql
+    ### def _view_drop_handler(self, action, text_area):
+    ###    """View menu drop down handler"""
+    ###    # export text from text_area
+    ###    if action == 'export':
+    ###        text = text_area.get('1.0','end')
+    ###        data = ExportData(text)
 
 
 class File_Drop(Menu_Setup):

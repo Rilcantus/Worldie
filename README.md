@@ -5,7 +5,7 @@
 
     example:
 
-    i create a sword "Blade of Code" it was made by XYZ on planet ABC. it was wused by PEOPLE. PERSON currently has it.
+    i create a sword "Blade of Code" it was made by XYZ on planet ABC. it was used by PEOPLE. PERSON currently has it.
 
     the blade of code is the current work im working on
 
@@ -33,7 +33,7 @@
     
     - ORM database
         - the database will house each work, description of each element. 
-        - connections witll be based off of using the names of nouns in your data base
+        - connections will be based off of using the names of nouns in your data base
         - visualize connections between items
 
     - Web Applicaiton
