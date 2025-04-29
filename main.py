@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import Menu, scrolledtext
 from worldie.editor_window import Main
+from db.db_manager import init_db
 
 
 class Worldie:
@@ -17,4 +18,7 @@ class Worldie:
 
 app = Worldie('Worldie')
 app = Main(app.title, app.worldie, app.text_area, app.worldie_menu)
+
+# start db
+init_db()
 

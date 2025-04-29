@@ -24,7 +24,7 @@ class Main:
 
         self.window.title(f"{self.title}")
         self.window.rowconfigure(0, minsize=600, weight=1)
-        self.window.columnconfigure(1, minsize=600, weight=1)
+        self.window.columnconfigure(1, minsize=1000, weight=1)
 
     def _setup_main_text(self):
         """Create Main text area"""
@@ -32,14 +32,21 @@ class Main:
         txt_edit = self.text
         txt_edit.grid(row=0, column=1, sticky="nsew")
 
-    def _setup_main_frame(self):
-        """Create Main frame area on left side of text"""
+    ### old set up for sidebar. using new method.
+    ### def _setup_main_frame(self):
+    ###    """Create Main frame area on left side of text"""
+    ###
+    ###    frm_connections = tk.Frame(self.window, bd=2)
+    ###    lbl_connections = tk.Label(frm_connections, text="Connections..", bd=2)
+    ###
+    ###    frm_connections.grid(row=0, column=0, sticky="ns")
+    ###   lbl_connections.grid(row=0, column=0, sticky="n")
 
-        frm_connections = tk.Frame(self.window, bd=2)
-        lbl_connections = tk.Label(frm_connections, text="Connections..", bd=2)
+    def _setup_sidebar(self):
+        sidebar = tk.Frame(self.window, width=250, bg="#333")
+        sidebar.grid(row=0, column=0, sticky='ns')
+        sidebar.grid_propagate(False)
 
-        frm_connections.grid(row=0, column=0, sticky="ns")
-        lbl_connections.grid(row=0, column=0, sticky="n")
 
     def _setup_main_menu(self):
         """Create Main top meny widget"""
@@ -79,7 +86,8 @@ class Main:
         
         self._setup_main_window()
         self._setup_main_text()
-        self._setup_main_frame()
+        # self._setup_main_frame()
+        self._setup_sidebar()
         self._setup_main_menu()
 
         self.window.config(menu=self.menu)
