@@ -1,3 +1,11 @@
 __pycache__/
+*.py[cod]
 venv/
 db_json_old/
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/.cargo/
+.env
+db/*.db
+projects/

@@ -1,0 +1,106 @@
+import { useEffect, useMemo, useState } from "react";
+import { listProjectLoreTypes, saveProjectLoreTypes } from "../lib/data";
+import {
+  getDefaultLoreTypeId,
+  slugifyLoreTypeName,
+  sortLoreTypes,
+  type LoreType,
+} from "../lib/loreTypes";
+
+export function useLoreTypes(activeProjectId: string | null) {
+  const [loreTypes, setLoreTypes] = useState<LoreType[]>([]);
+  const sortedLoreTypes = useMemo(() => sortLoreTypes(loreTypes), [loreTypes]);
+  const [selectedLoreTypeId, setSelectedLoreTypeId] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!activeProjectId) {
+      setLoreTypes([]);
+      setHasLoaded(false);
+      return;
+    }
+    setHasLoaded(false);
+    void listProjectLoreTypes(activeProjectId)
+      .then((loaded) => {
+        setLoreTypes(loaded);
+        setHasLoaded(true);
+      })
+      .catch(() => {
+        setLoreTypes([]);
+        setHasLoaded(false);
+      });
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!activeProjectId || !hasLoaded) return;
+    void saveProjectLoreTypes(activeProjectId, loreTypes).catch(() => undefined);
+  }, [activeProjectId, hasLoaded, loreTypes]);
+
+  useEffect(() => {
+    if (selectedLoreTypeId && sortedLoreTypes.some((type) => type.id === selectedLoreTypeId)) return;
+    setSelectedLoreTypeId(getDefaultLoreTypeId(sortedLoreTypes));
+  }, [selectedLoreTypeId, sortedLoreTypes]);
+
+  const selectedLoreType = useMemo(
+    () => sortedLoreTypes.find((type) => type.id === selectedLoreTypeId) ?? null,
+    [selectedLoreTypeId, sortedLoreTypes],
+  );
+
+  const createLoreType = () => {
+    const nextType: LoreType = {
+      id: crypto.randomUUID(),
+      name: "New Lore Type",
+      slug: slugifyLoreTypeName("New Lore Type"),
+      order: loreTypes.length,
+      isSystem: false,
+    };
+    setLoreTypes((prev) => sortLoreTypes([...prev, nextType]).map((type, index) => ({ ...type, order: index })));
+    setSelectedLoreTypeId(nextType.id);
+    return nextType;
+  };
+
+  const updateLoreType = (loreTypeId: string, updates: Partial<Omit<LoreType, "id" | "isSystem">>) => {
+    setLoreTypes((prev) =>
+      prev.map((type) => {
+        if (type.id !== loreTypeId) return type;
+        const name = updates.name ?? type.name;
+        return {
+          ...type,
+          ...updates,
+          name,
+          slug: updates.slug ? slugifyLoreTypeName(updates.slug) : slugifyLoreTypeName(name),
+        };
+      }),
+    );
+  };
+
+  const deleteLoreType = (loreTypeId: string) => {
+    setLoreTypes((prev) =>
+      sortLoreTypes(prev.filter((type) => type.id !== loreTypeId)).map((type, index) => ({ ...type, order: index })),
+    );
+  };
+
+  const moveLoreType = (loreTypeId: string, direction: -1 | 1) => {
+    setLoreTypes((prev) => {
+      const ordered = sortLoreTypes(prev);
+      const index = ordered.findIndex((type) => type.id === loreTypeId);
+      const targetIndex = index + direction;
+      if (index === -1 || targetIndex < 0 || targetIndex >= ordered.length) return prev;
+      const next = [...ordered];
+      const [moved] = next.splice(index, 1);
+      next.splice(targetIndex, 0, moved);
+      return next.map((type, order) => ({ ...type, order }));
+    });
+  };
+
+  return {
+    loreTypes: sortedLoreTypes,
+    selectedLoreTypeId,
+    selectedLoreType,
+    setSelectedLoreTypeId,
+    createLoreType,
+    updateLoreType,
+    deleteLoreType,
+    moveLoreType,
+  };
+}

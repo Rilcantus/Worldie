@@ -1,63 +1,132 @@
-# Worldie App
-    This will become a world buidling social applicaiton. Users are able to create different works. while producing works they are able to create others for later use. 
+# Worldie
 
-    instead of keeping worlds and races on paper, this will allow users to visualize connections. these connections will be able to show when someone used and item and its "history"
+Offline-first desktop app for building fictional worlds.
 
-    example:
+## Current Status
 
-    i create a sword "Blade of Code" it was made by XYZ on planet ABC. it was used by PEOPLE. PERSON currently has it.
+Worldie is now a working desktop MVP with real project files, structured worldbuilding tools, and project-scoped persistence. The app is no longer a static scaffold or browser-only mockup.
 
-    the blade of code is the current work im working on
+Current implemented features:
 
-    -   XYZ is someone who made it, i can give them a name and a few traits at this time
-    -   ABC is a world, quick create a name and give some traits
-    -   PEOPLE and PERSON are who have used it and have it. these would be connected to other works made
+- `.worldie` project file creation, opening, and save-as flows
+- Recent projects and current project file awareness
+- Project CRUD
+- World CRUD
+- Document CRUD
+- Lore item CRUD
+- Lore template CRUD
+- Lore type CRUD with user-defined categories
+- Relationship CRUD
+- Timeline event CRUD
+- Dynamic tab bar with persisted tabs
+- Workbench dashboard view
+- Sidebar-driven workspace navigation
+- Resizable and collapsible panels
+- Search and quick-open across current-world documents and lore
+- Demo project generation with seeded sample data
+- Wiki-style `[[Lore Links]]` insertion
+- Linked lore detection
+- Clickable lore links in editor preview
+- Document folder organization
 
+## Current Limitations
 
-# Overview:
-    this application has 4 unique featues. each will be built in phases
-    
-    - Custom text editor
-        - Worldie text editror will be cutomer made to allow various functions
-        - normal text editor procedures (new file, open, save, save as)
-        - searchs string for already created works in database and adds connections
-        - forms need to be dynamic
+The app is still in MVP transition, not final production shape.
 
-    - Works
-        - Bread and butter of Worldie
-        - Each work is a unique noun that the user creates.
-        - works will be produced from forms created
-        - templates will be generic
-        - dynamic works allow return attributes of parent work 
-       
-    
-    - ORM database
-        - the database will house each work, description of each element. 
-        - connections will be based off of using the names of nouns in your data base
-        - visualize connections between items
+Known gaps:
 
-    - Web Applicaiton
-        - this will end up being hosted on a web applicaiton
-        - pages will house each work
-        - connection/ visualize to be able to better see connections
+- The editor uses a custom contenteditable path, not TipTap yet
+- Relationship view is a richer workspace now, but not a full interactive graph map
+- Timeline view is a richer workspace now, but not a full multi-track timeline visualization
+- Cover image support is still missing
+- The editor still needs broader real-world reliability testing
+- Export and publishing flows are still not implemented
+- Some long-term project data flows are still being refined around portability and future export
 
-# Phases
-    Each phase will complete a differnt function of the worldie app
+## MVP Scope
 
-    - Phase 0: Creating Base for data dump
+Current MVP direction:
 
-    - Phase 1: Data dump
-        - this phases is need to gather raw keys from users. when users create works, what are the traits? ex. Name, Title, Job, Weapons, Feel. 
+- Project file management
+- World management
+- Basic writing editor
+- Lore item CRUD
+- Lore template CRUD
+- Lore type management
+- Relationship CRUD
+- Timeline CRUD
+- Local SQLite-backed persistence
+- Sidebar navigation
+- Workbench
+- Search and quick-open
 
-        - once gathered need to find the most common for each work type(world, race, nouns)
+## Architecture Direction
 
-        - create forms based off each work
+Target product direction:
 
-    - Phase 2: Structured dump
-        - Use the forms and current use of JSON to create tables
-        
-        - Use SQLAlchemy to create ORM database
+- Tauri desktop shell
+- React frontend
+- Python sidecar for file/export operations
+- SQLite-backed portable `.worldie` files
 
-        - Use Postgre for actual storage
+Current reality:
 
-        - this phase will be used to test the forms and the returned data. once simulated then need to create storage. SQL and POSTGRE will be used. need to find a way for this to be used by others. (start of small web app?)
+- React app with Tauri-oriented structure
+- Python sidecar handling project-file and persistence operations
+- Portable per-project `.worldie` SQLite files as the main storage boundary
+- Project data persists through `.worldie` files, while UI/session state stays local to the app
+
+## Run
+
+After installing dependencies:
+
+1. `npm install`
+2. `npm run dev`
+3. `npm run tauri dev`
+
+Quick verification:
+
+1. `npm run verify`
+
+## Data Model
+
+The current data model centers on these entities:
+
+- `projects`
+- `worlds`
+- `lore_pages`
+- `documents`
+- `relationships`
+- `timeline_events`
+- `lore_types`
+- `lore_templates`
+
+Notes:
+
+- IDs remain UUID-based
+- Rich content stays JSON-friendly where needed
+- Each project is intended to live in a single portable `.worldie` SQLite database
+
+## Where The Build Is Going
+
+Near-term roadmap:
+
+1. Push the editor toward a richer long-term editing model
+2. Improve relationship visualization beyond the current network workspace
+3. Improve timeline visualization beyond the current narrative timeline workspace
+4. Add cover image/media support
+5. Strengthen export and publishing boundaries for future Spaci integration
+6. Add broader verification coverage beyond typecheck/build smoke
+
+Longer-term direction:
+
+- Graph-based relationship map
+- Richer timeline visualization
+- Export bundles for Spaci
+- Better publishing/export pipeline
+
+## Philosophy
+
+Worldie should feel like:
+
+"Obsidian and Scrivener built specifically for fantasy world-building."
