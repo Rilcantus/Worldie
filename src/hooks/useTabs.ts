@@ -40,16 +40,19 @@ export function useTabs({
   const [activeTabId, setActiveTabId] = useState("workbench");
   const [tabsProjectId, setTabsProjectId] = useState<string | null>(null);
   const pendingTabOpenId = useRef<string | null>(null);
+  const pendingWorldScopedTabId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!activeProjectId) {
       pendingTabOpenId.current = null;
+      pendingWorldScopedTabId.current = null;
       setTabs([WORKBENCH_TAB]);
       setActiveTabId("workbench");
       setTabsProjectId(null);
       return;
     }
     pendingTabOpenId.current = null;
+    pendingWorldScopedTabId.current = null;
     setTabsProjectId(null);
     const next = loadProjectTabs(activeProjectId);
     if (next?.tabs?.length) {
@@ -79,6 +82,7 @@ export function useTabs({
       const next = prev.filter((tab) => !tab.worldId || worldIds.includes(tab.worldId));
       if (!next.some((tab) => tab.id === activeTabId)) {
         pendingTabOpenId.current = null;
+        pendingWorldScopedTabId.current = null;
       }
       return next.length > 0 ? next : [WORKBENCH_TAB];
     });
@@ -110,6 +114,19 @@ export function useTabs({
   }, [activeWorldId, allLorePages, documents, onSelectDocument, onSelectLorePage, resolveLoreTypeId, tabs]);
 
   useEffect(() => {
+    const pendingId = pendingWorldScopedTabId.current;
+    if (!pendingId) return;
+    const tab = tabs.find((item) => item.id === pendingId);
+    if (!tab) {
+      pendingWorldScopedTabId.current = null;
+      return;
+    }
+    if ((tab.kind === "rels" || tab.kind === "timeline") && tab.worldId === activeWorldId) {
+      pendingWorldScopedTabId.current = null;
+    }
+  }, [activeWorldId, tabs]);
+
+  useEffect(() => {
     if (!activeDocumentId) return;
     const id = `doc:${activeDocumentId}`;
     const label = activeDocumentTitle || "Untitled Document";
@@ -128,7 +145,12 @@ export function useTabs({
 
   useEffect(() => {
     if (!activeTab || tabsProjectId !== activeProjectId) return;
-    if ((activeTab.kind === "rels" || activeTab.kind === "timeline") && activeTab.worldId && activeTab.worldId !== activeWorldId) {
+    if (
+      pendingWorldScopedTabId.current === activeTab.id &&
+      (activeTab.kind === "rels" || activeTab.kind === "timeline") &&
+      activeTab.worldId &&
+      activeTab.worldId !== activeWorldId
+    ) {
       setActiveWorldId(activeTab.worldId);
       return;
     }
@@ -242,6 +264,7 @@ export function useTabs({
   const handleTabSelect = (tab: TabItem) => {
     setActiveTabId(tab.id);
     if ((tab.kind === "rels" || tab.kind === "timeline") && tab.worldId && tab.worldId !== activeWorldId) {
+      pendingWorldScopedTabId.current = tab.id;
       setActiveWorldId(tab.worldId);
       return;
     }
