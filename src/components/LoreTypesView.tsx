@@ -97,17 +97,21 @@ export function LoreTypesView({
           <div className="lore-panel-header">
             <div className="linked-lore-label">All Lore Types</div>
           </div>
-          {loreTypes.map((type) => (
-            <button
-              key={type.id}
-              className={`template-list-item ${type.id === selectedLoreType?.id ? "active" : ""}`}
-              type="button"
-              onClick={() => onSelectLoreType(type.id)}
-            >
-              <span>{type.name}</span>
-              <span className="template-list-meta">{type.isSystem ? "System" : "User"}</span>
-            </button>
-          ))}
+          {loreTypes.length === 0 ? (
+            <div className="rp-empty">No lore types yet. Create one to start structuring lore.</div>
+          ) : (
+            loreTypes.map((type) => (
+              <button
+                key={type.id}
+                className={`template-list-item ${type.id === selectedLoreType?.id ? "active" : ""}`}
+                type="button"
+                onClick={() => onSelectLoreType(type.id)}
+              >
+                <span>{type.name}</span>
+                <span className="template-list-meta">{type.isSystem ? "System" : "User"}</span>
+              </button>
+            ))
+          )}
         </div>
 
         <div className="templates-editor">
@@ -213,7 +217,11 @@ export function LoreTypesView({
                 )}
               </div>
             </>
-          ) : null}
+          ) : (
+            <div className="lore-panel">
+              <div className="rp-empty">Select a lore type to edit it, or create a new one.</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
