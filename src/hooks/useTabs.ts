@@ -51,6 +51,8 @@ export function useTabs({
   const [tabsProjectId, setTabsProjectId] = useState<string | null>(null);
   const pendingTabOpenId = useRef<string | null>(null);
   const pendingWorldScopedTabId = useRef<string | null>(null);
+  const documentsById = useMemo(() => new Map(documents.map((item) => [item.id, item])), [documents]);
+  const lorePagesById = useMemo(() => new Map(allLorePages.map((item) => [item.id, item])), [allLorePages]);
 
   const clearPendingTabRefs = useCallback((tabId?: string) => {
     if (!tabId || pendingTabOpenId.current === tabId) {
@@ -125,21 +127,21 @@ export function useTabs({
       return;
     }
     if (tab.kind === "editor" && tab.refId) {
-      const doc = documents.find((item) => item.id === tab.refId);
+      const doc = documentsById.get(tab.refId);
       if (!doc) return;
       pendingTabOpenId.current = null;
       onSelectDocument(doc);
       return;
     }
     if (tab.kind === "lore" && tab.refId) {
-      const page = allLorePages.find((item) => item.id === tab.refId);
+      const page = lorePagesById.get(tab.refId);
       if (!page) return;
       pendingTabOpenId.current = null;
       onSelectLorePage(page, resolveLoreTypeId(page));
       return;
     }
     pendingTabOpenId.current = null;
-  }, [activeWorldId, allLorePages, documents, onSelectDocument, onSelectLorePage, resolveLoreTypeId, tabs]);
+  }, [activeWorldId, documentsById, lorePagesById, onSelectDocument, onSelectLorePage, resolveLoreTypeId, tabs]);
 
   useEffect(() => {
     const pendingId = pendingWorldScopedTabId.current;
@@ -224,7 +226,7 @@ export function useTabs({
         return;
       }
       if (activeDocumentId === activeTab.refId) return;
-      const doc = documents.find((item) => item.id === activeTab.refId);
+      const doc = documentsById.get(activeTab.refId);
       if (doc) onSelectDocument(doc);
       return;
     }
@@ -235,7 +237,7 @@ export function useTabs({
         return;
       }
       if (activeLoreId === activeTab.refId) return;
-      const page = allLorePages.find((item) => item.id === activeTab.refId);
+      const page = lorePagesById.get(activeTab.refId);
       if (page) onSelectLorePage(page, resolveLoreTypeId(page));
     }
   }, [
@@ -244,8 +246,8 @@ export function useTabs({
     activeTab,
     activeProjectId,
     activeWorldId,
-    allLorePages,
-    documents,
+    documentsById,
+    lorePagesById,
     onSelectDocument,
     onSelectLorePage,
     resolveLoreTypeId,
@@ -402,7 +404,7 @@ export function useTabs({
         setActiveWorldId(tab.worldId);
         return;
       }
-      const doc = documents.find((item) => item.id === tab.refId);
+      const doc = documentsById.get(tab.refId);
       if (doc) onSelectDocument(doc);
     }
     if (tab.kind === "lore" && tab.refId) {
@@ -411,7 +413,7 @@ export function useTabs({
         setActiveWorldId(tab.worldId);
         return;
       }
-      const page = allLorePages.find((item) => item.id === tab.refId);
+      const page = lorePagesById.get(tab.refId);
       if (page) onSelectLorePage(page, resolveLoreTypeId(page));
     }
   }, [
@@ -419,8 +421,8 @@ export function useTabs({
     activeLoreId,
     activeTabId,
     activeWorldId,
-    allLorePages,
-    documents,
+    documentsById,
+    lorePagesById,
     onSelectDocument,
     onSelectLorePage,
     resolveLoreTypeId,
