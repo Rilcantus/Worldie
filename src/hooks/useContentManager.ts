@@ -157,6 +157,22 @@ export function useContentManager({
     },
     [orderedLoreTypes, resolveLoreTypeId],
   );
+  const collectLoreStats = useCallback(
+    (pages: LorePage[], activeTypeId: string | null) => {
+      const counts = Object.fromEntries(orderedLoreTypes.map((type) => [type.id, 0]));
+      const pagesForActiveType: LorePage[] = [];
+      for (const page of pages) {
+        const loreTypeId = resolveLoreTypeId(page);
+        if (!loreTypeId || !(loreTypeId in counts)) continue;
+        counts[loreTypeId] += 1;
+        if (activeTypeId && loreTypeId === activeTypeId) {
+          pagesForActiveType.push(page);
+        }
+      }
+      return { counts, pagesForActiveType };
+    },
+    [orderedLoreTypes, resolveLoreTypeId],
+  );
 
   const activeLoreType = getLoreType(activeLoreTypeId);
   const selectedLorePageType = getLoreType(lorePageTypeId);
@@ -346,7 +362,8 @@ export function useContentManager({
         const allPages = await listLorePages(activeProjectId, activeWorldId);
         if (requestId !== loreLoadRequestId.current) return;
         const currentTypeId = activeLoreTypeId ?? defaultLoreTypeId;
-        const pages = allPages.filter((page) => resolveLoreTypeId(page) === currentTypeId);
+        const { counts, pagesForActiveType } = collectLoreStats(allPages, currentTypeId);
+        const pages = pagesForActiveType;
         setAllLorePages(allPages);
         setLorePages(pages);
         setLoreLoadedWorldId(activeWorldId);
@@ -359,7 +376,6 @@ export function useContentManager({
         setLorePageTypeId(firstTypeId);
         markLoreSaved();
 
-        const counts = buildLoreTypeCounts(allPages);
         setWorlds((prev) =>
           prev.map((world) =>
             world.id === activeWorldId
@@ -751,8 +767,8 @@ export function useContentManager({
       }
     }
     if (activeWorldId) {
-      const counts = buildLoreTypeCounts(nextAll);
-      setWorlds((prev) =>
+        const counts = buildLoreTypeCounts(nextAll);
+        setWorlds((prev) =>
         prev.map((world) =>
           world.id === activeWorldId
             ? {
@@ -853,7 +869,8 @@ export function useContentManager({
     const updatesById = new Map(updates.map((page) => [page.id, page]));
     const nextAll = allLorePages.map((page) => updatesById.get(page.id) ?? page);
     const nextActiveLoreTypeId = activeLoreTypeId === fromLoreTypeId ? toLoreTypeId : (activeLoreTypeId ?? toLoreTypeId);
-    const nextPages = nextAll.filter((page) => resolveLoreTypeId(page) === nextActiveLoreTypeId);
+    const { counts, pagesForActiveType } = collectLoreStats(nextAll, nextActiveLoreTypeId);
+    const nextPages = pagesForActiveType;
     setAllLorePages(nextAll);
     setLorePages(nextPages);
     if (activeLoreTypeId === fromLoreTypeId) {
@@ -861,7 +878,6 @@ export function useContentManager({
     }
 
     if (activeWorldId) {
-      const counts = buildLoreTypeCounts(nextAll);
       setWorlds((prev) =>
         prev.map((world) =>
           world.id === activeWorldId
