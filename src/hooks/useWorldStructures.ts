@@ -448,40 +448,67 @@ export function useWorldStructures({
     timelineSaveState,
     timelineLastSavedAt,
     setRelationshipSourceId: (value: string) => {
-      setRelationshipSaveState("dirty");
-      setRelationshipSourceId(value);
+      setRelationshipSourceId((current) => {
+        if (current === value) return current;
+        setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setRelationshipTargetId: (value: string) => {
-      setRelationshipSaveState("dirty");
-      setRelationshipTargetId(value);
+      setRelationshipTargetId((current) => {
+        if (current === value) return current;
+        setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setRelationshipType: (value: string) => {
-      setRelationshipSaveState("dirty");
-      setRelationshipType(value);
+      setRelationshipType((current) => {
+        if (current === value) return current;
+        setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setRelationshipNotes: (value: string) => {
-      setRelationshipSaveState("dirty");
-      setRelationshipNotes(value);
+      setRelationshipNotes((current) => {
+        if (current === value) return current;
+        setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setTimelineTitle: (value: string) => {
-      setTimelineSaveState("dirty");
-      setTimelineTitle(value);
+      setTimelineTitle((current) => {
+        if (current === value) return current;
+        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setTimelineDate: (value: string) => {
-      setTimelineSaveState("dirty");
-      setTimelineDate(value);
+      setTimelineDate((current) => {
+        if (current === value) return current;
+        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setTimelineType: (value: string) => {
-      setTimelineSaveState("dirty");
-      setTimelineType(value);
+      setTimelineType((current) => {
+        if (current === value) return current;
+        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setTimelineLinkedPageId: (value: string) => {
-      setTimelineSaveState("dirty");
-      setTimelineLinkedPageId(value);
+      setTimelineLinkedPageId((current) => {
+        if (current === value) return current;
+        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setTimelineDescription: (value: string) => {
-      setTimelineSaveState("dirty");
-      setTimelineDescription(value);
+      setTimelineDescription((current) => {
+        if (current === value) return current;
+        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     selectRelationship,
     addRelationship,

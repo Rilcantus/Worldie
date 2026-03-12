@@ -869,32 +869,53 @@ export function useContentManager({
     resolveLoreTypeId,
     getLoreType,
     setDocumentTitle: (value: string) => {
-      setDocumentSaveState("dirty");
-      setDocumentTitle(value);
+      setDocumentTitle((current) => {
+        if (current === value) return current;
+        setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setDocumentContent: (value: string) => {
-      setDocumentSaveState("dirty");
-      setDocumentContent(value);
+      setDocumentContent((current) => {
+        if (current === value) return current;
+        setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setDocumentFolderPath: (value: string) => {
-      setDocumentSaveState("dirty");
-      setDocumentFolderPath(value);
+      setDocumentFolderPath((current) => {
+        if (current === value) return current;
+        setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setLoreTitle: (value: string) => {
-      setLoreSaveState("dirty");
-      setLoreTitle(value);
+      setLoreTitle((current) => {
+        if (current === value) return current;
+        setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setLoreTags: (value: string) => {
-      setLoreSaveState("dirty");
-      setLoreTags(value);
+      setLoreTags((current) => {
+        if (current === value) return current;
+        setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setLoreFields: (value: string) => {
-      setLoreSaveState("dirty");
-      setLoreFields(value);
+      setLoreFields((current) => {
+        if (current === value) return current;
+        setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setLorePageTypeId: (value: string | null) => {
-      setLoreSaveState("dirty");
-      setLorePageTypeId(value);
+      setLorePageTypeId((current) => {
+        if (current === value) return current;
+        setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+        return value;
+      });
     },
     setActiveLoreTypeId,
     selectDocument,
