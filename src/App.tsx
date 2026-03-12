@@ -84,6 +84,8 @@ export default function App() {
           activeNav={tabs.activeNav}
           activeLoreCategory={content.activeLoreTypeId ?? ""}
           recentProjects={projectWorlds.recentProjects}
+          isProjectBusy={projectWorlds.isProjectActionPending}
+          projectStatusMessage={projectWorlds.projectActionState.message}
           onProjectDraftChange={projectWorlds.setProjectDraft}
           onCommitProjectTitle={projectWorlds.commitProjectTitle}
           onCancelProjectEdit={sidebarActions.cancelProjectEdit}
@@ -268,6 +270,8 @@ export default function App() {
           <div className="main-content">
             <StartScreen
               recentProjects={projectWorlds.recentProjects}
+              isBusy={projectWorlds.isProjectActionPending}
+              statusMessage={projectWorlds.projectActionState.message}
               onNewProject={projectFileActions.addProject}
               onOpenProject={projectFileActions.openProject}
               onOpenRecentProject={projectFileActions.openRecentProject}

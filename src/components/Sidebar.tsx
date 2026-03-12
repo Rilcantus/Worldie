@@ -19,6 +19,8 @@ type SidebarProps = {
   activeNav: string;
   activeLoreCategory: string;
   recentProjects: Project[];
+  isProjectBusy: boolean;
+  projectStatusMessage: string;
   onProjectDraftChange: (value: string) => void;
   onCommitProjectTitle: () => void;
   onCancelProjectEdit: () => void;
@@ -62,6 +64,8 @@ export function Sidebar({
   activeNav,
   activeLoreCategory,
   recentProjects,
+  isProjectBusy,
+  projectStatusMessage,
   onProjectDraftChange,
   onCommitProjectTitle,
   onCancelProjectEdit,
@@ -100,7 +104,12 @@ export function Sidebar({
         <div className="project-header-top">
           <div className="project-label">Current Project</div>
           <div className="project-header-actions">
-            <button className="project-menu-button" type="button" onClick={() => setIsProjectMenuOpen((current) => !current)}>
+            <button
+              className="project-menu-button"
+              type="button"
+              disabled={isProjectBusy}
+              onClick={() => setIsProjectMenuOpen((current) => !current)}
+            >
               Project
             </button>
             <button className="panel-toggle" type="button" onClick={onCollapse} title="Collapse sidebar (Ctrl+1)">
@@ -130,31 +139,32 @@ export function Sidebar({
           )}
           <div className="project-subtitle">{activeWorld ? activeWorld.name : "Open a project and start building"}</div>
           <div className="project-path">{getProjectFilename(activeProject ?? { title: projectTitle, filepath: undefined })}</div>
+          {projectStatusMessage ? <div className="project-status-line">{projectStatusMessage}</div> : null}
         </div>
 
         {isProjectMenuOpen ? (
           <div className="project-menu">
-            <button className="project-menu-item" type="button" onClick={() => { setIsProjectMenuOpen(false); onAddProject(); }}>
+            <button className="project-menu-item" type="button" disabled={isProjectBusy} onClick={() => { setIsProjectMenuOpen(false); onAddProject(); }}>
               New Project
             </button>
-            <button className="project-menu-item" type="button" onClick={() => { setIsProjectMenuOpen(false); onOpenProject(); }}>
+            <button className="project-menu-item" type="button" disabled={isProjectBusy} onClick={() => { setIsProjectMenuOpen(false); onOpenProject(); }}>
               Open Project
             </button>
             <button
               className="project-menu-item"
               type="button"
-              disabled={!activeProjectId}
+              disabled={!activeProjectId || isProjectBusy}
               onClick={() => { setIsProjectMenuOpen(false); onSaveProjectAs(); }}
             >
               Save As
             </button>
-            <button className="project-menu-item" type="button" onClick={() => { setIsProjectMenuOpen(false); onAddDemoProject(); }}>
+            <button className="project-menu-item" type="button" disabled={isProjectBusy} onClick={() => { setIsProjectMenuOpen(false); onAddDemoProject(); }}>
               New Demo Project
             </button>
             <button
               className="project-menu-item danger"
               type="button"
-              disabled={!activeProjectId}
+              disabled={!activeProjectId || isProjectBusy}
               onClick={() => { setIsProjectMenuOpen(false); onRemoveProject(); }}
             >
               Delete Project
@@ -169,6 +179,7 @@ export function Sidebar({
                   key={project.id}
                   className={`project-menu-item project-menu-recent ${project.id === activeProjectId ? "active" : ""}`}
                   type="button"
+                  disabled={isProjectBusy}
                   onClick={() => {
                     setIsProjectMenuOpen(false);
                     onOpenRecentProject(project.id);
@@ -325,6 +336,7 @@ export function Sidebar({
                 className={`recent-project-row ${project.id === activeProjectId ? "active" : ""}`}
                 type="button"
                 key={project.id}
+                disabled={isProjectBusy}
                 onClick={() => onOpenRecentProject(project.id)}
                 title={project.filepath ?? undefined}
               >
