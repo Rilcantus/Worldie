@@ -13,7 +13,7 @@ import {
 } from "../lib/data";
 import { createTraitsFromTemplate, parseLoreItemFields, stringifyLoreItemFields } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
-import { getDefaultLoreTypeId, getLoreTypeByName, sortLoreTypes, type LoreType } from "../lib/loreTypes";
+import { getDefaultLoreTypeId, slugifyLoreTypeName, sortLoreTypes, type LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
 
 type UseContentManagerArgs = {
@@ -52,6 +52,20 @@ export function useContentManager({
   showToast,
 }: UseContentManagerArgs) {
   const orderedLoreTypes = useMemo(() => sortLoreTypes(loreTypes), [loreTypes]);
+  const loreTypesById = useMemo(
+    () => new Map(orderedLoreTypes.map((type) => [type.id, type])),
+    [orderedLoreTypes],
+  );
+  const loreTypesByNormalizedName = useMemo(
+    () =>
+      new Map(
+        orderedLoreTypes.flatMap((type) => [
+          [type.name.trim().toLowerCase(), type],
+          [type.slug, type],
+        ]),
+      ),
+    [orderedLoreTypes],
+  );
   const defaultLoreTypeId = orderedLoreTypes[0]?.id ?? null;
   const docsLoadRequestId = useRef(0);
   const loreLoadRequestId = useRef(0);
@@ -117,15 +131,19 @@ export function useContentManager({
 
   const resolveLoreTypeId = useCallback((page: LorePage) => {
     const parsed = parseLoreItemFields(page.fieldsJson);
-    if (parsed.loreTypeId && orderedLoreTypes.some((type) => type.id === parsed.loreTypeId)) {
+    if (parsed.loreTypeId && loreTypesById.has(parsed.loreTypeId)) {
       return parsed.loreTypeId;
     }
-    return getLoreTypeByName(orderedLoreTypes, page.type)?.id ?? defaultLoreTypeId;
-  }, [defaultLoreTypeId, orderedLoreTypes]);
+    return (
+      loreTypesByNormalizedName.get(page.type.trim().toLowerCase())?.id ??
+      loreTypesByNormalizedName.get(slugifyLoreTypeName(page.type))?.id ??
+      defaultLoreTypeId
+    );
+  }, [defaultLoreTypeId, loreTypesById, loreTypesByNormalizedName]);
 
   const getLoreType = useCallback(
-    (loreTypeId: string | null | undefined) => orderedLoreTypes.find((type) => type.id === loreTypeId) ?? null,
-    [orderedLoreTypes],
+    (loreTypeId: string | null | undefined) => (loreTypeId ? loreTypesById.get(loreTypeId) ?? null : null),
+    [loreTypesById],
   );
   const buildLoreTypeCounts = useCallback(
     (pages: LorePage[]) => {
