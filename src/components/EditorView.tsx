@@ -1142,6 +1142,9 @@ export function EditorView({
                 <span className="editor-edge-toggle-icon">&rsaquo;</span>
               </button>
             ) : null}
+          </div>
+
+          <div className="editor-collapsed-rail editor-collapsed-rail-right">
             {isRightPanelCollapsed ? (
               <button
                 className="editor-edge-toggle editor-edge-toggle-right"
