@@ -1,4 +1,4 @@
-import type { MouseEvent as ReactMouseEvent } from "react";
+import { memo, useCallback, type MouseEvent as ReactMouseEvent } from "react";
 import type { Document, LorePage, Relationship, TimelineEvent } from "../lib/data";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { LoreType } from "../lib/loreTypes";
@@ -154,7 +154,7 @@ type MainContentProps = {
   onStartRightPanelResize: (event: ReactMouseEvent<HTMLDivElement>) => void;
 };
 
-export function MainContent(props: MainContentProps) {
+export const MainContent = memo(function MainContent(props: MainContentProps) {
   const contextPanelModel = useContextPanelModel({
     activeNav: props.activeNav,
     activeWorld: props.activeWorld,
@@ -183,6 +183,14 @@ export function MainContent(props: MainContentProps) {
     recentDocuments: props.recentDocuments,
     recentLorePages: props.recentLorePages,
   });
+
+  const handleOpenLauncherDocument = useCallback(() => {
+    if (props.documents[0]) {
+      props.onOpenDocument(props.documents[0]);
+      return;
+    }
+    props.onAddDocument();
+  }, [props.documents, props.onAddDocument, props.onOpenDocument]);
 
   return (
     <div className="main-content">
@@ -218,7 +226,7 @@ export function MainContent(props: MainContentProps) {
               onExpandSidebar={props.onExpandSidebar}
               onExpandRightPanel={props.onExpandRightPanel}
               onOpenWorkbench={props.onOpenWorkbench}
-              onOpenDocument={() => (props.documents[0] ? props.onOpenDocument(props.documents[0]) : props.onAddDocument())}
+              onOpenDocument={handleOpenLauncherDocument}
               onOpenLore={props.onOpenLoreCreate}
               onOpenTemplates={props.onOpenTemplates}
               onOpenLoreTypes={props.onOpenLoreTypes}
@@ -433,4 +441,4 @@ export function MainContent(props: MainContentProps) {
       </div>
     </div>
   );
-}
+});
