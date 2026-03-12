@@ -146,7 +146,7 @@ export function useTabs({
   useEffect(() => {
     if (!activeTab || tabsProjectId !== activeProjectId) return;
     if (
-      pendingWorldScopedTabId.current === activeTab.id &&
+      (pendingWorldScopedTabId.current === activeTab.id || activeWorldId === null) &&
       (activeTab.kind === "rels" || activeTab.kind === "timeline") &&
       activeTab.worldId &&
       activeTab.worldId !== activeWorldId
