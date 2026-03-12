@@ -58,6 +58,32 @@ const areProjectsEqual = (left: Project[], right: Project[]) =>
     );
   });
 
+const areWorldsEqual = (left: WorldUI[], right: WorldUI[]) =>
+  left.length === right.length &&
+  left.every((world, index) => {
+    const other = right[index];
+    return (
+      !!other &&
+      world.id === other.id &&
+      world.name === other.name &&
+      world.color === other.color &&
+      world.isOpen === other.isOpen &&
+      world.editorCount === other.editorCount &&
+      world.loreCount === other.loreCount &&
+      world.loreCategories.length === other.loreCategories.length &&
+      world.loreCategories.every((category, categoryIndex) => {
+        const otherCategory = other.loreCategories[categoryIndex];
+        return (
+          !!otherCategory &&
+          category.id === otherCategory.id &&
+          category.label === otherCategory.label &&
+          category.count === otherCategory.count &&
+          category.isSystem === otherCategory.isSystem
+        );
+      })
+    );
+  });
+
 type UseProjectWorldsArgs = {
   confirmAction: (message: string) => Promise<boolean>;
   showToast: (message: string) => void;
@@ -112,6 +138,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setProjects((current) => (areProjectsEqual(current, nextProjects) ? current : nextProjects));
   };
 
+  const setWorldsIfChanged = (nextWorlds: WorldUI[]) => {
+    setWorlds((current) => (areWorldsEqual(current, nextWorlds) ? current : nextWorlds));
+  };
+
   const runProjectAction = async <T,>(
     status: Exclude<ProjectActionState["status"], "idle">,
     message: string,
@@ -133,19 +163,19 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       setActiveProjectId((current) => (current === null ? current : null));
       setProjectTitle((current) => (current === "No Project Open" ? current : "No Project Open"));
       setProjectDraft((current) => (current === "" ? current : ""));
-      setWorlds((current) => (current.length === 0 ? current : []));
+      setWorldsIfChanged([]);
       setActiveWorldId((current) => (current === null ? current : null));
       return false;
     }
     const isSameProjectActive = activeProjectId === project.id && worlds.length > 0;
-    setWorlds((current) => (current.length === 0 ? current : []));
-    setActiveWorldId((current) => (current === null ? current : null));
     setActiveProjectId((current) => (current === project.id ? current : project.id));
     setProjectTitle((current) => (current === project.title ? current : project.title));
     setProjectDraft((current) => (current === project.title ? current : project.title));
     if (isSameProjectActive) {
       return true;
     }
+    setWorldsIfChanged([]);
+    setActiveWorldId((current) => (current === null ? current : null));
     await hydrateWorlds(project.id);
     return true;
   };
@@ -168,14 +198,17 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
           loreCategories: buildLoreCategories(currentLoreTypesRef.current),
         },
       ];
-      setWorlds(initial);
-      setActiveWorldId(created.id);
+      setWorldsIfChanged(initial);
+      setActiveWorldId((current) => (current === created.id ? current : created.id));
       return;
     }
 
     const hydrated = hydrateWorldUi(storedWorlds, currentLoreTypesRef.current);
-    setWorlds(hydrated);
-    setActiveWorldId(hydrated[0]?.id ?? null);
+    setWorldsIfChanged(hydrated);
+    setActiveWorldId((current) => {
+      const nextActiveWorldId = hydrated[0]?.id ?? null;
+      return current === nextActiveWorldId ? current : nextActiveWorldId;
+    });
   };
 
   useEffect(() => {
