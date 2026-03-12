@@ -193,7 +193,6 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         world.id === id ? { ...world, isOpen: !world.isOpen } : world,
       ),
     );
-    setActiveWorldId(id);
   };
 
   const addWorld = () => {
