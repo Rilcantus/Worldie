@@ -13,7 +13,10 @@ export type EditorFormattingState = {
   heading1: boolean;
   heading2: boolean;
   list: boolean;
+  orderedList: boolean;
   quote: boolean;
+  noteBlock: boolean;
+  sceneBreak: boolean;
 };
 
 export type SlashCommandMatch = {
@@ -288,21 +291,47 @@ export function replaceRange(text: string, start: number, end: number, replaceme
   return text.slice(0, start) + replacement + text.slice(end);
 }
 
+function stripKnownLinePrefix(line: string) {
+  return line
+    .replace(/^>\s*Note:\s*/i, "")
+    .replace(/^\d+\.\s+/, "")
+    .replace(/^##\s+/, "")
+    .replace(/^#\s+/, "")
+    .replace(/^-\s+/, "")
+    .replace(/^>\s+/, "");
+}
+
+function getCurrentLinePrefix(line: string) {
+  const noteMatch = line.match(/^>\s*Note:\s*/i);
+  if (noteMatch) return noteMatch[0];
+
+  const orderedMatch = line.match(/^\d+\.\s+/);
+  if (orderedMatch) return orderedMatch[0];
+
+  return ["## ", "# ", "- ", "> "].find((prefix) => line.startsWith(prefix)) ?? "";
+}
+
 export function toggleLinePrefix(text: string, selection: SelectionOffsets, prefix: string) {
   const lineStart = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
   const lineEndCandidate = text.indexOf("\n", selection.end);
   const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
   const segment = text.slice(lineStart, lineEnd);
   const lines = segment.split("\n");
-  const everyLineHasPrefix = lines.every((line) => line.startsWith(prefix));
+  const isOrderedPrefix = prefix === "1. ";
+  const everyLineHasPrefix = lines.every((line, index) =>
+    isOrderedPrefix ? /^\d+\.\s+/.test(line) : line.startsWith(prefix),
+  );
 
   const updated = lines
-    .map((line) => {
-      const normalized = ["## ", "# ", "- ", "> "].reduce(
-        (current, marker) => (current.startsWith(marker) ? current.slice(marker.length) : current),
-        line,
-      );
-      return everyLineHasPrefix ? normalized : `${prefix}${normalized}`;
+    .map((line, index) => {
+      const normalized = stripKnownLinePrefix(line);
+      if (everyLineHasPrefix) {
+        return normalized;
+      }
+      if (isOrderedPrefix) {
+        return `${index + 1}. ${normalized}`;
+      }
+      return `${prefix}${normalized}`;
     })
     .join("\n");
 
@@ -326,14 +355,18 @@ export function continueBlockPrefix(text: string, selection: SelectionOffsets) {
   const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
   const currentLine = text.slice(lineStart, lineEnd);
 
-  const blockPrefix = ["- ", "> ", "## ", "# "].find((prefix) => currentLine.startsWith(prefix)) ?? "";
+  const orderedMatch = currentLine.match(/^(\d+)\.\s+/);
+  const blockPrefix = orderedMatch
+    ? `${Number.parseInt(orderedMatch[1], 10) + 1}. `
+    : ["- ", "> ", "## ", "# "].find((prefix) => currentLine.startsWith(prefix)) ?? "";
   if (!blockPrefix) {
     const nextText = replaceRange(text, selection.start, selection.end, "\n");
     const cursor = selection.start + 1;
     return { text: nextText, selection: { start: cursor, end: cursor } };
   }
 
-  const lineBody = currentLine.slice(blockPrefix.length);
+  const currentPrefixLength = orderedMatch ? orderedMatch[0].length : blockPrefix.length;
+  const lineBody = currentLine.slice(currentPrefixLength);
   if (lineBody.trim().length === 0) {
     const nextText = replaceRange(text, lineStart, lineEnd, "");
     const cursor = lineStart;
@@ -346,12 +379,149 @@ export function continueBlockPrefix(text: string, selection: SelectionOffsets) {
   return { text: nextText, selection: { start: cursor, end: cursor } };
 }
 
+export function clearCurrentLinePrefix(text: string, selection: SelectionOffsets) {
+  const lineStart = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
+  const lineEndCandidate = text.indexOf("\n", selection.end);
+  const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
+  const currentLine = text.slice(lineStart, lineEnd);
+  const currentPrefix = getCurrentLinePrefix(currentLine);
+
+  if (!currentPrefix) {
+    return null;
+  }
+
+  const nextLine = currentLine.slice(currentPrefix.length);
+  const nextText = replaceRange(text, lineStart, lineEnd, nextLine);
+  const nextStart = Math.max(lineStart, selection.start - currentPrefix.length);
+  const nextEnd = Math.max(nextStart, selection.end - currentPrefix.length);
+
+  return {
+    text: nextText,
+    selection: {
+      start: nextStart,
+      end: nextEnd,
+    },
+    lineStart,
+    contentStart: lineStart + currentPrefix.length,
+    prefix: currentPrefix,
+  };
+}
+
 export function countWords(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
 export function countCharacters(text: string) {
   return text.length;
+}
+
+export function normalizePastedText(text: string) {
+  const normalized = normalizeEditorText(text)
+    .replace(/\t/g, "  ")
+    .replace(/\u200b/g, "")
+    .replace(/\u2022|\u25cf|\u25e6/g, "- ")
+    .replace(/^[ \t]*[-*][ \t]+/gm, "- ")
+    .replace(/^[ \t]*(\d+)[\.\)][ \t]+/gm, "$1. ")
+    .replace(/^[ \t]*[>│|][ \t]?/gm, "> ")
+    .replace(/^[ \t]*(?:---|___|\*\*\*)[ \t]*$/gm, "* * *")
+    .replace(/\u00a0/g, " ");
+
+  return normalized
+    .split("\n")
+    .map((line) => line.replace(/\s+$/g, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+function serializeInlinePasteNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return normalizeEditorText(node.textContent ?? "");
+  }
+
+  if (!(node instanceof HTMLElement)) {
+    return "";
+  }
+
+  if (node.tagName === "BR") {
+    return "\n";
+  }
+
+  const content = Array.from(node.childNodes).map(serializeInlinePasteNode).join("");
+
+  if (node.tagName === "STRONG" || node.tagName === "B") return `**${content}**`;
+  if (node.tagName === "EM" || node.tagName === "I") return `_${content}_`;
+  if (node.tagName === "U") return `__${content}__`;
+
+  return content;
+}
+
+function serializeBlockPasteNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return normalizeEditorText(node.textContent ?? "");
+  }
+
+  if (!(node instanceof HTMLElement)) {
+    return "";
+  }
+
+  const tag = node.tagName;
+  const inlineContent = () => Array.from(node.childNodes).map(serializeInlinePasteNode).join("");
+  const childBlocks = () => Array.from(node.childNodes).map(serializeBlockPasteNode).join("");
+  const childBlockContent = (child: Element) => Array.from(child.childNodes).map(serializeBlockPasteNode).join("");
+  const clean = (text: string) =>
+    normalizePastedText(text)
+      .split("\n")
+      .map((line) => line.trim())
+      .join("\n")
+      .trim();
+
+  if (tag === "BR") return "\n";
+  if (tag === "HR") return "* * *\n\n";
+  if (tag === "H1") return `# ${clean(inlineContent())}\n\n`;
+  if (tag === "H2" || tag === "H3") return `## ${clean(inlineContent())}\n\n`;
+
+  if (tag === "UL") {
+    const items = Array.from(node.children)
+      .filter((child) => child.tagName === "LI")
+      .map((child) => `- ${clean(childBlockContent(child))}`);
+    return items.join("\n") + (items.length > 0 ? "\n\n" : "");
+  }
+
+  if (tag === "OL") {
+    const items = Array.from(node.children)
+      .filter((child) => child.tagName === "LI")
+      .map((child, index) => `${index + 1}. ${clean(childBlockContent(child))}`);
+    return items.join("\n") + (items.length > 0 ? "\n\n" : "");
+  }
+
+  if (tag === "BLOCKQUOTE") {
+    const quoted = clean(childBlocks());
+    if (!quoted) return "";
+    return (
+      quoted
+        .split("\n")
+        .map((line) => (line.trim() ? `> ${line}` : ">"))
+        .join("\n") + "\n\n"
+    );
+  }
+
+  if (["P", "DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER", "PRE"].includes(tag)) {
+    const content = clean(childBlocks());
+    return content ? `${content}\n\n` : "";
+  }
+
+  if (tag === "LI") {
+    return clean(childBlocks());
+  }
+
+  return childBlocks();
+}
+
+export function extractEditorTextFromHtml(html: string) {
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  const serialized = Array.from(container.childNodes).map(serializeBlockPasteNode).join("");
+  return normalizePastedText(serialized).trimEnd();
 }
 
 export function getSelectionText(text: string, selection: SelectionOffsets | null) {
@@ -387,7 +557,10 @@ export function getFormattingState(text: string, selection: SelectionOffsets | n
     heading1: line.startsWith("# "),
     heading2: line.startsWith("## "),
     list: line.startsWith("- "),
+    orderedList: /^\d+\.\s+/.test(line),
     quote: line.startsWith("> "),
+    noteBlock: /^>\s*Note:\s*/i.test(line),
+    sceneBreak: line.trim() === "* * *",
   };
 }
 
@@ -636,6 +809,18 @@ export function renderPreviewContent(
     }
 
     if (line.startsWith("> ")) {
+      const noteMatch = line.match(/^>\s*Note:\s*(.*)$/i);
+      if (noteMatch) {
+        blocks.push(
+          <div key={`note-${index}`} className="editor-preview-note">
+            <div className="editor-preview-note-label">Note</div>
+            <div className="editor-preview-note-body">
+              {renderInlinePreview(noteMatch[1], linkedLoreByTitle, onOpenLore, `note-${index}`)}
+            </div>
+          </div>,
+        );
+        return;
+      }
       blocks.push(
         <blockquote key={`quote-${index}`} className="editor-preview-quote">
           {renderInlinePreview(line.slice(2), linkedLoreByTitle, onOpenLore, `quote-${index}`)}

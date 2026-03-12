@@ -27,6 +27,8 @@ export function EditorSlashMenu({
       ref={slashMenuRef}
       className="editor-slash-menu-floating"
       style={{ top: slashMenuPosition.top, left: slashMenuPosition.left }}
+      role="listbox"
+      aria-label="Slash commands"
     >
       {filteredSlashCommands.length === 0 ? (
         <div className="editor-slash-empty">No matching commands.</div>
@@ -37,6 +39,8 @@ export function EditorSlashMenu({
               key={command.id}
               className={`editor-slash-item ${index === selectedSlashIndex ? "active" : ""}`}
               type="button"
+              role="option"
+              aria-selected={index === selectedSlashIndex}
               onMouseDown={(event) => {
                 event.preventDefault();
                 onApplySlashCommand(command.id);

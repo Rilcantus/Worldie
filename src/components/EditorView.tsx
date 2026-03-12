@@ -19,10 +19,12 @@ import { EditorToolbar } from "./EditorToolbar";
 import {
   appendTypewriterCommit,
   buildEditorDisplayRepresentation,
+  clearCurrentLinePrefix,
   continueBlockPrefix,
   countCharacters,
   countWords,
   displaySelectionToSource,
+  extractEditorTextFromHtml,
   findActiveInlinePairExit,
   findEmptyInlinePairAtCursor,
   findInlinePairAutoInsert,
@@ -31,6 +33,7 @@ import {
   getSelectionText,
   getSlashCommandMatch,
   normalizeEditorText,
+  normalizePastedText,
   renderPreviewContent,
   replaceRange,
   serializeEditorDom,
@@ -117,6 +120,7 @@ export function EditorView({
   const editorRef = useRef<HTMLDivElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const slashMenuRef = useRef<HTMLDivElement | null>(null);
+  const documentMenuRef = useRef<HTMLDivElement | null>(null);
   const pendingSelectionRef = useRef<SelectionOffsets | null>(null);
   const focusStateRef = useRef<{
     sidebarCollapsed: boolean;
@@ -156,6 +160,30 @@ export function EditorView({
   useEffect(() => {
     setIsDocumentMenuOpen(false);
   }, [activeDocumentId]);
+
+  useEffect(() => {
+    if (!isDocumentMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (documentMenuRef.current?.contains(target)) return;
+      setIsDocumentMenuOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsDocumentMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDocumentMenuOpen]);
 
   useEffect(() => {
     setTypewriterDraft("");
@@ -288,10 +316,22 @@ export function EditorView({
         keywords: ["list", "bullet", "items"],
       },
       {
+        id: "ordered-list",
+        label: "Numbered List",
+        description: "Start a numbered list",
+        keywords: ["list", "ordered", "numbered", "steps"],
+      },
+      {
         id: "quote",
         label: "Quote",
         description: "Insert a quote block",
         keywords: ["quote", "blockquote", "callout"],
+      },
+      {
+        id: "note-block",
+        label: "Note Block",
+        description: "Insert a highlighted note block",
+        keywords: ["note", "callout", "aside", "annotation"],
       },
       {
         id: "lore-link",
@@ -501,6 +541,14 @@ export function EditorView({
           insertion = "> ";
           cursorOffset = insertion.length;
           break;
+        case "note-block":
+          insertion = "> Note: ";
+          cursorOffset = insertion.length;
+          break;
+        case "ordered-list":
+          insertion = "1. ";
+          cursorOffset = insertion.length;
+          break;
         case "lore-link": {
           const linkText = `[[${selectedLorePage?.title ?? "Lore Page"}]]`;
           insertion = linkText;
@@ -537,10 +585,20 @@ export function EditorView({
 
   const handleEditorPaste = (event: ReactClipboardEvent<HTMLDivElement>) => {
     event.preventDefault();
-    const text = event.clipboardData.getData("text/plain");
+    const html = event.clipboardData.getData("text/html");
+    let text = html ? extractEditorTextFromHtml(html) : "";
+    if (!text) {
+      text = event.clipboardData.getData("text/plain");
+    }
+    if (!text && html) {
+      const temp = document.createElement("div");
+      temp.innerHTML = html;
+      text = temp.innerText || temp.textContent || "";
+    }
+    const normalizedText = normalizePastedText(text);
     applyEditorUpdate((content, selection) => {
-      const nextText = replaceRange(content, selection.start, selection.end, text);
-      const cursor = selection.start + text.length;
+      const nextText = replaceRange(content, selection.start, selection.end, normalizedText);
+      const cursor = selection.start + normalizedText.length;
       return { text: nextText, selection: { start: cursor, end: cursor } };
     });
   };
@@ -663,6 +721,16 @@ export function EditorView({
         }));
         return;
       }
+
+      const clearedLine = clearCurrentLinePrefix(activeEditorText, selection);
+      if (clearedLine && selection.start === clearedLine.contentStart) {
+        event.preventDefault();
+        applyEditorUpdate(() => ({
+          text: clearedLine.text,
+          selection: clearedLine.selection,
+        }));
+        return;
+      }
     }
 
     if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key === "[") {
@@ -711,6 +779,17 @@ export function EditorView({
         });
       }
     }
+
+    if (event.key === "Tab" && event.shiftKey && !isTypewriterMode) {
+      const clearedLine = clearCurrentLinePrefix(activeEditorText, selection);
+      if (clearedLine) {
+        event.preventDefault();
+        applyEditorUpdate(() => ({
+          text: clearedLine.text,
+          selection: clearedLine.selection,
+        }));
+      }
+    }
   };
 
   const insertLoreLink = () => {
@@ -728,6 +807,28 @@ export function EditorView({
 
   const applyLinePrefix = (prefix: string) => {
     applyEditorUpdate((content, selection) => toggleLinePrefix(content, selection, prefix));
+  };
+
+  const applyOrderedList = () => {
+    applyEditorUpdate((content, selection) => toggleLinePrefix(content, selection, "1. "));
+  };
+
+  const insertSceneBreak = () => {
+    applyEditorUpdate((content, selection) => {
+      const insertion = selection.start > 0 && content[selection.start - 1] !== "\n" ? "\n* * *\n" : "* * *\n";
+      const nextText = replaceRange(content, selection.start, selection.end, insertion);
+      const cursor = selection.start + insertion.length;
+      return { text: nextText, selection: { start: cursor, end: cursor } };
+    });
+  };
+
+  const insertNoteBlock = () => {
+    applyEditorUpdate((content, selection) => {
+      const insertion = selection.start > 0 && content[selection.start - 1] !== "\n" ? "\n> Note: " : "> Note: ";
+      const nextText = replaceRange(content, selection.start, selection.end, insertion);
+      const cursor = selection.start + insertion.length;
+      return { text: nextText, selection: { start: cursor, end: cursor } };
+    });
   };
 
   const documentsByFolder = useMemo(() => {
@@ -793,6 +894,9 @@ export function EditorView({
           onSave={onSave}
           onApplyRichFormat={applyRichFormat}
           onApplyLinePrefix={applyLinePrefix}
+          onApplyOrderedList={applyOrderedList}
+          onInsertSceneBreak={insertSceneBreak}
+          onInsertNoteBlock={insertNoteBlock}
           onInsertLoreLink={insertLoreLink}
           selectedLorePageId={selectedLorePageId}
           availableLorePages={availableLorePages}
@@ -807,7 +911,9 @@ export function EditorView({
           isFocusMode={isFocusMode}
           onToggleFocusMode={() => setIsFocusMode((current) => !current)}
           isDocumentMenuOpen={isDocumentMenuOpen}
+          documentMenuRef={documentMenuRef}
           onToggleDocumentMenu={() => setIsDocumentMenuOpen((current) => !current)}
+          onCloseDocumentMenu={() => setIsDocumentMenuOpen(false)}
           onAddDocument={onAddDocument}
           onRenameDocument={() => {
             setIsDocumentMenuOpen(false);

@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import type { Document, LorePage } from "../lib/data";
 import type { EditorFormattingState } from "./editorCore";
 
@@ -11,6 +12,9 @@ type EditorToolbarProps = {
   onSave: () => void;
   onApplyRichFormat: (command: "bold" | "italic" | "underline") => void;
   onApplyLinePrefix: (prefix: string) => void;
+  onApplyOrderedList: () => void;
+  onInsertSceneBreak: () => void;
+  onInsertNoteBlock: () => void;
   onInsertLoreLink: () => void;
   selectedLorePageId: string;
   availableLorePages: LorePage[];
@@ -25,7 +29,9 @@ type EditorToolbarProps = {
   isFocusMode: boolean;
   onToggleFocusMode: () => void;
   isDocumentMenuOpen: boolean;
+  documentMenuRef: Ref<HTMLDivElement>;
   onToggleDocumentMenu: () => void;
+  onCloseDocumentMenu: () => void;
   onAddDocument: () => void;
   onRenameDocument: () => void;
   onDuplicateDocument: () => void;
@@ -41,6 +47,9 @@ export function EditorToolbar({
   onSave,
   onApplyRichFormat,
   onApplyLinePrefix,
+  onApplyOrderedList,
+  onInsertSceneBreak,
+  onInsertNoteBlock,
   onInsertLoreLink,
   selectedLorePageId,
   availableLorePages,
@@ -55,7 +64,9 @@ export function EditorToolbar({
   isFocusMode,
   onToggleFocusMode,
   isDocumentMenuOpen,
+  documentMenuRef,
   onToggleDocumentMenu,
+  onCloseDocumentMenu,
   onAddDocument,
   onRenameDocument,
   onDuplicateDocument,
@@ -64,6 +75,11 @@ export function EditorToolbar({
   editorMode,
   onSetEditorMode,
 }: EditorToolbarProps) {
+  const closeAfter = (action: () => void) => () => {
+    action();
+    onCloseDocumentMenu();
+  };
+
   const saveLabel =
     saveState === "saving"
       ? "Saving..."
@@ -109,6 +125,13 @@ export function EditorToolbar({
           onClick={() => onApplyLinePrefix("- ")}
         >
           List
+        </button>
+        <button
+          className={`tb-btn ${editorFormattingState.orderedList ? "active" : ""}`}
+          type="button"
+          onClick={onApplyOrderedList}
+        >
+          1.
         </button>
         <button
           className={`tb-btn ${editorFormattingState.quote ? "active" : ""}`}
@@ -173,23 +196,25 @@ export function EditorToolbar({
         <button className={`tb-btn ${isFocusMode ? "active" : ""}`} type="button" onClick={onToggleFocusMode}>
           {isFocusMode ? "Exit Focus" : "Focus"}
         </button>
-        <div className="toolbar-menu-wrap">
+        <div ref={documentMenuRef} className="toolbar-menu-wrap">
           <button
             className={`tb-btn ${isDocumentMenuOpen ? "active" : ""}`}
             type="button"
             onClick={onToggleDocumentMenu}
+            aria-haspopup="menu"
+            aria-expanded={isDocumentMenuOpen}
           >
             More
           </button>
           {isDocumentMenuOpen ? (
-            <div className="toolbar-menu">
-              <button className="toolbar-menu-item" type="button" onClick={onAddDocument}>
+            <div className="toolbar-menu" role="menu">
+              <button className="toolbar-menu-item" type="button" onClick={closeAfter(onAddDocument)}>
                 New document
               </button>
               <button
                 className="toolbar-menu-item"
                 type="button"
-                onClick={onRenameDocument}
+                onClick={closeAfter(onRenameDocument)}
                 disabled={!activeDocumentId}
               >
                 Rename document
@@ -197,7 +222,7 @@ export function EditorToolbar({
               <button
                 className="toolbar-menu-item"
                 type="button"
-                onClick={onDuplicateDocument}
+                onClick={closeAfter(onDuplicateDocument)}
                 disabled={!activeDocumentId}
               >
                 Duplicate document
@@ -205,49 +230,70 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorFormattingState.heading1 ? "active" : ""}`}
                 type="button"
-                onClick={() => onApplyLinePrefix("# ")}
+                onClick={closeAfter(() => onApplyLinePrefix("# "))}
               >
                 Large heading
               </button>
               <button
                 className={`toolbar-menu-item ${editorFormattingState.heading2 ? "active" : ""}`}
                 type="button"
-                onClick={() => onApplyLinePrefix("## ")}
+                onClick={closeAfter(() => onApplyLinePrefix("## "))}
               >
                 Medium heading
               </button>
               <button
+                className={`toolbar-menu-item ${editorFormattingState.orderedList ? "active" : ""}`}
+                type="button"
+                onClick={closeAfter(onApplyOrderedList)}
+              >
+                Numbered list
+              </button>
+              <button
+                className={`toolbar-menu-item ${editorFormattingState.noteBlock ? "active" : ""}`}
+                type="button"
+                onClick={closeAfter(onInsertNoteBlock)}
+              >
+                Note block
+              </button>
+              <button
+                className={`toolbar-menu-item ${editorFormattingState.sceneBreak ? "active" : ""}`}
+                type="button"
+                onClick={closeAfter(onInsertSceneBreak)}
+              >
+                Scene break
+              </button>
+              <button
                 className={`toolbar-menu-item ${editorWidth === "narrow" ? "active" : ""}`}
                 type="button"
-                onClick={() => onSetEditorWidth("narrow")}
+                onClick={closeAfter(() => onSetEditorWidth("narrow"))}
               >
                 Narrow page width
               </button>
               <button
                 className={`toolbar-menu-item ${editorWidth === "standard" ? "active" : ""}`}
                 type="button"
-                onClick={() => onSetEditorWidth("standard")}
+                onClick={closeAfter(() => onSetEditorWidth("standard"))}
               >
                 Standard page width
               </button>
               <button
                 className={`toolbar-menu-item ${editorWidth === "wide" ? "active" : ""}`}
                 type="button"
-                onClick={() => onSetEditorWidth("wide")}
+                onClick={closeAfter(() => onSetEditorWidth("wide"))}
               >
                 Wide page width
               </button>
               <button
                 className={`toolbar-menu-item ${editorMode === "standard" ? "active" : ""}`}
                 type="button"
-                onClick={() => onSetEditorMode("standard")}
+                onClick={closeAfter(() => onSetEditorMode("standard"))}
               >
                 Standard mode
               </button>
               <button
                 className={`toolbar-menu-item ${editorMode === "typewriter" ? "active" : ""}`}
                 type="button"
-                onClick={() => onSetEditorMode("typewriter")}
+                onClick={closeAfter(() => onSetEditorMode("typewriter"))}
               >
                 Typewriter mode
               </button>
