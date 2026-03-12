@@ -267,7 +267,22 @@ export function useTabs({
     });
   };
 
-  const removeTabById = (tabId: string) => setTabs((prev) => prev.filter((tab) => tab.id !== tabId));
+  const removeTabById = (tabId: string) => {
+    setTabs((prev) => {
+      const closingIndex = prev.findIndex((item) => item.id === tabId);
+      if (closingIndex === -1) return prev;
+      const next = prev.filter((tab) => tab.id !== tabId);
+      const normalizedNext = next.length > 0 ? next : [WORKBENCH_TAB];
+      if (tabId === activeTabId) {
+        const fallback =
+          normalizedNext[Math.max(0, closingIndex - 1)] ??
+          normalizedNext[closingIndex] ??
+          normalizedNext[normalizedNext.length - 1];
+        setActiveTabId(fallback?.id ?? "workbench");
+      }
+      return normalizedNext;
+    });
+  };
   const resetTabs = () => {
     setTabs([WORKBENCH_TAB]);
     setActiveTabId("workbench");
