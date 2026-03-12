@@ -194,7 +194,7 @@ export function EditorToolbar({
           Link
         </button>
         <select
-          className="tb-select tb-select-compact"
+          className="tb-select tb-select-compact toolbar-optional"
           value={selectedLorePageId}
           onChange={(event) => onSelectLorePageId(event.target.value)}
           disabled={availableLorePages.length === 0}
@@ -208,7 +208,7 @@ export function EditorToolbar({
           ))}
         </select>
         <select
-          className="tb-select tb-select-doc"
+          className="tb-select tb-select-doc toolbar-optional"
           value={activeDocumentId ?? ""}
           onChange={(event) => {
             const nextDocument = orderedDocuments.find((doc) => doc.id === event.target.value);

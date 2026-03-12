@@ -27,6 +27,23 @@
   --green:         #4caf7d;
   --red:           #e05c6a;
   --blue:          #5b9bd5;
+  --activity-bar-width: 48px;
+  --sidebar-region-width: 240px;
+  --doclist-region-width: 260px;
+  --context-region-width: 240px;
+  --panel-collapse-rail-width: 44px;
+  --content-shell-padding-x: 28px;
+  --content-shell-padding-y: 24px;
+  --content-shell-gap: 16px;
+  --editor-shell-max-narrow: 1000px;
+  --editor-shell-max-standard: 1180px;
+  --editor-shell-max-wide: 1340px;
+  --editor-focus-max: 1360px;
+  --toolbar-gap: 10px;
+  --toolbar-padding-y: 8px;
+  --toolbar-padding-x: 10px;
+  --tab-bar-height: 36px;
+  --status-bar-height: 24px;
 }
 
 html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-base); }
@@ -40,16 +57,20 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 
 .app-body {
-  flex: 1; display: flex; overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
 }
 
 .activity-bar {
-  width: 48px;
+  width: var(--activity-bar-width);
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column; align-items: center;
   padding: 12px 0; gap: 4px;
   flex-shrink: 0;
+  min-height: 0;
 }
 .ab-icon {
   width: 36px; height: 36px;
@@ -75,12 +96,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 .ab-spacer { flex: 1; }
 
 .sidebar {
-  width: 240px;
+  width: var(--sidebar-region-width);
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   flex-shrink: 0;
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 .sidebar-header {
@@ -415,10 +438,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 .main-content {
   flex: 1; display: flex; flex-direction: column; overflow: hidden;
   background: var(--bg-panel);
+  min-width: 0;
+  min-height: 0;
 }
 
 .tab-bar {
-  height: 36px; display: flex; align-items: flex-end;
+  height: var(--tab-bar-height); display: flex; align-items: flex-end;
   border-bottom: 1px solid var(--border);
   background: var(--bg-base);
   padding: 0 12px; gap: 2px; flex-shrink: 0;
@@ -505,11 +530,15 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
 .content-row {
   flex: 1;
   display: flex;
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 .resizer {
@@ -534,11 +563,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 
 .doc-list {
-  width: 260px;
+  width: var(--doclist-region-width);
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
 .doc-list-header {
   display: flex;
@@ -658,7 +689,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 
 .editor-pane {
-  flex: 1; overflow-y: auto; padding: 24px 28px 40px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--content-shell-padding-y) var(--content-shell-padding-x) 40px;
 }
 .editor-pane-focus {
   padding-top: 18px;
@@ -744,13 +779,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--toolbar-gap);
   margin-bottom: 16px;
-  padding: 8px 10px;
+  padding: var(--toolbar-padding-y) var(--toolbar-padding-x);
   background: rgba(26, 22, 40, 0.95);
   border: 1px solid var(--border);
   border-radius: 10px;
   width: 100%;
+  min-width: 0;
 }
 .editor-toolbar-sticky {
   position: sticky;
@@ -765,14 +801,21 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex-wrap: nowrap;
 }
 .editor-toolbar-main {
   flex: 1;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.editor-toolbar-main::-webkit-scrollbar,
+.editor-toolbar-side::-webkit-scrollbar {
+  display: none;
 }
 .editor-toolbar-side {
-  flex-wrap: wrap;
+  flex: 0 0 auto;
   justify-content: flex-end;
+  overflow-x: auto;
 }
 .toolbar-menu-wrap {
   position: relative;
@@ -822,6 +865,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 .tb-select-doc {
   min-width: 180px;
+}
+.toolbar-optional {
+  flex-shrink: 0;
 }
 .tb-select:disabled {
   opacity: 0.5;
@@ -1051,16 +1097,16 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   flex-direction: column;
 }
 .editor-width-narrow {
-  max-width: 1120px;
+  max-width: var(--editor-shell-max-narrow);
 }
 .editor-width-standard {
-  max-width: 1100px;
+  max-width: var(--editor-shell-max-standard);
 }
 .editor-width-wide {
-  max-width: 1200px;
+  max-width: var(--editor-shell-max-wide);
 }
 .editor-pane-focus .editor-writing-shell {
-  max-width: min(1200px, calc(100vw - 64px));
+  max-width: min(var(--editor-focus-max), calc(100vw - 64px));
 }
 .document-organization-panel {
   padding: 12px 14px;
@@ -1330,6 +1376,148 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   color: var(--gold);
   border-bottom-color: var(--gold-dim);
   cursor: default;
+}
+
+@media (max-width: 1439px) {
+  :root {
+    --sidebar-region-width: 220px;
+    --doclist-region-width: 236px;
+    --context-region-width: 220px;
+    --content-shell-padding-x: 18px;
+    --content-shell-padding-y: 18px;
+    --content-shell-gap: 12px;
+    --editor-shell-max-narrow: 920px;
+    --editor-shell-max-standard: 1040px;
+    --editor-shell-max-wide: 1140px;
+    --editor-focus-max: 1180px;
+    --toolbar-gap: 8px;
+    --toolbar-padding-y: 7px;
+    --toolbar-padding-x: 8px;
+  }
+
+  .editor-workspace-frame-left-rail {
+    padding-left: 76px;
+  }
+
+  .editor-workspace-frame-right-rail {
+    padding-right: 76px;
+  }
+
+  .editor-collapsed-rail {
+    top: 112px;
+  }
+
+  .editor-pane-focus .editor-collapsed-rail {
+    top: 76px;
+  }
+
+  .tb-select {
+    min-width: 154px;
+  }
+
+  .tb-select-doc {
+    min-width: 146px;
+  }
+
+  .toolbar-optional {
+    display: none;
+  }
+
+  .structure-filter-bar {
+    grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(148px, 0.8fr)) auto;
+  }
+
+  .timeline-canvas-event {
+    width: min(200px, 23vw);
+    min-width: 160px;
+  }
+}
+
+@media (min-width: 1440px) and (max-width: 1719px) {
+  :root {
+    --sidebar-region-width: 236px;
+    --doclist-region-width: 252px;
+    --context-region-width: 228px;
+    --content-shell-padding-x: 24px;
+    --content-shell-padding-y: 22px;
+    --editor-shell-max-narrow: 960px;
+    --editor-shell-max-standard: 1120px;
+    --editor-shell-max-wide: 1240px;
+    --editor-focus-max: 1280px;
+  }
+}
+
+@media (min-width: 1720px) {
+  :root {
+    --sidebar-region-width: 248px;
+    --doclist-region-width: 272px;
+    --context-region-width: 252px;
+    --content-shell-padding-x: 32px;
+    --content-shell-padding-y: 26px;
+    --editor-shell-max-narrow: 1020px;
+    --editor-shell-max-standard: 1200px;
+    --editor-shell-max-wide: 1380px;
+    --editor-focus-max: 1440px;
+  }
+
+  .structure-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .start-screen-card {
+    width: min(980px, 100%);
+  }
+}
+
+@media (max-height: 860px) {
+  :root {
+    --content-shell-padding-y: 16px;
+    --toolbar-padding-y: 6px;
+    --tab-bar-height: 34px;
+    --status-bar-height: 22px;
+  }
+
+  .activity-bar {
+    padding: 10px 0;
+  }
+
+  .sidebar-header,
+  .doc-list-header,
+  .rp-header {
+    padding-top: 10px;
+    padding-bottom: 8px;
+  }
+
+  .editor-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .doc-title-input,
+  .doc-title {
+    margin-top: 4px;
+    margin-bottom: 6px;
+    font-size: 22px;
+  }
+
+  .doc-meta {
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+
+  .structure-summary-grid,
+  .structure-grid {
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .lore-panel,
+  .editor-preview,
+  .document-details-drawer,
+  .structure-card,
+  .start-screen-card {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
 }
 
 @media (max-width: 980px) {
@@ -2131,11 +2319,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
 .right-panel {
-  width: 240px;
+  width: var(--context-region-width);
   background: var(--bg-sidebar);
   border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
   flex-shrink: 0; overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 .rp-header {
   padding: 12px 14px;
@@ -2226,7 +2416,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 .wc-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-bright)); border-radius: 2px; width: 34%; }
 
 .status-bar {
-  height: 24px;
+  height: var(--status-bar-height);
   background: #08060f;
   border-top: 1px solid var(--border);
   display: flex; align-items: center;
@@ -2234,6 +2424,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   font-size: 10.5px; font-family: 'JetBrains Mono', monospace;
   color: var(--text-muted);
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .confirm-overlay {
