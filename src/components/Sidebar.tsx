@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { getProjectFilename, getProjectPathDisplay, type Project } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 
@@ -47,7 +47,7 @@ type SidebarProps = {
   onOpenTimeline: (worldId: string) => void;
 };
 
-export function Sidebar({
+export const Sidebar = memo(function Sidebar({
   isCollapsed,
   width,
   isEditingProject,
@@ -452,4 +452,4 @@ export function Sidebar({
       </div>
     </div>
   );
-}
+});

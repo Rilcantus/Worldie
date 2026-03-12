@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 type AppStatusBarProps = {
   projectTitle: string;
   worldName: string;
@@ -8,7 +10,7 @@ type AppStatusBarProps = {
   saveTimestamp: number | null;
 };
 
-export function AppStatusBar({
+export const AppStatusBar = memo(function AppStatusBar({
   projectTitle,
   worldName,
   sectionLabel,
@@ -58,4 +60,4 @@ export function AppStatusBar({
       <div className="sb-item sb-accent">{detailLabel}</div>
     </div>
   );
-}
+});

@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 type ActivityBarProps = {
   activeNav: string;
   activeLoreExists: boolean;
@@ -11,7 +13,7 @@ type ActivityBarProps = {
   onFocusSearch: () => void;
 };
 
-export function ActivityBar({
+export const ActivityBar = memo(function ActivityBar({
   activeNav,
   activeLoreExists,
   hasActiveProject,
@@ -93,4 +95,4 @@ export function ActivityBar({
       <div className="ab-spacer"></div>
     </div>
   );
-}
+});
