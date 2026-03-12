@@ -58,15 +58,29 @@ export function useContextPanelModel({
   recentLorePages,
 }: UseContextPanelModelArgs) {
   const activeWorldName = activeWorld?.name ?? "No world selected";
+  const relationshipsById = useMemo(
+    () => new Map(relationships.map((relationship) => [relationship.id, relationship])),
+    [relationships],
+  );
+  const timelineEventsById = useMemo(
+    () => new Map(timelineEvents.map((event) => [event.id, event])),
+    [timelineEvents],
+  );
+  const loreTypesById = useMemo(
+    () => new Map(loreTypes.map((type) => [type.id, type])),
+    [loreTypes],
+  );
+  const lorePagesById = useMemo(
+    () => new Map(allLorePages.map((page) => [page.id, page])),
+    [allLorePages],
+  );
 
   return useMemo(() => {
     const activeRelationship =
-      relationships.find((relationship) => relationship.id === activeRelationshipId) ?? null;
+      (activeRelationshipId ? relationshipsById.get(activeRelationshipId) : null) ?? null;
     const activeTimelineEvent =
-      timelineEvents.find((event) => event.id === activeTimelineEventId) ?? null;
-
-    const activeLoreType = loreTypes.find((type) => type.id === activeLoreTypeId) ?? null;
-    const lorePagesById = new Map(allLorePages.map((page) => [page.id, page]));
+      (activeTimelineEventId ? timelineEventsById.get(activeTimelineEventId) : null) ?? null;
+    const activeLoreType = (activeLoreTypeId ? loreTypesById.get(activeLoreTypeId) : null) ?? null;
     const findLorePage = (pageId: string | null | undefined) =>
       (pageId ? lorePagesById.get(pageId) : null) ?? null;
     const findLoreTitle = (pageId: string | null | undefined) =>
@@ -197,16 +211,16 @@ export function useContextPanelModel({
     activeWorldName,
     projectTitle,
     activeLoreTypeId,
-    loreTypes,
+    loreTypesById,
     documentTitle,
     documentContent,
     loreTitle,
     loreTags,
     loreFields,
-    allLorePages,
-    relationships,
+    lorePagesById,
+    relationshipsById,
     activeRelationshipId,
-    timelineEvents,
+    timelineEventsById,
     activeTimelineEventId,
     timelineTitle,
     timelineDate,
