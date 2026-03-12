@@ -129,7 +129,11 @@ export function getProjectFilename(project: Pick<Project, "filepath" | "title"> 
 }
 
 export function getProjectPathDisplay(project: Pick<Project, "filepath"> | null | undefined) {
-  return project?.filepath ?? "";
+  if (!project?.filepath) return "";
+  const normalized = project.filepath.split("\\").join("/");
+  const lastSlashIndex = normalized.lastIndexOf("/");
+  if (lastSlashIndex <= 0) return "";
+  return normalized.slice(0, lastSlashIndex);
 }
 
 async function invokeDialogCommand<T>(command: string, args?: Record<string, unknown>) {
