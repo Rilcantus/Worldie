@@ -45,9 +45,6 @@ export function ActivityBar({
         ?
       </button>
       <div className="ab-spacer"></div>
-      <button className="ab-icon" title="Settings" type="button">
-        *
-      </button>
     </div>
   );
 }

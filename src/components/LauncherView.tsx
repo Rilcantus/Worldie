@@ -49,8 +49,17 @@ export function LauncherView({
       ) : null}
 
       <div className="editor-toolbar">
-        <div className="tb-btn active">+</div>
-        <div className="tb-btn">Open Page</div>
+        <div className="editor-toolbar-main">
+          <span className="tb-btn active" aria-current="page">
+            Launcher
+          </span>
+          <button className="tb-btn" type="button" onClick={onOpenWorkbench}>
+            Workbench
+          </button>
+          <button className="tb-btn" type="button" onClick={onOpenDocument}>
+            New Document
+          </button>
+        </div>
       </div>
 
       <input className="doc-title-input" value="New Tab" readOnly />

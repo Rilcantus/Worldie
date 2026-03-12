@@ -31,16 +31,17 @@ export function AppStatusBar({
       ? "Saving"
       : saveState === "dirty"
         ? formattedTimestamp
-          ? `Unsaved · last saved ${formattedTimestamp}`
+          ? `Unsaved - last saved ${formattedTimestamp}`
           : "Unsaved"
         : saveState === "error"
           ? formattedTimestamp
-            ? `Save failed · last saved ${formattedTimestamp}`
+            ? `Save failed - last saved ${formattedTimestamp}`
             : "Save failed"
           : formattedTimestamp
             ? `Saved ${formattedTimestamp}`
             : "Saved";
   const saveClass = `sb-item sb-save-state sb-save-${saveState}`;
+
   return (
     <div className="status-bar">
       <div className={saveClass}>
@@ -49,7 +50,9 @@ export function AppStatusBar({
       </div>
       <div className="sb-item">Project: {projectTitle}</div>
       <div className="sb-item">World: {worldName}</div>
-      <div className="sb-item" title={projectFileLabel || undefined}>File: {fileLabel}</div>
+      <div className="sb-item" title={projectFileLabel || undefined}>
+        File: {fileLabel}
+      </div>
       <div className="sb-spacer"></div>
       <div className="sb-item">{sectionLabel}</div>
       <div className="sb-item sb-accent">{detailLabel}</div>
