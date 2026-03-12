@@ -137,11 +137,15 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       setActiveWorldId((current) => (current === null ? current : null));
       return false;
     }
+    const isSameProjectActive = activeProjectId === project.id && worlds.length > 0;
     setWorlds((current) => (current.length === 0 ? current : []));
     setActiveWorldId((current) => (current === null ? current : null));
     setActiveProjectId((current) => (current === project.id ? current : project.id));
     setProjectTitle((current) => (current === project.title ? current : project.title));
     setProjectDraft((current) => (current === project.title ? current : project.title));
+    if (isSameProjectActive) {
+      return true;
+    }
     await hydrateWorlds(project.id);
     return true;
   };
