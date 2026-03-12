@@ -397,7 +397,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   const openRecentProject = useCallback(async (projectId: string) => {
     return runProjectAction("openingRecent", "Opening recent project...", async () => {
-      const project = projects.find((item) => item.id === projectId);
+      const project = projectsById.get(projectId);
       if (!project) {
         showToast("Worldie could not find that recent project.");
         return false;
@@ -433,7 +433,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  }, [applyActiveProject, projects, runProjectAction, setProjectsIfChanged, showToast]);
+  }, [applyActiveProject, projectsById, runProjectAction, setProjectsIfChanged, showToast]);
 
   const saveCurrentProjectAs = useCallback(async () => {
     if (!activeProjectId) return false;
@@ -463,14 +463,14 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   const switchProject = useCallback(async (projectId: string) => {
     return runProjectAction("switching", "Switching project...", async () => {
-      const project = projects.find((item) => item.id === projectId);
+      const project = projectsById.get(projectId);
       if (!project) {
         showToast("Worldie could not find that project.");
         return false;
       }
       return applyActiveProject(project);
     });
-  }, [applyActiveProject, projects, runProjectAction, showToast]);
+  }, [applyActiveProject, projectsById, runProjectAction, showToast]);
 
   const commitProjectTitle = useCallback(async () => {
     if (!activeProjectId) return;
@@ -500,7 +500,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const commitWorldTitle = useCallback(async () => {
     if (!editingWorldId) return;
     const nextTitle = worldDraft.trim();
-    const currentWorldName = worlds.find((world) => world.id === editingWorldId)?.name ?? "";
+    const currentWorldName = worldsById.get(editingWorldId)?.name ?? "";
     if (!nextTitle) {
       setEditingWorldId((current) => (current === null ? current : null));
       return;
@@ -523,7 +523,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       ),
     );
     setEditingWorldId((current) => (current === null ? current : null));
-  }, [activeProjectId, editingWorldId, showToast, worldDraft, worlds]);
+  }, [activeProjectId, editingWorldId, showToast, worldDraft, worldsById]);
 
   const removeProject = useCallback(async () => {
     if (!activeProjectId) return false;
