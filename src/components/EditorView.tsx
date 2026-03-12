@@ -156,6 +156,11 @@ export const EditorView = memo(function EditorView({
   const isTypewriterMode = editorMode === "typewriter";
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
   const editorDisplay = useMemo(() => buildEditorDisplayRepresentation(activeEditorText), [activeEditorText]);
+  const firstAvailableLorePage = useMemo(() => availableLorePages[0] ?? null, [availableLorePages]);
+  const selectedLorePage = useMemo(
+    () => availableLorePages.find((page) => page.id === selectedLorePageId) ?? firstAvailableLorePage,
+    [availableLorePages, firstAvailableLorePage, selectedLorePageId],
+  );
 
   const clearSlashSession = (dismissStart: number | null = null) => {
     setSelectedSlashIndex((current) => (current === 0 ? current : 0));
@@ -179,12 +184,11 @@ export const EditorView = memo(function EditorView({
   };
 
   useEffect(() => {
-    const nextSelectedLorePageId =
-      availableLorePages.find((page) => page.id === selectedLorePageId)?.id ?? availableLorePages[0]?.id ?? "";
+    const nextSelectedLorePageId = selectedLorePage?.id ?? "";
     if (nextSelectedLorePageId !== selectedLorePageId) {
       setSelectedLorePageId(nextSelectedLorePageId);
     }
-  }, [availableLorePages, selectedLorePageId]);
+  }, [selectedLorePage?.id, selectedLorePageId]);
 
   useEffect(() => {
     setIsDocumentMenuOpen(false);
@@ -555,9 +559,6 @@ export const EditorView = memo(function EditorView({
   const applySlashCommand = (commandId: string) => {
     if (!slashCommandMatch) return;
     const dismissStart = slashCommandMatch.start;
-
-    const selectedLorePage =
-      availableLorePages.find((page) => page.id === selectedLorePageId) ?? availableLorePages[0] ?? null;
 
     applyEditorUpdate((content) => {
       let insertion = "";
@@ -982,11 +983,9 @@ export const EditorView = memo(function EditorView({
   };
 
   const insertLoreLink = () => {
-    const page = availableLorePages.find((item) => item.id === selectedLorePageId) ?? availableLorePages[0];
-
     applyEditorUpdate((content, selection) => {
       const selectedText = content.slice(selection.start, selection.end);
-      const linkBody = selectedText || page?.title || "";
+      const linkBody = selectedText || selectedLorePage?.title || "";
       const linkText = `[[${linkBody}]]`;
       const nextText = replaceRange(content, selection.start, selection.end, linkText);
       const cursor = selection.start + 2 + linkBody.length;
