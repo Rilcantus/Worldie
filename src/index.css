@@ -2014,11 +2014,18 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   transform: translateX(-50%);
   width: min(220px, 24vw);
   min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.timeline-canvas-event-button {
   border: none;
   background: transparent;
   padding: 0;
   cursor: pointer;
   text-align: left;
+  width: 100%;
 }
 .timeline-canvas-marker {
   width: 14px;
@@ -2037,7 +2044,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   background: rgba(11, 9, 20, 0.82);
   transition: all 0.12s;
 }
-.timeline-canvas-event:hover .timeline-canvas-card,
+.timeline-canvas-event-button:hover .timeline-canvas-card,
 .timeline-canvas-event.active .timeline-canvas-card {
   border-color: var(--accent-bright);
   background: rgba(34, 29, 53, 0.88);

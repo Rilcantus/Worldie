@@ -498,35 +498,27 @@ export function TimelineView({
                       : (index / (featuredTimelineEvents.length - 1)) * 100;
 
                   return (
-                    <button
+                    <div
                       key={event.id}
-                      className={`timeline-canvas-event ${
-                        event.id === activeTimelineEventId ? "active" : ""
-                      }`}
-                      type="button"
+                      className={`timeline-canvas-event ${event.id === activeTimelineEventId ? "active" : ""}`}
                       style={{ left: `${position}%` }}
-                      onClick={() => onSelectTimelineEvent(event)}
                     >
-                      <div className="timeline-canvas-marker" />
-                      <div className="timeline-canvas-card">
-                        <div className="timeline-rail-date">{event.eventDate || "Undated"}</div>
-                        <div className="timeline-rail-title">{event.title || "Untitled event"}</div>
-                        <div className="timeline-rail-meta">
-                          <span>{event.eventType || "General"}</span>
-                          {linkedPage ? (
-                            <span
-                              className="timeline-link-chip"
-                              onClick={(clickEvent) => {
-                                clickEvent.stopPropagation();
-                                onOpenLore(linkedPage);
-                              }}
-                            >
-                              {linkedPage.title}
-                            </span>
-                          ) : null}
+                      <button type="button" className="timeline-canvas-event-button" onClick={() => onSelectTimelineEvent(event)}>
+                        <div className="timeline-canvas-marker" />
+                        <div className="timeline-canvas-card">
+                          <div className="timeline-rail-date">{event.eventDate || "Undated"}</div>
+                          <div className="timeline-rail-title">{event.title || "Untitled event"}</div>
+                          <div className="timeline-rail-meta">
+                            <span>{event.eventType || "General"}</span>
+                          </div>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+                      {linkedPage ? (
+                        <button className="timeline-link-chip" type="button" onClick={() => onOpenLore(linkedPage)}>
+                          {linkedPage.title}
+                        </button>
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>
