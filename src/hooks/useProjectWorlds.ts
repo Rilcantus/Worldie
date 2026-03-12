@@ -181,15 +181,37 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   const syncLoreTypes = useCallback((loreTypes: LoreType[]) => {
     currentLoreTypesRef.current = loreTypes;
-    setWorlds((prev) =>
-      prev.map((world) => ({
-        ...world,
-        loreCategories: buildLoreCategories(loreTypes).map((category) => {
+    setWorlds((prev) => {
+      let changed = false;
+      const next = prev.map((world) => {
+        const nextLoreCategories = buildLoreCategories(loreTypes).map((category) => {
           const existing = world.loreCategories.find((item) => item.id === category.id);
           return existing ? { ...category, count: existing.count } : category;
-        }),
-      })),
-    );
+        });
+
+        const categoriesChanged =
+          nextLoreCategories.length !== world.loreCategories.length ||
+          nextLoreCategories.some((category, index) => {
+            const current = world.loreCategories[index];
+            return (
+              !current ||
+              current.id !== category.id ||
+              current.label !== category.label ||
+              current.count !== category.count ||
+              current.isSystem !== category.isSystem
+            );
+          });
+
+        if (!categoriesChanged) return world;
+        changed = true;
+        return {
+          ...world,
+          loreCategories: nextLoreCategories,
+        };
+      });
+
+      return changed ? next : prev;
+    });
   }, []);
 
   const toggleWorld = (id: string) => {
