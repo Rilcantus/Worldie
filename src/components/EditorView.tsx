@@ -1142,6 +1142,17 @@ export function EditorView({
                 <span className="editor-edge-toggle-icon">&rsaquo;</span>
               </button>
             ) : null}
+            {isRightPanelCollapsed ? (
+              <button
+                className="editor-edge-toggle editor-edge-toggle-right"
+                type="button"
+                onClick={onExpandRightPanel}
+                title="Expand context panel (Ctrl+3)"
+              >
+                <span className="editor-edge-toggle-icon">&lsaquo;</span>
+                <span className="editor-edge-toggle-label">Context</span>
+              </button>
+            ) : null}
           </div>
 
           <EditorSurface
@@ -1173,20 +1184,6 @@ export function EditorView({
             readingMinutes={readingMinutes}
             selectedWordCount={selectedWordCount}
           />
-
-          <div className="editor-collapsed-rail editor-collapsed-rail-right">
-            {isRightPanelCollapsed ? (
-              <button
-                className="editor-edge-toggle editor-edge-toggle-right"
-                type="button"
-                onClick={onExpandRightPanel}
-                title="Expand context panel (Ctrl+3)"
-              >
-                <span className="editor-edge-toggle-icon">&lsaquo;</span>
-                <span className="editor-edge-toggle-label">Context</span>
-              </button>
-            ) : null}
-          </div>
 
           {slashCommandMatch && slashMenuPosition ? (
             <EditorSlashMenu

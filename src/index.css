@@ -774,7 +774,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   color: var(--accent-bright);
 }
 .editor-edge-toggle-right {
-  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .editor-toolbar {
