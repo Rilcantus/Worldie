@@ -776,37 +776,45 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 
 .editor-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--toolbar-gap);
-  margin-bottom: 16px;
   padding: var(--toolbar-padding-y) var(--toolbar-padding-x);
   background: rgba(26, 22, 40, 0.95);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   width: 100%;
   min-width: 0;
 }
+.editor-toolbar-shell {
+  width: 100%;
+  margin: 0 auto 12px;
+  transition: max-width 0.15s ease;
+}
+.editor-toolbar-shell-focus {
+  max-width: min(var(--editor-focus-max), calc(100vw - 64px));
+}
 .editor-toolbar-sticky {
   position: sticky;
-  top: 10px;
+  top: 8px;
   z-index: 5;
-  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.16);
   backdrop-filter: blur(10px);
 }
 .editor-toolbar-main,
 .editor-toolbar-side {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
   flex-wrap: nowrap;
 }
 .editor-toolbar-main {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-x: auto;
   scrollbar-width: none;
+  padding-bottom: 1px;
 }
 .editor-toolbar-main::-webkit-scrollbar,
 .editor-toolbar-side::-webkit-scrollbar {
@@ -841,24 +849,30 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   color: var(--text-muted);
 }
 .tb-btn {
-  padding: 6px 10px; border-radius: 7px;
-  font-size: 11px; cursor: pointer; color: var(--text-muted);
+  padding: 5px 9px; border-radius: 7px;
+  min-height: 30px;
+  font-size: 10px; cursor: pointer; color: var(--text-muted);
+  line-height: 1;
+  white-space: nowrap;
   transition: all 0.12s; font-family: 'JetBrains Mono', monospace;
   border: none;
   background: rgba(11, 9, 20, 0.55);
+  flex: 0 0 auto;
 }
 .tb-btn:hover { background: var(--bg-hover); color: var(--text-secondary); }
 .tb-btn.active { background: var(--accent-glow); color: var(--accent-bright); }
 .tb-select {
   min-width: 190px;
-  padding: 6px 10px;
+  padding: 5px 9px;
+  min-height: 30px;
   border-radius: 7px;
   border: 1px solid var(--border);
   background: var(--bg-panel);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-family: 'JetBrains Mono', monospace;
   outline: none;
+  flex: 0 0 auto;
 }
 .tb-select-compact {
   min-width: 150px;
@@ -866,7 +880,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 .tb-select-doc {
   min-width: 180px;
 }
-.toolbar-optional {
+.toolbar-compact-hide {
   flex-shrink: 0;
 }
 .tb-select:disabled {
@@ -1390,8 +1404,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
     --editor-shell-max-standard: 1040px;
     --editor-shell-max-wide: 1140px;
     --editor-focus-max: 1180px;
-    --toolbar-gap: 8px;
-    --toolbar-padding-y: 7px;
+    --toolbar-gap: 6px;
+    --toolbar-padding-y: 6px;
     --toolbar-padding-x: 8px;
   }
 
@@ -1419,7 +1433,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
     min-width: 146px;
   }
 
-  .toolbar-optional {
+  .toolbar-compact-hide {
     display: none;
   }
 
@@ -1472,7 +1486,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 @media (max-height: 860px) {
   :root {
     --content-shell-padding-y: 16px;
-    --toolbar-padding-y: 6px;
+    --toolbar-padding-y: 5px;
     --tab-bar-height: 34px;
     --status-bar-height: 22px;
   }
@@ -1488,8 +1502,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
     padding-bottom: 8px;
   }
 
-  .editor-toolbar {
-    margin-bottom: 12px;
+  .editor-toolbar-shell {
+    margin-bottom: 10px;
   }
 
   .doc-title-input,
@@ -1557,6 +1571,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 
   .editor-toolbar {
     align-items: stretch;
+    grid-template-columns: 1fr;
   }
 
   .editor-toolbar-main,

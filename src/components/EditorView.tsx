@@ -1060,45 +1060,55 @@ export function EditorView({
           .filter(Boolean)
           .join(" ")}
       >
-        <EditorToolbar
-          editorFormattingState={editorFormattingState}
-          saveState={documentSaveState}
-          saveTimestamp={documentSaveTimestamp}
-          onSave={onSave}
-          onApplyHistoryCommand={applyEditorCommand}
-          onApplyRichFormat={applyRichFormat}
-          onApplyLinePrefix={applyLinePrefix}
-          onApplyOrderedList={applyOrderedList}
-          onInsertSceneBreak={insertSceneBreak}
-          onInsertNoteBlock={insertNoteBlock}
-          onInsertLoreLink={insertLoreLink}
-          selectedLorePageId={selectedLorePageId}
-          availableLorePages={availableLorePages}
-          onSelectLorePageId={setSelectedLorePageId}
-          activeDocumentId={activeDocumentId}
-          orderedDocuments={orderedDocuments}
-          onOpenDocument={onOpenDocument}
-          isPreviewOpen={isPreviewOpen}
-          onTogglePreview={() => setIsPreviewOpen((current) => !current)}
-          isDetailsOpen={isDetailsOpen}
-          onToggleDetails={() => setIsDetailsOpen((current) => !current)}
-          isFocusMode={isFocusMode}
-          onToggleFocusMode={() => setIsFocusMode((current) => !current)}
-          isDocumentMenuOpen={isDocumentMenuOpen}
-          documentMenuRef={documentMenuRef}
-          onToggleDocumentMenu={() => setIsDocumentMenuOpen((current) => !current)}
-          onCloseDocumentMenu={() => setIsDocumentMenuOpen(false)}
-          onAddDocument={onAddDocument}
-          onRenameDocument={() => {
-            setIsDocumentMenuOpen(false);
-            focusTitleInput();
-          }}
-          onDuplicateDocument={onDuplicateDocument}
-          editorWidth={editorWidth}
-          onSetEditorWidth={setEditorWidth}
-          editorMode={editorMode}
-          onSetEditorMode={setEditorMode}
-        />
+        <div
+          className={[
+            "editor-toolbar-shell",
+            `editor-width-${editorWidth}`,
+            isFocusMode ? "editor-toolbar-shell-focus" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <EditorToolbar
+            editorFormattingState={editorFormattingState}
+            saveState={documentSaveState}
+            saveTimestamp={documentSaveTimestamp}
+            onSave={onSave}
+            onApplyHistoryCommand={applyEditorCommand}
+            onApplyRichFormat={applyRichFormat}
+            onApplyLinePrefix={applyLinePrefix}
+            onApplyOrderedList={applyOrderedList}
+            onInsertSceneBreak={insertSceneBreak}
+            onInsertNoteBlock={insertNoteBlock}
+            onInsertLoreLink={insertLoreLink}
+            selectedLorePageId={selectedLorePageId}
+            availableLorePages={availableLorePages}
+            onSelectLorePageId={setSelectedLorePageId}
+            activeDocumentId={activeDocumentId}
+            orderedDocuments={orderedDocuments}
+            onOpenDocument={onOpenDocument}
+            isPreviewOpen={isPreviewOpen}
+            onTogglePreview={() => setIsPreviewOpen((current) => !current)}
+            isDetailsOpen={isDetailsOpen}
+            onToggleDetails={() => setIsDetailsOpen((current) => !current)}
+            isFocusMode={isFocusMode}
+            onToggleFocusMode={() => setIsFocusMode((current) => !current)}
+            isDocumentMenuOpen={isDocumentMenuOpen}
+            documentMenuRef={documentMenuRef}
+            onToggleDocumentMenu={() => setIsDocumentMenuOpen((current) => !current)}
+            onCloseDocumentMenu={() => setIsDocumentMenuOpen(false)}
+            onAddDocument={onAddDocument}
+            onRenameDocument={() => {
+              setIsDocumentMenuOpen(false);
+              focusTitleInput();
+            }}
+            onDuplicateDocument={onDuplicateDocument}
+            editorWidth={editorWidth}
+            onSetEditorWidth={setEditorWidth}
+            editorMode={editorMode}
+            onSetEditorMode={setEditorMode}
+          />
+        </div>
 
         <div
           className={[
