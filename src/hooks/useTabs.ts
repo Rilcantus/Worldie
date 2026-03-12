@@ -140,6 +140,19 @@ export function useTabs({
     setTabs((prev) => prev.map((tab) => (tab.id === id ? { ...tab, label } : tab)));
   }, [activeLoreId, activeLoreTitle]);
 
+  useEffect(() => {
+    if (!activeWorldId) return;
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.id === activeTabId &&
+        (tab.kind === "rels" || tab.kind === "timeline") &&
+        tab.worldId !== activeWorldId
+          ? { ...tab, worldId: activeWorldId }
+          : tab,
+      ),
+    );
+  }, [activeTabId, activeWorldId]);
+
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0] ?? null;
   const activeNav: TabKind = activeTab?.kind ?? "new";
 
