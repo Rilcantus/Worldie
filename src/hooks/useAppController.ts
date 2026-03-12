@@ -238,8 +238,9 @@ export function useAppController() {
     },
     removeProject: async () => {
       if (!(await confirmProjectSwitch())) return;
-      await projectWorlds.removeProject();
-      tabs.resetTabs();
+      if (await projectWorlds.removeProject()) {
+        tabs.resetTabs();
+      }
     },
   };
 

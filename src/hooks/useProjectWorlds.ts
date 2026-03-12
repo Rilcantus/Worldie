@@ -419,27 +419,29 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   };
 
   const removeProject = async () => {
-    if (!activeProjectId) return;
+    if (!activeProjectId) return false;
     const confirmDelete = await confirmAction("Delete this project and all its data?");
-    if (!confirmDelete) return;
+    if (!confirmDelete) return false;
     let nextProjects: Project[] = [];
     try {
       nextProjects = await deleteProject(activeProjectId);
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Worldie could not delete the project.");
-      return;
+      return false;
     }
     setProjects(nextProjects);
     const next = nextProjects[0];
     if (!next) {
       await applyActiveProject(null);
-      return;
+      return true;
     }
     try {
       await applyActiveProject(next);
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Worldie could not load the next available project.");
+      return false;
     }
+    return true;
   };
 
   const removeWorld = async (worldId: string) => {

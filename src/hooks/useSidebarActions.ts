@@ -4,7 +4,7 @@ type UseSidebarActionsArgs = {
   projectTitle: string;
   setProjectDraft: (value: string) => void;
   setIsEditingProject: (value: boolean) => void;
-  removeProject: () => Promise<void>;
+  removeProject: () => Promise<boolean>;
   setIsSidebarCollapsed: (value: boolean) => void;
   setEditingWorldId: (value: string | null) => void;
   removeWorld: (worldId: string) => Promise<void>;
