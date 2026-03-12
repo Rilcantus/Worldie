@@ -177,11 +177,11 @@ export function useWorldStructures({
   }, [activeProjectId, activeWorldId]);
 
   const selectRelationship = (relationship: Relationship) => {
-    setActiveRelationshipId(relationship.id);
-    setRelationshipSourceId(relationship.sourcePageId);
-    setRelationshipTargetId(relationship.targetPageId);
-    setRelationshipType(relationship.relationType);
-    setRelationshipNotes(relationship.notes ?? "");
+    setActiveRelationshipId((current) => (current === relationship.id ? current : relationship.id));
+    setRelationshipSourceId((current) => (current === relationship.sourcePageId ? current : relationship.sourcePageId));
+    setRelationshipTargetId((current) => (current === relationship.targetPageId ? current : relationship.targetPageId));
+    setRelationshipType((current) => (current === relationship.relationType ? current : relationship.relationType));
+    setRelationshipNotes((current) => (current === (relationship.notes ?? "") ? current : relationship.notes ?? ""));
     markRelationshipSaved();
   };
 
@@ -304,12 +304,12 @@ export function useWorldStructures({
   };
 
   const selectTimelineEvent = (event: TimelineEvent) => {
-    setActiveTimelineEventId(event.id);
-    setTimelineTitle(event.title);
-    setTimelineDate(event.eventDate);
-    setTimelineType(event.eventType ?? "event");
-    setTimelineLinkedPageId(event.linkedPageId ?? "");
-    setTimelineDescription(event.description ?? "");
+    setActiveTimelineEventId((current) => (current === event.id ? current : event.id));
+    setTimelineTitle((current) => (current === event.title ? current : event.title));
+    setTimelineDate((current) => (current === event.eventDate ? current : event.eventDate));
+    setTimelineType((current) => (current === (event.eventType ?? "event") ? current : event.eventType ?? "event"));
+    setTimelineLinkedPageId((current) => (current === (event.linkedPageId ?? "") ? current : event.linkedPageId ?? ""));
+    setTimelineDescription((current) => (current === (event.description ?? "") ? current : event.description ?? ""));
     markTimelineSaved();
   };
 

@@ -428,10 +428,10 @@ export function useContentManager({
   }, [activeProjectId, activeLoreId, loreFields, lorePageTypeId, loreTags, loreTitle, selectedLorePageTypeName]);
 
   const selectDocument = (doc: Document) => {
-    setActiveDocumentId(doc.id);
-    setDocumentTitle(doc.title);
-    setDocumentContent(doc.contentJson ?? "");
-    setDocumentFolderPath(doc.folderPath ?? "");
+    setActiveDocumentId((current) => (current === doc.id ? current : doc.id));
+    setDocumentTitle((current) => (current === doc.title ? current : doc.title));
+    setDocumentContent((current) => (current === (doc.contentJson ?? "") ? current : doc.contentJson ?? ""));
+    setDocumentFolderPath((current) => (current === (doc.folderPath ?? "") ? current : doc.folderPath ?? ""));
     markDocumentSaved();
   };
 
@@ -580,12 +580,12 @@ export function useContentManager({
       ...parsedFields,
       loreTypeId,
     });
-    setActiveLoreId(page.id);
-    setLoreTitle(page.title);
-    setLoreTags(page.tagsJson ?? "");
-    setLoreFields(normalizedFields);
-    setLorePageTypeId(loreTypeId);
-    setActiveLoreTypeId(loreTypeId);
+    setActiveLoreId((current) => (current === page.id ? current : page.id));
+    setLoreTitle((current) => (current === page.title ? current : page.title));
+    setLoreTags((current) => (current === (page.tagsJson ?? "") ? current : page.tagsJson ?? ""));
+    setLoreFields((current) => (current === normalizedFields ? current : normalizedFields));
+    setLorePageTypeId((current) => (current === loreTypeId ? current : loreTypeId));
+    setActiveLoreTypeId((current) => (current === loreTypeId ? current : loreTypeId));
     markLoreSaved();
   };
 
