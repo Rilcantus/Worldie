@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { Document, LorePage, Relationship, TimelineEvent } from "../lib/data";
 import type { LoreType } from "../lib/loreTypes";
 import type { SearchResult } from "./useSearch";
-import type { TabItem, TabKind, WorldUI } from "../types/ui";
+import type { TabKind, WorldUI } from "../types/ui";
 
 type UseContextPanelModelArgs = {
   activeNav: TabKind;
@@ -22,11 +22,9 @@ type UseContextPanelModelArgs = {
   activeTimelineEventId: string | null;
   timelineTitle: string;
   timelineDate: string;
-  timelineType: string;
-  timelineLinkedPageId: string;
   timelineDescription: string;
   totalWordCount: number;
-  tabs: TabItem[];
+  openTabsCount: number;
   searchQuery: string;
   searchResults: SearchResult[];
   recentDocuments: Document[];
@@ -51,18 +49,15 @@ export function useContextPanelModel({
   activeTimelineEventId,
   timelineTitle,
   timelineDate,
-  timelineType,
-  timelineLinkedPageId,
   timelineDescription,
   totalWordCount,
-  tabs,
+  openTabsCount,
   searchQuery,
   searchResults,
   recentDocuments,
   recentLorePages,
 }: UseContextPanelModelArgs) {
   const activeWorldName = activeWorld?.name ?? "No world selected";
-  const openTabsCount = tabs.length;
 
   return useMemo(() => {
     const activeRelationship =
@@ -214,8 +209,6 @@ export function useContextPanelModel({
     activeTimelineEventId,
     timelineTitle,
     timelineDate,
-    timelineType,
-    timelineLinkedPageId,
     timelineDescription,
     totalWordCount,
     openTabsCount,
