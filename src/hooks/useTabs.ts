@@ -52,6 +52,7 @@ export function useTabs({
   const pendingTabOpenId = useRef<string | null>(null);
   const pendingWorldScopedTabId = useRef<string | null>(null);
   const tabsById = useMemo(() => new Map(tabs.map((item) => [item.id, item])), [tabs]);
+  const worldIdsSet = useMemo(() => new Set(worldIds), [worldIds]);
   const documentsById = useMemo(() => new Map(documents.map((item) => [item.id, item])), [documents]);
   const lorePagesById = useMemo(() => new Map(allLorePages.map((item) => [item.id, item])), [allLorePages]);
 
@@ -103,7 +104,7 @@ export function useTabs({
   useEffect(() => {
     if (!activeProjectId || tabsProjectId !== activeProjectId || worldIds.length === 0) return;
     setTabs((prev) => {
-      const next = prev.filter((tab) => !tab.worldId || worldIds.includes(tab.worldId));
+      const next = prev.filter((tab) => !tab.worldId || worldIdsSet.has(tab.worldId));
       const nextTabs = next.length > 0 ? next : [WORKBENCH_TAB];
       if (!next.some((tab) => tab.id === activeTabId)) {
         pendingTabOpenId.current = null;
@@ -117,7 +118,7 @@ export function useTabs({
       }
       return nextTabs;
     });
-  }, [activeProjectId, activeTabId, tabsProjectId, worldIds]);
+  }, [activeProjectId, activeTabId, tabsProjectId, worldIds, worldIdsSet]);
 
   useEffect(() => {
     const pendingId = pendingTabOpenId.current;
