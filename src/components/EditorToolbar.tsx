@@ -1,4 +1,4 @@
-import type { Ref } from "react";
+import { useEffect, useRef, type Ref } from "react";
 import type { Document, LorePage } from "../lib/data";
 import type { EditorFormattingState } from "./editorCore";
 
@@ -81,10 +81,33 @@ export function EditorToolbar({
 }: EditorToolbarProps) {
   const documentMenuButtonId = "editor-toolbar-more-button";
   const documentMenuId = "editor-toolbar-more-menu";
+  const documentMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousDocumentMenuOpenRef = useRef(false);
   const closeAfter = (action: () => void) => () => {
     action();
     onCloseDocumentMenu();
   };
+
+  useEffect(() => {
+    const wasOpen = previousDocumentMenuOpenRef.current;
+    previousDocumentMenuOpenRef.current = isDocumentMenuOpen;
+
+    if (isDocumentMenuOpen) {
+      window.requestAnimationFrame(() => {
+        const firstMenuItem = documentMenuRef && "current" in documentMenuRef
+          ? documentMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"],[role="menuitemradio"]')
+          : null;
+        firstMenuItem?.focus();
+      });
+      return;
+    }
+
+    if (wasOpen) {
+      window.requestAnimationFrame(() => {
+        documentMenuButtonRef.current?.focus();
+      });
+    }
+  }, [documentMenuRef, isDocumentMenuOpen]);
 
   const formattedTimestamp = saveTimestamp
     ? new Intl.DateTimeFormat(undefined, {
@@ -257,6 +280,7 @@ export function EditorToolbar({
         <div ref={documentMenuRef} className="toolbar-menu-wrap">
           <button
             id={documentMenuButtonId}
+            ref={documentMenuButtonRef}
             className={`tb-btn ${isDocumentMenuOpen ? "active" : ""}`}
             type="button"
             onClick={onToggleDocumentMenu}

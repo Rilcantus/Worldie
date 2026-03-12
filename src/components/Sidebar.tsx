@@ -93,6 +93,8 @@ export function Sidebar({
 }: SidebarProps) {
   const worldClickTimeoutRef = useRef<number | null>(null);
   const projectMenuRef = useRef<HTMLDivElement | null>(null);
+  const projectMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousProjectMenuOpenRef = useRef(false);
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const projectMenuButtonId = "sidebar-project-menu-button";
   const projectMenuId = "sidebar-project-menu";
@@ -100,6 +102,25 @@ export function Sidebar({
     () => worlds.find((world) => world.id === activeWorldId) ?? worlds[0] ?? null,
     [activeWorldId, worlds],
   );
+
+  useEffect(() => {
+    const wasOpen = previousProjectMenuOpenRef.current;
+    previousProjectMenuOpenRef.current = isProjectMenuOpen;
+
+    if (isProjectMenuOpen) {
+      window.requestAnimationFrame(() => {
+        const firstMenuItem = projectMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)');
+        firstMenuItem?.focus();
+      });
+      return;
+    }
+
+    if (wasOpen) {
+      window.requestAnimationFrame(() => {
+        projectMenuButtonRef.current?.focus();
+      });
+    }
+  }, [isProjectMenuOpen]);
 
   useEffect(() => {
     if (!isProjectMenuOpen) return;
@@ -133,6 +154,7 @@ export function Sidebar({
           <div className="project-header-actions">
             <button
               id={projectMenuButtonId}
+              ref={projectMenuButtonRef}
               className="project-menu-button"
               type="button"
               disabled={isProjectBusy}
