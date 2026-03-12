@@ -94,6 +94,28 @@ export default function App() {
     [content.createLoreItem, loreTemplates.templates, tabs.openLoreTab],
   );
 
+  const handleCreateTemplate = useCallback(() => {
+    loreTemplates.createTemplate();
+  }, [loreTemplates.createTemplate]);
+
+  const handleCreateLoreType = useCallback(() => {
+    loreTypes.createLoreType();
+  }, [loreTypes.createLoreType]);
+
+  const handleStartDocListResize = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      panelLayout.startResize("doclist", event.clientX);
+    },
+    [panelLayout.startResize],
+  );
+
+  const handleStartRightPanelResize = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      panelLayout.startResize("right", event.clientX);
+    },
+    [panelLayout.startResize],
+  );
+
   const handleDeleteLoreType = useCallback(
     (loreTypeId: string) => {
       if ((loreItemsInUse[loreTypeId] ?? 0) > 0 || (templatesInUse[loreTypeId] ?? 0) > 0) return;
@@ -281,7 +303,7 @@ export default function App() {
           onLorePageTypeChange={content.setLorePageTypeId}
           onCreateLoreItem={handleCreateLoreItem}
           onSelectTemplate={loreTemplates.setSelectedTemplateId}
-          onCreateTemplate={() => loreTemplates.createTemplate()}
+          onCreateTemplate={handleCreateTemplate}
           onUpdateTemplate={loreTemplates.updateTemplate}
           onDeleteTemplate={loreTemplates.deleteTemplate}
           onAddTraitDefinition={loreTemplates.addTraitDefinition}
@@ -289,7 +311,7 @@ export default function App() {
           onDeleteTraitDefinition={loreTemplates.deleteTraitDefinition}
           onMoveTraitDefinition={loreTemplates.moveTraitDefinition}
           onSelectLoreType={loreTypes.setSelectedLoreTypeId}
-          onCreateLoreType={() => loreTypes.createLoreType()}
+          onCreateLoreType={handleCreateLoreType}
           onUpdateLoreType={loreTypes.updateLoreType}
           onDeleteLoreType={handleDeleteLoreType}
           onReassignAndDeleteLoreType={handleReassignAndDeleteLoreType}
@@ -315,12 +337,8 @@ export default function App() {
           onTimelineLinkedPageChange={worldStructures.setTimelineLinkedPageId}
           onTimelineDescriptionChange={worldStructures.setTimelineDescription}
           onSelectSearchResult={search.selectSearchResult}
-          onStartDocListResize={(event) => {
-            panelLayout.startResize("doclist", event.clientX);
-          }}
-          onStartRightPanelResize={(event) => {
-            panelLayout.startResize("right", event.clientX);
-          }}
+          onStartDocListResize={handleStartDocListResize}
+          onStartRightPanelResize={handleStartRightPanelResize}
         />
         ) : (
           <div className="main-content">
