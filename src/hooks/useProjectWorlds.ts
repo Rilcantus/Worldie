@@ -461,7 +461,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const commitWorldTitle = async () => {
     if (!editingWorldId) return;
     const nextTitle = worldDraft.trim();
+    const currentWorldName = worlds.find((world) => world.id === editingWorldId)?.name ?? "";
     if (!nextTitle) {
+      setEditingWorldId((current) => (current === null ? current : null));
+      return;
+    }
+    if (nextTitle === currentWorldName) {
+      setWorldDraft((current) => (current === currentWorldName ? current : currentWorldName));
       setEditingWorldId((current) => (current === null ? current : null));
       return;
     }
