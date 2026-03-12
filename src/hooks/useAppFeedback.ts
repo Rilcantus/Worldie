@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 type ConfirmState = { message: string } | null;
 type ToastState = { message: string; onUndo?: () => void } | null;
@@ -8,31 +8,41 @@ export function useAppFeedback() {
   const confirmResolver = useRef<((value: boolean) => void) | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
 
-  const confirmAction = (message: string) =>
-    new Promise<boolean>((resolve) => {
-      confirmResolver.current = resolve;
-      setConfirmState({ message });
-    });
+  const confirmAction = useCallback(
+    (message: string) =>
+      new Promise<boolean>((resolve) => {
+        confirmResolver.current = resolve;
+        setConfirmState({ message });
+      }),
+    [],
+  );
 
-  const resolveConfirm = (value: boolean) => {
+  const resolveConfirm = useCallback((value: boolean) => {
     confirmResolver.current?.(value);
     confirmResolver.current = null;
     setConfirmState(null);
-  };
+  }, []);
 
-  const showToast = (message: string, onUndo?: () => void) => {
+  const showToast = useCallback((message: string, onUndo?: () => void) => {
     setToast({ message, onUndo });
     window.setTimeout(() => {
       setToast((current) => (current?.message === message ? null : current));
     }, 5000);
-  };
+  }, []);
 
-  return {
-    confirmState,
-    toast,
-    confirmAction,
-    resolveConfirm,
-    showToast,
-    clearToast: () => setToast(null),
-  };
+  const clearToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
+  return useMemo(
+    () => ({
+      confirmState,
+      toast,
+      confirmAction,
+      resolveConfirm,
+      showToast,
+      clearToast,
+    }),
+    [confirmState, toast, confirmAction, resolveConfirm, showToast, clearToast],
+  );
 }
