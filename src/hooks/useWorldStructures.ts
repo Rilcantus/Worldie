@@ -49,6 +49,30 @@ export function useWorldStructures({
   const [timelineSaveState, setTimelineSaveState] = useState<SaveState>("idle");
   const [timelineLastSavedAt, setTimelineLastSavedAt] = useState<number | null>(null);
   const loadRequestId = useRef(0);
+
+  const resetRelationshipState = (saveState: SaveState = "idle") => {
+    setRelationships((current) => (current.length === 0 ? current : []));
+    setActiveRelationshipId((current) => (current === null ? current : null));
+    setRelationshipSourceId((current) => (current === "" ? current : ""));
+    setRelationshipTargetId((current) => (current === "" ? current : ""));
+    setRelationshipType((current) => (current === "ally" ? current : "ally"));
+    setRelationshipNotes((current) => (current === "" ? current : ""));
+    setRelationshipSaveState((current) => (current === saveState ? current : saveState));
+    setRelationshipLastSavedAt((current) => (current === null ? current : null));
+  };
+
+  const resetTimelineState = (saveState: SaveState = "idle") => {
+    setTimelineEvents((current) => (current.length === 0 ? current : []));
+    setActiveTimelineEventId((current) => (current === null ? current : null));
+    setTimelineTitle((current) => (current === "" ? current : ""));
+    setTimelineDate((current) => (current === "" ? current : ""));
+    setTimelineType((current) => (current === "event" ? current : "event"));
+    setTimelineLinkedPageId((current) => (current === "" ? current : ""));
+    setTimelineDescription((current) => (current === "" ? current : ""));
+    setTimelineSaveState((current) => (current === saveState ? current : saveState));
+    setTimelineLastSavedAt((current) => (current === null ? current : null));
+  };
+
   const markRelationshipSaved = () => {
     setRelationshipSaveState("saved");
     setRelationshipLastSavedAt(Date.now());
@@ -101,42 +125,12 @@ export function useWorldStructures({
   useEffect(() => {
     if (!activeProjectId || !activeWorldId) {
       loadRequestId.current += 1;
-      setRelationships([]);
-      setActiveRelationshipId(null);
-      setRelationshipSourceId("");
-      setRelationshipTargetId("");
-      setRelationshipType("ally");
-      setRelationshipNotes("");
-      setRelationshipSaveState("idle");
-      setRelationshipLastSavedAt(null);
-      setTimelineEvents([]);
-      setActiveTimelineEventId(null);
-      setTimelineTitle("");
-      setTimelineDate("");
-      setTimelineType("event");
-      setTimelineLinkedPageId("");
-      setTimelineDescription("");
-      setTimelineSaveState("idle");
-      setTimelineLastSavedAt(null);
+      resetRelationshipState("idle");
+      resetTimelineState("idle");
       return;
     }
-    setRelationships([]);
-    setActiveRelationshipId(null);
-    setRelationshipSourceId("");
-    setRelationshipTargetId("");
-    setRelationshipType("ally");
-    setRelationshipNotes("");
-    setRelationshipSaveState("idle");
-    setRelationshipLastSavedAt(null);
-    setTimelineEvents([]);
-    setActiveTimelineEventId(null);
-    setTimelineTitle("");
-    setTimelineDate("");
-    setTimelineType("event");
-    setTimelineLinkedPageId("");
-    setTimelineDescription("");
-    setTimelineSaveState("idle");
-    setTimelineLastSavedAt(null);
+    resetRelationshipState("idle");
+    resetTimelineState("idle");
     const requestId = ++loadRequestId.current;
 
     const loadRelationships = async () => {
@@ -153,14 +147,7 @@ export function useWorldStructures({
         markRelationshipSaved();
       } catch (error) {
         if (requestId !== loadRequestId.current) return;
-        setRelationships([]);
-        setActiveRelationshipId(null);
-        setRelationshipSourceId("");
-        setRelationshipTargetId("");
-        setRelationshipType("ally");
-        setRelationshipNotes("");
-        setRelationshipSaveState("error");
-        setRelationshipLastSavedAt(null);
+        resetRelationshipState("error");
         showToast(error instanceof Error ? error.message : "Worldie could not load relationships for this world.");
       }
     };
@@ -180,15 +167,7 @@ export function useWorldStructures({
         markTimelineSaved();
       } catch (error) {
         if (requestId !== loadRequestId.current) return;
-        setTimelineEvents([]);
-        setActiveTimelineEventId(null);
-        setTimelineTitle("");
-        setTimelineDate("");
-        setTimelineType("event");
-        setTimelineLinkedPageId("");
-        setTimelineDescription("");
-        setTimelineSaveState("error");
-        setTimelineLastSavedAt(null);
+        resetTimelineState("error");
         showToast(error instanceof Error ? error.message : "Worldie could not load timeline events for this world.");
       }
     };
