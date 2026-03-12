@@ -1,4 +1,4 @@
-import { useMemo, type MouseEvent as ReactMouseEvent } from "react";
+import { memo, useMemo, type MouseEvent as ReactMouseEvent } from "react";
 import type { LorePage } from "../lib/data";
 import { parseLoreItemFields, stringifyLoreItemFields, type LoreTrait } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
@@ -46,7 +46,7 @@ function createBlankTrait(): LoreTrait {
   };
 }
 
-export function LoreView({
+export const LoreView = memo(function LoreView({
   isDocListCollapsed,
   isSidebarCollapsed,
   isRightPanelCollapsed,
@@ -340,4 +340,4 @@ export function LoreView({
       </div>
     </>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { LoreType } from "../lib/loreTypes";
 
@@ -25,7 +25,7 @@ type TemplatesViewProps = {
   onMoveTraitDefinition: (templateId: string, traitId: string, direction: -1 | 1) => void;
 };
 
-export function TemplatesView({
+export const TemplatesView = memo(function TemplatesView({
   isSidebarCollapsed,
   isRightPanelCollapsed,
   templates,
@@ -219,4 +219,4 @@ export function TemplatesView({
       </div>
     </div>
   );
-}
+});

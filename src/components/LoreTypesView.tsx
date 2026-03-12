@@ -1,6 +1,6 @@
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { LoreType } from "../lib/loreTypes";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 type LoreTypesViewProps = {
   isSidebarCollapsed: boolean;
@@ -20,7 +20,7 @@ type LoreTypesViewProps = {
   onMoveLoreType: (loreTypeId: string, direction: -1 | 1) => void;
 };
 
-export function LoreTypesView({
+export const LoreTypesView = memo(function LoreTypesView({
   isSidebarCollapsed,
   isRightPanelCollapsed,
   loreTypes,
@@ -226,4 +226,4 @@ export function LoreTypesView({
       </div>
     </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import type { LorePage, Relationship } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 
@@ -56,7 +56,7 @@ const isEditableTarget = (target: EventTarget | null) => {
   );
 };
 
-export function RelationshipsView({
+export const RelationshipsView = memo(function RelationshipsView({
   isDocListCollapsed,
   isSidebarCollapsed,
   isRightPanelCollapsed,
@@ -882,4 +882,4 @@ export function RelationshipsView({
       </div>
     </>
   );
-}
+});

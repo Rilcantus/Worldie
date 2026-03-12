@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
@@ -16,7 +16,7 @@ type LoreCreateViewProps = {
   onOpenLoreTypes: () => void;
 };
 
-export function LoreCreateView({
+export const LoreCreateView = memo(function LoreCreateView({
   isSidebarCollapsed,
   isRightPanelCollapsed,
   activeWorld,
@@ -170,4 +170,4 @@ export function LoreCreateView({
       </div>
     </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import type { LorePage, TimelineEvent } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 
@@ -69,7 +69,7 @@ const isEditableTarget = (target: EventTarget | null) => {
   );
 };
 
-export function TimelineView({
+export const TimelineView = memo(function TimelineView({
   isDocListCollapsed,
   isSidebarCollapsed,
   isRightPanelCollapsed,
@@ -929,4 +929,4 @@ export function TimelineView({
       </div>
     </>
   );
-}
+});
