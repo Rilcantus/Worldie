@@ -43,11 +43,13 @@ export function useTabs({
 
   useEffect(() => {
     if (!activeProjectId) {
+      pendingTabOpenId.current = null;
       setTabs([WORKBENCH_TAB]);
       setActiveTabId("workbench");
       setTabsProjectId(null);
       return;
     }
+    pendingTabOpenId.current = null;
     setTabsProjectId(null);
     const next = loadProjectTabs(activeProjectId);
     if (next?.tabs?.length) {
