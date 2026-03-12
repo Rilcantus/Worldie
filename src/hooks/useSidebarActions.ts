@@ -1,4 +1,4 @@
-import type { WorldUI } from "../types/ui";
+import { useCallback, useMemo } from "react";
 
 type UseSidebarActionsArgs = {
   projectTitle: string;
@@ -23,23 +23,70 @@ export function useSidebarActions({
   setActiveWorldId,
   openSpecialTab,
 }: UseSidebarActionsArgs) {
-  return {
-    cancelProjectEdit: () => {
-      setProjectDraft(projectTitle);
-      setIsEditingProject(false);
+  const cancelProjectEdit = useCallback(() => {
+    setProjectDraft(projectTitle);
+    setIsEditingProject(false);
+  }, [projectTitle, setIsEditingProject, setProjectDraft]);
+
+  const startProjectEdit = useCallback(() => {
+    setIsEditingProject(true);
+  }, [setIsEditingProject]);
+
+  const handleRemoveProject = useCallback(() => {
+    void removeProject();
+  }, [removeProject]);
+
+  const collapseSidebar = useCallback(() => {
+    setIsSidebarCollapsed(true);
+  }, [setIsSidebarCollapsed]);
+
+  const cancelWorldEdit = useCallback(() => {
+    setEditingWorldId(null);
+  }, [setEditingWorldId]);
+
+  const handleRemoveWorld = useCallback(
+    (worldId: string) => {
+      void removeWorld(worldId);
     },
-    startProjectEdit: () => setIsEditingProject(true),
-    removeProject: () => void removeProject(),
-    collapseSidebar: () => setIsSidebarCollapsed(true),
-    cancelWorldEdit: () => setEditingWorldId(null),
-    removeWorld: (worldId: string) => void removeWorld(worldId),
-    openRelationshipsForWorld: (worldId: string) => {
+    [removeWorld],
+  );
+
+  const openRelationshipsForWorld = useCallback(
+    (worldId: string) => {
       setActiveWorldId(worldId);
       openSpecialTab("rels", worldId);
     },
-    openTimelineForWorld: (worldId: string) => {
+    [openSpecialTab, setActiveWorldId],
+  );
+
+  const openTimelineForWorld = useCallback(
+    (worldId: string) => {
       setActiveWorldId(worldId);
       openSpecialTab("timeline", worldId);
     },
-  };
+    [openSpecialTab, setActiveWorldId],
+  );
+
+  return useMemo(
+    () => ({
+      cancelProjectEdit,
+      startProjectEdit,
+      removeProject: handleRemoveProject,
+      collapseSidebar,
+      cancelWorldEdit,
+      removeWorld: handleRemoveWorld,
+      openRelationshipsForWorld,
+      openTimelineForWorld,
+    }),
+    [
+      cancelProjectEdit,
+      startProjectEdit,
+      handleRemoveProject,
+      collapseSidebar,
+      cancelWorldEdit,
+      handleRemoveWorld,
+      openRelationshipsForWorld,
+      openTimelineForWorld,
+    ],
+  );
 }
