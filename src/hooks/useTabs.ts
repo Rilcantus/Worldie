@@ -261,14 +261,27 @@ export function useTabs({
       const shouldReplaceActiveNew = activeTabId.startsWith("new:");
       const exists = prev.some((item) => item.id === tab.id);
       if (exists) {
-        return prev
-          .filter((item) => !(shouldReplaceActiveNew && item.id === activeTabId))
-          .map((item) => (item.id === tab.id ? { ...item, ...tab } : item));
+        const filtered = prev.filter((item) => !(shouldReplaceActiveNew && item.id === activeTabId));
+        let changed = filtered.length !== prev.length;
+        const next = filtered.map((item) => {
+          if (item.id !== tab.id) return item;
+          const merged = { ...item, ...tab };
+          const same =
+            item.kind === merged.kind &&
+            item.label === merged.label &&
+            item.icon === merged.icon &&
+            item.refId === merged.refId &&
+            item.worldId === merged.worldId;
+          if (same) return item;
+          changed = true;
+          return merged;
+        });
+        return changed ? next : prev;
       }
       const base = shouldReplaceActiveNew ? prev.filter((item) => item.id !== activeTabId) : prev;
       return [...base, tab];
     });
-    setActiveTabId(tab.id);
+    setActiveTabId((current) => (current === tab.id ? current : tab.id));
   };
 
   const openWorkbenchTab = () => openTab(WORKBENCH_TAB);
@@ -412,8 +425,16 @@ export function useTabs({
   };
   const resetTabs = () => {
     clearPendingTabRefs();
-    setTabs([WORKBENCH_TAB]);
-    setActiveTabId("workbench");
+    setTabs((current) =>
+      current.length === 1 &&
+      current[0].id === WORKBENCH_TAB.id &&
+      current[0].kind === WORKBENCH_TAB.kind &&
+      current[0].label === WORKBENCH_TAB.label &&
+      current[0].icon === WORKBENCH_TAB.icon
+        ? current
+        : [WORKBENCH_TAB],
+    );
+    setActiveTabId((current) => (current === "workbench" ? current : "workbench"));
   };
 
   return {
