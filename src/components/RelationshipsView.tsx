@@ -187,6 +187,44 @@ export function RelationshipsView({
     [filteredRelationships, networkNodes],
   );
 
+  const focusedPage = useMemo(() => {
+    if (relationshipPageFilter !== "all") {
+      return lorePages.find((page) => page.id === relationshipPageFilter) ?? null;
+    }
+    if (activeRelationshipId) {
+      return (
+        lorePages.find((page) => page.id === relationshipSourceId) ??
+        lorePages.find((page) => page.id === relationshipTargetId) ??
+        null
+      );
+    }
+    return keyPages[0]?.page ?? null;
+  }, [activeRelationshipId, keyPages, lorePages, relationshipPageFilter, relationshipSourceId, relationshipTargetId]);
+
+  const focusedConnections = useMemo(() => {
+    if (!focusedPage) return [];
+    return filteredRelationships
+      .filter(
+        (relationship) =>
+          relationship.sourcePageId === focusedPage.id || relationship.targetPageId === focusedPage.id,
+      )
+      .map((relationship) => {
+        const counterpartId =
+          relationship.sourcePageId === focusedPage.id ? relationship.targetPageId : relationship.sourcePageId;
+        const counterpart = lorePages.find((page) => page.id === counterpartId) ?? null;
+        return { relationship, counterpart };
+      })
+      .sort((left, right) => left.relationship.relationType.localeCompare(right.relationship.relationType));
+  }, [filteredRelationships, focusedPage, lorePages]);
+
+  const focusedConnectionCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const entry of focusedConnections) {
+      counts.set(entry.relationship.relationType, (counts.get(entry.relationship.relationType) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((left, right) => right[1] - left[1]);
+  }, [focusedConnections]);
+
   const activeRelationship =
     relationships.find((relationship) => relationship.id === activeRelationshipId) ?? null;
   const activeSource = lorePages.find((page) => page.id === relationshipSourceId) ?? null;
@@ -411,11 +449,14 @@ export function RelationshipsView({
           <div className="structure-card">
             <div className="structure-card-label">Current Focus</div>
             <div className="structure-card-value relationship-focus-text">
-              {activeSource?.title ?? "Select"} {relationshipType || "link"}{" "}
-              {activeTarget?.title ?? "pages"}
+              {focusedPage?.title ?? activeSource?.title ?? "Select"}{" "}
+              {focusedPage ? `${focusedConnections.length} links` : relationshipType || "link"}{" "}
+              {focusedPage ? "" : activeTarget?.title ?? "pages"}
             </div>
             <div className="structure-card-meta">
-              Use this to inspect faction ties, rivalries, and affiliations
+              {focusedPage
+                ? "Focused page for inspecting neighbors and connection density"
+                : "Use this to inspect faction ties, rivalries, and affiliations"}
             </div>
           </div>
         </div>
@@ -500,6 +541,58 @@ export function RelationshipsView({
               This is still a lightweight preview, not the final graph map. It gives you a
               faster read on the shape of the world while editing.
             </div>
+          </div>
+        </div>
+
+        <div className="structure-grid">
+          <div className="lore-panel">
+            <div className="lore-panel-header">
+              <div className="linked-lore-label">Focused Page Neighbors</div>
+            </div>
+            {!focusedPage ? (
+              <div className="rp-empty">Pick a page or relationship to inspect its immediate network.</div>
+            ) : focusedConnections.length === 0 ? (
+              <div className="rp-empty">{focusedPage.title} has no matching connections in the current filter.</div>
+            ) : (
+              <div className="structure-list">
+                {focusedConnections.map(({ relationship, counterpart }) => (
+                  <button
+                    key={relationship.id}
+                    className={`structure-list-item structure-list-item-button ${
+                      relationship.id === activeRelationshipId ? "active" : ""
+                    }`}
+                    type="button"
+                    onClick={() => onSelectRelationship(relationship)}
+                  >
+                    <span>{counterpart?.title ?? "Unknown page"}</span>
+                    <span>{relationship.relationType}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="lore-panel">
+            <div className="lore-panel-header">
+              <div className="linked-lore-label">Focused Connection Mix</div>
+            </div>
+            {!focusedPage || focusedConnectionCounts.length === 0 ? (
+              <div className="rp-empty">Connection breakdown will appear here for the focused page.</div>
+            ) : (
+              <div className="structure-list">
+                {focusedConnectionCounts.map(([label, count]) => (
+                  <div key={`${focusedPage.id}-${label}`} className="structure-list-item">
+                    <span>{label}</span>
+                    <span>{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {focusedPage ? (
+              <div className="advanced-json-note">
+                Focused on {focusedPage.title}. Use the page filter, node buttons, or key-page buttons to pivot the graph.
+              </div>
+            ) : null}
           </div>
         </div>
 

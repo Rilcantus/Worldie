@@ -127,6 +127,16 @@ export function TimelineView({
   const earliestEvent = timelineSpan[0] ?? null;
   const latestEvent = timelineSpan[timelineSpan.length - 1] ?? null;
   const featuredTimelineEvents = orderedEvents.slice(0, 10);
+  const groupedTimelineEvents = useMemo(() => {
+    const groups = new Map<string, TimelineEvent[]>();
+    for (const event of orderedEvents) {
+      const key = event.eventType || "General";
+      const existing = groups.get(key) ?? [];
+      existing.push(event);
+      groups.set(key, existing);
+    }
+    return [...groups.entries()];
+  }, [orderedEvents]);
 
   return (
     <>
@@ -411,10 +421,17 @@ export function TimelineView({
             ) : (
               <div className="structure-list">
                 {timelineTypeCounts.map(([label, count]) => (
-                  <div key={label} className="structure-list-item">
+                  <button
+                    key={label}
+                    className={`structure-list-item structure-list-item-button ${
+                      timelineTypeFilter === label ? "active" : ""
+                    }`}
+                    type="button"
+                    onClick={() => setTimelineTypeFilter(label)}
+                  >
                     <span>{label}</span>
                     <span>{count}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -454,6 +471,51 @@ export function TimelineView({
                   </button>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        <div className="lore-panel">
+          <div className="lore-panel-header">
+            <div className="linked-lore-label">Type Tracks</div>
+          </div>
+          {groupedTimelineEvents.length === 0 ? (
+            <div className="rp-empty">Grouped tracks will appear as the timeline grows.</div>
+          ) : (
+            <div className="timeline-track-groups">
+              {groupedTimelineEvents.map(([label, events]) => (
+                <div key={label} className="timeline-track-group">
+                  <div className="timeline-track-header">
+                    <button
+                      className={`timeline-track-chip ${timelineTypeFilter === label ? "active" : ""}`}
+                      type="button"
+                      onClick={() => setTimelineTypeFilter(label)}
+                    >
+                      {label}
+                    </button>
+                    <span className="timeline-track-count">{events.length} events</span>
+                  </div>
+                  <div className="timeline-track-list">
+                    {events.map((event) => {
+                      const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                      return (
+                        <button
+                          key={`${label}-${event.id}`}
+                          className={`timeline-track-item ${event.id === activeTimelineEventId ? "active" : ""}`}
+                          type="button"
+                          onClick={() => onSelectTimelineEvent(event)}
+                        >
+                          <span className="timeline-track-item-date">{event.eventDate || "Undated"}</span>
+                          <span className="timeline-track-item-title">{event.title}</span>
+                          <span className="timeline-track-item-meta">
+                            {linkedPage ? linkedPage.title : "No linked page"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
