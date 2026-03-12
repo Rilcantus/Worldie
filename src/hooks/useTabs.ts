@@ -146,27 +146,49 @@ export function useTabs({
     if (!activeDocumentId) return;
     const id = `doc:${activeDocumentId}`;
     const label = activeDocumentTitle || "Untitled Document";
-    setTabs((prev) => prev.map((tab) => (tab.id === id ? { ...tab, label } : tab)));
+    setTabs((prev) => {
+      let changed = false;
+      const next = prev.map((tab) => {
+        if (tab.id !== id || tab.label === label) return tab;
+        changed = true;
+        return { ...tab, label };
+      });
+      return changed ? next : prev;
+    });
   }, [activeDocumentId, activeDocumentTitle]);
 
   useEffect(() => {
     if (!activeLoreId) return;
     const id = `lore:${activeLoreId}`;
     const label = activeLoreTitle || "Untitled Lore";
-    setTabs((prev) => prev.map((tab) => (tab.id === id ? { ...tab, label } : tab)));
+    setTabs((prev) => {
+      let changed = false;
+      const next = prev.map((tab) => {
+        if (tab.id !== id || tab.label === label) return tab;
+        changed = true;
+        return { ...tab, label };
+      });
+      return changed ? next : prev;
+    });
   }, [activeLoreId, activeLoreTitle]);
 
   useEffect(() => {
     if (!activeWorldId) return;
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.id === activeTabId &&
-        (tab.kind === "rels" || tab.kind === "timeline") &&
-        tab.worldId !== activeWorldId
-          ? { ...tab, worldId: activeWorldId }
-          : tab,
-      ),
-    );
+    setTabs((prev) => {
+      let changed = false;
+      const next = prev.map((tab) => {
+        if (
+          tab.id !== activeTabId ||
+          (tab.kind !== "rels" && tab.kind !== "timeline") ||
+          tab.worldId === activeWorldId
+        ) {
+          return tab;
+        }
+        changed = true;
+        return { ...tab, worldId: activeWorldId };
+      });
+      return changed ? next : prev;
+    });
   }, [activeTabId, activeWorldId]);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0] ?? null;
