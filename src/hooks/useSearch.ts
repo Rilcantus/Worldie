@@ -12,6 +12,7 @@ export type SearchResult = {
 };
 
 type UseSearchArgs = {
+  enabled: boolean;
   documents: Document[];
   allLorePages: LorePage[];
   onOpenDocument: (doc: Document) => void;
@@ -62,6 +63,7 @@ function scoreMatch(title: string, body: string, query: string) {
 }
 
 export function useSearch({
+  enabled,
   documents,
   allLorePages,
   onOpenDocument,
@@ -141,6 +143,10 @@ export function useSearch({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        if (!enabled) {
+          event.preventDefault();
+          return;
+        }
         event.preventDefault();
         setIsQuickOpenOpen(true);
         return;
@@ -153,7 +159,13 @@ export function useSearch({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [enabled]);
+
+  useEffect(() => {
+    if (enabled) return;
+    setIsQuickOpenOpen(false);
+    setSearchQuery("");
+  }, [enabled]);
 
   useEffect(() => {
     setActiveQuickOpenIndex(0);
@@ -169,6 +181,7 @@ export function useSearch({
   };
 
   const openQuickOpen = () => {
+    if (!enabled) return;
     setIsQuickOpenOpen(true);
   };
 

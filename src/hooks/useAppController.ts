@@ -62,6 +62,7 @@ export function useAppController() {
   });
 
   const search = useSearch({
+    enabled: Boolean(projectWorlds.activeProjectId),
     documents: content.documents,
     allLorePages: content.allLorePages,
     onOpenDocument: tabs.openDocumentTab,
