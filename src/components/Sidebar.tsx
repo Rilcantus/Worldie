@@ -310,46 +310,51 @@ export function Sidebar({
               </div>
               {world.isOpen ? (
                 <div className="world-children">
-                  <div
+                  <button
                     className={`nav-item ${world.id === activeWorldId && activeNav === "editor" ? "active" : ""}`}
+                    type="button"
                     onClick={() => onOpenEditor(world.id)}
                   >
                     <span className="nav-icon">{"\u270D"}</span> Editor
                     <span className="nav-count">{world.editorCount}</span>
-                  </div>
-                  <div
+                  </button>
+                  <button
                     className={`nav-item ${world.id === activeWorldId && activeNav === "lore" ? "active" : ""}`}
+                    type="button"
                     onClick={() => onOpenLoreRoot(world.id)}
                   >
                     <span className="nav-icon">{"\uD83D\uDCCB"}</span> Lore Pages
                     <span className="nav-count">{world.loreCount}</span>
-                  </div>
+                  </button>
 
                   <div className="lore-sub">
                     {world.loreCategories.map((category) => (
-                      <div
+                      <button
                         className={`lore-entry ${world.id === activeWorldId && activeLoreCategory === category.id ? "active" : ""}`}
                         key={category.id}
+                        type="button"
                         onClick={() => onOpenLoreCategory(world.id, category.id)}
                       >
                         <span className="dot"></span> {category.label}
                         <span className="lore-entry-count">{category.count}</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
 
-                  <div
+                  <button
                     className={`nav-item ${world.id === activeWorldId && activeNav === "rels" ? "active" : ""}`}
+                    type="button"
                     onClick={() => onOpenRelationships(world.id)}
                   >
                     <span className="nav-icon">{"\uD83D\uDD78"}</span> Relationships
-                  </div>
-                  <div
+                  </button>
+                  <button
                     className={`nav-item ${world.id === activeWorldId && activeNav === "timeline" ? "active" : ""}`}
+                    type="button"
                     onClick={() => onOpenTimeline(world.id)}
                   >
                     <span className="nav-icon">{"\u23F3"}</span> Timeline
-                  </div>
+                  </button>
                 </div>
               ) : null}
             </div>

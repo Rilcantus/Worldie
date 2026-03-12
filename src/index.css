@@ -427,6 +427,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   cursor: pointer; color: var(--text-secondary);
   font-size: 12.5px; transition: all 0.12s;
   margin: 1px 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
 }
 .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 .nav-item.active { background: var(--accent-glow); color: var(--accent-bright); }
@@ -444,6 +449,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   padding: 3px 8px; border-radius: 5px;
   cursor: pointer; color: var(--text-muted);
   font-size: 12px; transition: all 0.12s;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
 }
 .lore-entry:hover { color: var(--text-secondary); background: var(--bg-hover); }
 .lore-entry.active { color: var(--accent-bright); }
