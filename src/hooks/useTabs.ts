@@ -211,11 +211,15 @@ export function useTabs({
     setTabs((prev) => {
       const closingIndex = prev.findIndex((item) => item.id === tab.id);
       const next = prev.filter((item) => item.id !== tab.id);
+      const normalizedNext = next.length > 0 ? next : [WORKBENCH_TAB];
       if (tab.id === activeTabId) {
-        const fallback = next[Math.max(0, closingIndex - 1)] ?? next[closingIndex] ?? next[next.length - 1];
-        setActiveTabId(fallback?.id ?? "");
+        const fallback =
+          normalizedNext[Math.max(0, closingIndex - 1)] ??
+          normalizedNext[closingIndex] ??
+          normalizedNext[normalizedNext.length - 1];
+        setActiveTabId(fallback?.id ?? "workbench");
       }
-      return next;
+      return normalizedNext;
     });
   };
 
