@@ -110,6 +110,8 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       setActiveWorldId(null);
       return false;
     }
+    setWorlds([]);
+    setActiveWorldId(null);
     setActiveProjectId(project.id);
     setProjectTitle(project.title);
     setProjectDraft(project.title);
