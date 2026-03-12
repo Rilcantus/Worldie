@@ -144,28 +144,58 @@ export function Sidebar({
 
         {isProjectMenuOpen ? (
           <div className="project-menu">
-            <button className="project-menu-item" type="button" disabled={isProjectBusy} onClick={() => { setIsProjectMenuOpen(false); onAddProject(); }}>
+            <button
+              className="project-menu-item"
+              type="button"
+              disabled={isProjectBusy}
+              onClick={() => {
+                setIsProjectMenuOpen(false);
+                onAddProject();
+              }}
+            >
               New Project
             </button>
-            <button className="project-menu-item" type="button" disabled={isProjectBusy} onClick={() => { setIsProjectMenuOpen(false); onOpenProject(); }}>
+            <button
+              className="project-menu-item"
+              type="button"
+              disabled={isProjectBusy}
+              onClick={() => {
+                setIsProjectMenuOpen(false);
+                onOpenProject();
+              }}
+            >
               Open Project
             </button>
             <button
               className="project-menu-item"
               type="button"
               disabled={!activeProjectId || isProjectBusy}
-              onClick={() => { setIsProjectMenuOpen(false); onSaveProjectAs(); }}
+              onClick={() => {
+                setIsProjectMenuOpen(false);
+                onSaveProjectAs();
+              }}
             >
               Save As
             </button>
-            <button className="project-menu-item" type="button" disabled={isProjectBusy} onClick={() => { setIsProjectMenuOpen(false); onAddDemoProject(); }}>
+            <button
+              className="project-menu-item"
+              type="button"
+              disabled={isProjectBusy}
+              onClick={() => {
+                setIsProjectMenuOpen(false);
+                onAddDemoProject();
+              }}
+            >
               New Demo Project
             </button>
             <button
               className="project-menu-item danger"
               type="button"
               disabled={!activeProjectId || isProjectBusy}
-              onClick={() => { setIsProjectMenuOpen(false); onRemoveProject(); }}
+              onClick={() => {
+                setIsProjectMenuOpen(false);
+                onRemoveProject();
+              }}
             >
               Delete Project
             </button>
@@ -186,7 +216,9 @@ export function Sidebar({
                   }}
                 >
                   <span>{project.title}</span>
-                  <span className="project-menu-meta">{getProjectPathDisplay(project) || getProjectFilename(project)}</span>
+                  <span className="project-menu-meta">
+                    {getProjectPathDisplay(project) || getProjectFilename(project)}
+                  </span>
                 </button>
               ))
             )}
@@ -196,7 +228,7 @@ export function Sidebar({
 
       <div className="sidebar-search">
         <div className="search-wrap">
-          <span className="search-icon">⌕</span>
+          <span className="search-icon">{"\u2315"}</span>
           <input
             className="search-input"
             placeholder="Search lore & docs..."
@@ -263,7 +295,7 @@ export function Sidebar({
                     {world.name}
                   </button>
                 )}
-                <span className="world-chevron">▶</span>
+                <span className="world-chevron">{"\u25B6"}</span>
                 <button
                   className="world-delete"
                   type="button"
@@ -273,7 +305,7 @@ export function Sidebar({
                   }}
                   title="Delete world"
                 >
-                  ×
+                  {"\u00D7"}
                 </button>
               </div>
               {world.isOpen ? (
@@ -282,14 +314,14 @@ export function Sidebar({
                     className={`nav-item ${world.id === activeWorldId && activeNav === "editor" ? "active" : ""}`}
                     onClick={() => onOpenEditor(world.id)}
                   >
-                    <span className="nav-icon">✍</span> Editor
+                    <span className="nav-icon">{"\u270D"}</span> Editor
                     <span className="nav-count">{world.editorCount}</span>
                   </div>
                   <div
                     className={`nav-item ${world.id === activeWorldId && activeNav === "lore" ? "active" : ""}`}
                     onClick={() => onOpenLoreRoot(world.id)}
                   >
-                    <span className="nav-icon">📋</span> Lore Pages
+                    <span className="nav-icon">{"\uD83D\uDCCB"}</span> Lore Pages
                     <span className="nav-count">{world.loreCount}</span>
                   </div>
 
@@ -310,13 +342,13 @@ export function Sidebar({
                     className={`nav-item ${world.id === activeWorldId && activeNav === "rels" ? "active" : ""}`}
                     onClick={() => onOpenRelationships(world.id)}
                   >
-                    <span className="nav-icon">🕸</span> Relationships
+                    <span className="nav-icon">{"\uD83D\uDD78"}</span> Relationships
                   </div>
                   <div
                     className={`nav-item ${world.id === activeWorldId && activeNav === "timeline" ? "active" : ""}`}
                     onClick={() => onOpenTimeline(world.id)}
                   >
-                    <span className="nav-icon">⏳</span> Timeline
+                    <span className="nav-icon">{"\u23F3"}</span> Timeline
                   </div>
                 </div>
               ) : null}
