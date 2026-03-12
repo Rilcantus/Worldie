@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Document, LorePage } from "../lib/data";
 import { loadProjectTabs, saveProjectTabs } from "../lib/uiStore";
 import type { TabItem, TabKind } from "../types/ui";
@@ -52,14 +52,14 @@ export function useTabs({
   const pendingTabOpenId = useRef<string | null>(null);
   const pendingWorldScopedTabId = useRef<string | null>(null);
 
-  const clearPendingTabRefs = (tabId?: string) => {
+  const clearPendingTabRefs = useCallback((tabId?: string) => {
     if (!tabId || pendingTabOpenId.current === tabId) {
       pendingTabOpenId.current = null;
     }
     if (!tabId || pendingWorldScopedTabId.current === tabId) {
       pendingWorldScopedTabId.current = null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!activeProjectId) {
@@ -268,7 +268,7 @@ export function useTabs({
     return [...tabs].sort((a, b) => priority[a.kind] - priority[b.kind]);
   }, [tabs]);
 
-  const openTab = (tab: TabItem) => {
+  const openTab = useCallback((tab: TabItem) => {
     setTabs((prev) => {
       const shouldReplaceActiveNew = activeTabId.startsWith("new:");
       const exists = prev.some((item) => item.id === tab.id);
@@ -294,26 +294,41 @@ export function useTabs({
       return [...base, tab];
     });
     setActiveTabId((current) => (current === tab.id ? current : tab.id));
-  };
+  }, [activeTabId]);
 
-  const openWorkbenchTab = () => openTab(WORKBENCH_TAB);
+  const openWorkbenchTab = useCallback(() => openTab(WORKBENCH_TAB), [openTab]);
 
-  const openSpecialTab = (kind: "rels" | "timeline", worldId = activeWorldId) =>
-    openTab({
-      id: kind,
-      kind,
-      label: kind === "rels" ? "Relationships" : "Timeline",
-      icon: kind === "rels" ? "R" : "T",
-      worldId,
-    });
+  const openSpecialTab = useCallback(
+    (kind: "rels" | "timeline", worldId = activeWorldId) =>
+      openTab({
+        id: kind,
+        kind,
+        label: kind === "rels" ? "Relationships" : "Timeline",
+        icon: kind === "rels" ? "R" : "T",
+        worldId,
+      }),
+    [activeWorldId, openTab],
+  );
 
-  const openTemplatesTab = () => openTab({ id: "templates", kind: "templates", label: "Templates", icon: "S" });
-  const openLoreTypesTab = () => openTab({ id: "loretypes", kind: "ltypes", label: "Lore Types", icon: "Y" });
-  const openLoreCreateTab = () => openTab({ id: "lore:create", kind: "lcreate", label: "New Lore Item", icon: "+" });
+  const openTemplatesTab = useCallback(
+    () => openTab({ id: "templates", kind: "templates", label: "Templates", icon: "S" }),
+    [openTab],
+  );
+  const openLoreTypesTab = useCallback(
+    () => openTab({ id: "loretypes", kind: "ltypes", label: "Lore Types", icon: "Y" }),
+    [openTab],
+  );
+  const openLoreCreateTab = useCallback(
+    () => openTab({ id: "lore:create", kind: "lcreate", label: "New Lore Item", icon: "+" }),
+    [openTab],
+  );
 
-  const openNewTab = () => openTab({ id: `new:${crypto.randomUUID()}`, kind: "new", label: "New Tab", icon: "+" });
+  const openNewTab = useCallback(
+    () => openTab({ id: `new:${crypto.randomUUID()}`, kind: "new", label: "New Tab", icon: "+" }),
+    [openTab],
+  );
 
-  const openDocumentTab = (doc: Document) => {
+  const openDocumentTab = useCallback((doc: Document) => {
     onSelectDocument(doc);
     openTab({
       id: `doc:${doc.id}`,
@@ -323,9 +338,9 @@ export function useTabs({
       refId: doc.id,
       worldId: doc.worldId,
     });
-  };
+  }, [onSelectDocument, openTab]);
 
-  const openLoreTab = (page: LorePage) => {
+  const openLoreTab = useCallback((page: LorePage) => {
     onSelectLorePage(page, resolveLoreTypeId(page));
     openTab({
       id: `lore:${page.id}`,
@@ -335,9 +350,9 @@ export function useTabs({
       refId: page.id,
       worldId: page.worldId,
     });
-  };
+  }, [onSelectLorePage, openTab, resolveLoreTypeId]);
 
-  const handleTabSelect = (tab: TabItem) => {
+  const handleTabSelect = useCallback((tab: TabItem) => {
     const isAlreadyActiveTab = tab.id === activeTabId;
     if (
       isAlreadyActiveTab &&
@@ -399,9 +414,20 @@ export function useTabs({
       const page = allLorePages.find((item) => item.id === tab.refId);
       if (page) onSelectLorePage(page, resolveLoreTypeId(page));
     }
-  };
+  }, [
+    activeDocumentId,
+    activeLoreId,
+    activeTabId,
+    activeWorldId,
+    allLorePages,
+    documents,
+    onSelectDocument,
+    onSelectLorePage,
+    resolveLoreTypeId,
+    setActiveWorldId,
+  ]);
 
-  const handleTabClose = (tab: TabItem) => {
+  const handleTabClose = useCallback((tab: TabItem) => {
     clearPendingTabRefs(tab.id);
     setTabs((prev) => {
       const closingIndex = prev.findIndex((item) => item.id === tab.id);
@@ -416,9 +442,9 @@ export function useTabs({
       }
       return normalizedNext;
     });
-  };
+  }, [activeTabId, clearPendingTabRefs]);
 
-  const removeTabById = (tabId: string) => {
+  const removeTabById = useCallback((tabId: string) => {
     clearPendingTabRefs(tabId);
     setTabs((prev) => {
       const closingIndex = prev.findIndex((item) => item.id === tabId);
@@ -434,12 +460,12 @@ export function useTabs({
       }
       return normalizedNext;
     });
-  };
-  const resetTabs = () => {
+  }, [activeTabId, clearPendingTabRefs]);
+  const resetTabs = useCallback(() => {
     clearPendingTabRefs();
     setTabs((current) => (isWorkbenchOnlyTabState(current) ? current : [WORKBENCH_TAB]));
     setActiveTabId((current) => (current === "workbench" ? current : "workbench"));
-  };
+  }, [clearPendingTabRefs]);
 
   return {
     tabs,
