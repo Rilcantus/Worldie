@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listProjectLoreTypes, saveProjectLoreTypes } from "../lib/data";
 import {
   getDefaultLoreTypeId,
@@ -52,7 +52,7 @@ export function useLoreTypes(activeProjectId: string | null) {
     [selectedLoreTypeId, sortedLoreTypes],
   );
 
-  const createLoreType = () => {
+  const createLoreType = useCallback(() => {
     const nextType: LoreType = {
       id: crypto.randomUUID(),
       name: "New Lore Type",
@@ -63,9 +63,9 @@ export function useLoreTypes(activeProjectId: string | null) {
     setLoreTypes((prev) => sortLoreTypes([...prev, nextType]).map((type, index) => ({ ...type, order: index })));
     setSelectedLoreTypeId(nextType.id);
     return nextType;
-  };
+  }, [loreTypes.length]);
 
-  const updateLoreType = (loreTypeId: string, updates: Partial<Omit<LoreType, "id" | "isSystem">>) => {
+  const updateLoreType = useCallback((loreTypeId: string, updates: Partial<Omit<LoreType, "id" | "isSystem">>) => {
     setLoreTypes((prev) =>
       prev.map((type) => {
         if (type.id !== loreTypeId) return type;
@@ -78,15 +78,15 @@ export function useLoreTypes(activeProjectId: string | null) {
         };
       }),
     );
-  };
+  }, []);
 
-  const deleteLoreType = (loreTypeId: string) => {
+  const deleteLoreType = useCallback((loreTypeId: string) => {
     setLoreTypes((prev) =>
       sortLoreTypes(prev.filter((type) => type.id !== loreTypeId)).map((type, index) => ({ ...type, order: index })),
     );
-  };
+  }, []);
 
-  const moveLoreType = (loreTypeId: string, direction: -1 | 1) => {
+  const moveLoreType = useCallback((loreTypeId: string, direction: -1 | 1) => {
     setLoreTypes((prev) => {
       const ordered = sortLoreTypes(prev);
       const index = ordered.findIndex((type) => type.id === loreTypeId);
@@ -97,16 +97,27 @@ export function useLoreTypes(activeProjectId: string | null) {
       next.splice(targetIndex, 0, moved);
       return next.map((type, order) => ({ ...type, order }));
     });
-  };
+  }, []);
 
-  return {
-    loreTypes: sortedLoreTypes,
-    selectedLoreTypeId,
-    selectedLoreType,
-    setSelectedLoreTypeId,
-    createLoreType,
-    updateLoreType,
-    deleteLoreType,
-    moveLoreType,
-  };
+  return useMemo(
+    () => ({
+      loreTypes: sortedLoreTypes,
+      selectedLoreTypeId,
+      selectedLoreType,
+      setSelectedLoreTypeId,
+      createLoreType,
+      updateLoreType,
+      deleteLoreType,
+      moveLoreType,
+    }),
+    [
+      sortedLoreTypes,
+      selectedLoreTypeId,
+      selectedLoreType,
+      createLoreType,
+      updateLoreType,
+      deleteLoreType,
+      moveLoreType,
+    ],
+  );
 }

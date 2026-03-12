@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listProjectLoreTemplates, saveProjectLoreTemplates } from "../lib/data";
 import {
   type LoreTemplate,
@@ -52,7 +52,7 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
     [selectedTemplateId, templates],
   );
 
-  const createTemplate = (loreTypeId = getDefaultLoreTypeId(loreTypes) ?? "") => {
+  const createTemplate = useCallback((loreTypeId = getDefaultLoreTypeId(loreTypes) ?? "") => {
     if (!loreTypeId) return null;
     const nextTemplate: LoreTemplate = {
       id: crypto.randomUUID(),
@@ -63,19 +63,19 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
     setTemplates((prev) => [nextTemplate, ...prev]);
     setSelectedTemplateId(nextTemplate.id);
     return nextTemplate;
-  };
+  }, [loreTypes]);
 
-  const updateTemplate = (templateId: string, updates: Partial<Omit<LoreTemplate, "id">>) => {
+  const updateTemplate = useCallback((templateId: string, updates: Partial<Omit<LoreTemplate, "id">>) => {
     setTemplates((prev) =>
       prev.map((template) => (template.id === templateId ? { ...template, ...updates } : template)),
     );
-  };
+  }, []);
 
-  const deleteTemplate = (templateId: string) => {
+  const deleteTemplate = useCallback((templateId: string) => {
     setTemplates((prev) => prev.filter((template) => template.id !== templateId));
-  };
+  }, []);
 
-  const addTraitDefinition = (templateId: string) => {
+  const addTraitDefinition = useCallback((templateId: string) => {
     setTemplates((prev) =>
       prev.map((template) => {
         if (template.id !== templateId) return template;
@@ -91,9 +91,9 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
         };
       }),
     );
-  };
+  }, []);
 
-  const updateTraitDefinition = (
+  const updateTraitDefinition = useCallback((
     templateId: string,
     traitId: string,
     updates: Partial<Omit<TraitDefinition, "id">>,
@@ -110,9 +110,9 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
           : template,
       ),
     );
-  };
+  }, []);
 
-  const deleteTraitDefinition = (templateId: string, traitId: string) => {
+  const deleteTraitDefinition = useCallback((templateId: string, traitId: string) => {
     setTemplates((prev) =>
       prev.map((template) =>
         template.id === templateId
@@ -125,9 +125,9 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
           : template,
       ),
     );
-  };
+  }, []);
 
-  const moveTraitDefinition = (templateId: string, traitId: string, direction: -1 | 1) => {
+  const moveTraitDefinition = useCallback((templateId: string, traitId: string, direction: -1 | 1) => {
     setTemplates((prev) =>
       prev.map((template) => {
         if (template.id !== templateId) return template;
@@ -144,32 +144,50 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
         };
       }),
     );
-  };
+  }, []);
 
-  const templatesForLoreType = (loreTypeId: string) =>
-    templates.filter((template) => template.loreTypeId === loreTypeId);
+  const templatesForLoreType = useCallback(
+    (loreTypeId: string) => templates.filter((template) => template.loreTypeId === loreTypeId),
+    [templates],
+  );
 
-  const reassignLoreTypeInTemplates = (fromLoreTypeId: string, toLoreTypeId: string) => {
+  const reassignLoreTypeInTemplates = useCallback((fromLoreTypeId: string, toLoreTypeId: string) => {
     setTemplates((prev) =>
       prev.map((template) =>
         template.loreTypeId === fromLoreTypeId ? { ...template, loreTypeId: toLoreTypeId } : template,
       ),
     );
-  };
+  }, []);
 
-  return {
-    templates,
-    selectedTemplateId,
-    selectedTemplate,
-    setSelectedTemplateId,
-    createTemplate,
-    updateTemplate,
-    deleteTemplate,
-    addTraitDefinition,
-    updateTraitDefinition,
-    deleteTraitDefinition,
-    moveTraitDefinition,
-    templatesForLoreType,
-    reassignLoreTypeInTemplates,
-  };
+  return useMemo(
+    () => ({
+      templates,
+      selectedTemplateId,
+      selectedTemplate,
+      setSelectedTemplateId,
+      createTemplate,
+      updateTemplate,
+      deleteTemplate,
+      addTraitDefinition,
+      updateTraitDefinition,
+      deleteTraitDefinition,
+      moveTraitDefinition,
+      templatesForLoreType,
+      reassignLoreTypeInTemplates,
+    }),
+    [
+      templates,
+      selectedTemplateId,
+      selectedTemplate,
+      createTemplate,
+      updateTemplate,
+      deleteTemplate,
+      addTraitDefinition,
+      updateTraitDefinition,
+      deleteTraitDefinition,
+      moveTraitDefinition,
+      templatesForLoreType,
+      reassignLoreTypeInTemplates,
+    ],
+  );
 }
