@@ -461,10 +461,20 @@ export function useContentManager({
             contentJson: deleted.contentJson ?? "",
             folderPath: deleted.folderPath ?? "",
           }).then(() => {
-            setDocuments((prev) => [
-              { ...restored, contentJson: deleted.contentJson ?? "", folderPath: deleted.folderPath ?? "" },
-              ...prev,
-            ]);
+            setDocuments((prev) => {
+              const restoredDocument = {
+                ...restored,
+                contentJson: deleted.contentJson ?? "",
+                folderPath: deleted.folderPath ?? "",
+              };
+              const nextDocs = [restoredDocument, ...prev];
+              setWorlds((worldsPrev) =>
+                worldsPrev.map((world) =>
+                  world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
+                ),
+              );
+              return nextDocs;
+            });
           });
         });
       });
@@ -627,8 +637,36 @@ export function useContentManager({
               tagsJson: deleted.tagsJson ?? "",
               fieldsJson: stringifyLoreItemFields(deletedFields),
             };
-            setLorePages((prev) => [restoredPage, ...prev]);
-            setAllLorePages((prev) => [restoredPage, ...prev]);
+            const restoredLoreTypeId = resolveLoreTypeId(restoredPage);
+            setAllLorePages((prev) => {
+              const nextAll = [restoredPage, ...prev];
+              const counts = Object.fromEntries(
+                orderedLoreTypes.map((type) => [
+                  type.id,
+                  nextAll.filter((page) => resolveLoreTypeId(page) === type.id).length,
+                ]),
+              );
+              setWorlds((worldsPrev) =>
+                worldsPrev.map((world) =>
+                  world.id === activeWorldId
+                    ? {
+                        ...world,
+                        loreCount: nextAll.length,
+                        loreCategories: orderedLoreTypes.map((type) => ({
+                          id: type.id,
+                          label: type.name,
+                          count: counts[type.id] ?? 0,
+                          isSystem: type.isSystem,
+                        })),
+                      }
+                    : world,
+                ),
+              );
+              return nextAll;
+            });
+            setLorePages((prev) =>
+              restoredLoreTypeId === activeLoreTypeId ? [restoredPage, ...prev] : prev,
+            );
           });
         });
       });
