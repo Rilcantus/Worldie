@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { ActivityBar } from "./components/ActivityBar";
 import { Sidebar } from "./components/Sidebar";
 import { MainContent } from "./components/MainContent";
@@ -36,7 +36,7 @@ export default function App() {
           content.allLorePages.filter((page) => content.resolveLoreTypeId(page) === type.id).length,
         ]),
       ),
-    [content, loreTypes.loreTypes],
+    [content.allLorePages, content.resolveLoreTypeId, loreTypes.loreTypes],
   );
 
   const templatesInUse = useMemo(
@@ -48,6 +48,80 @@ export default function App() {
         ]),
       ),
     [loreTemplates.templates, loreTypes.loreTypes],
+  );
+
+  const handleOpenRelationshipsTab = useCallback(() => {
+    tabs.openSpecialTab("rels");
+  }, [tabs.openSpecialTab]);
+
+  const handleOpenTimelineTab = useCallback(() => {
+    tabs.openSpecialTab("timeline");
+  }, [tabs.openSpecialTab]);
+
+  const quickOpenState = useMemo(
+    () => ({
+      isOpen: search.isQuickOpenOpen,
+      query: search.searchQuery,
+      results: search.quickOpenResults,
+      activeIndex: search.activeQuickOpenIndex,
+    }),
+    [search.activeQuickOpenIndex, search.isQuickOpenOpen, search.quickOpenResults, search.searchQuery],
+  );
+
+  const handleQuickOpenMove = useCallback(
+    (direction: 1 | -1) => {
+      const total = search.quickOpenResults.length;
+      if (total === 0) return;
+      search.setActiveQuickOpenIndex((current) => {
+        const next = current + direction;
+        if (next < 0) return total - 1;
+        if (next >= total) return 0;
+        return next;
+      });
+    },
+    [search.quickOpenResults.length, search.setActiveQuickOpenIndex],
+  );
+
+  const handleCreateLoreItem = useCallback(
+    ({ title, loreTypeId, templateId, tags }: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => {
+      const template = loreTemplates.templates.find((item) => item.id === templateId) ?? null;
+      void content.createLoreItem({ title, loreTypeId, template, tags }).then((created) => {
+        if (created) {
+          tabs.openLoreTab(created);
+        }
+      });
+    },
+    [content.createLoreItem, loreTemplates.templates, tabs.openLoreTab],
+  );
+
+  const handleDeleteLoreType = useCallback(
+    (loreTypeId: string) => {
+      if ((loreItemsInUse[loreTypeId] ?? 0) > 0 || (templatesInUse[loreTypeId] ?? 0) > 0) return;
+      void feedback.confirmAction("Delete this lore type?").then((confirmed) => {
+        if (confirmed) loreTypes.deleteLoreType(loreTypeId);
+      });
+    },
+    [feedback.confirmAction, loreItemsInUse, loreTypes.deleteLoreType, templatesInUse],
+  );
+
+  const handleReassignAndDeleteLoreType = useCallback(
+    (loreTypeId: string, replacementLoreTypeId: string) => {
+      void feedback
+        .confirmAction("Reassign this lore type's items and templates, then delete it?")
+        .then((confirmed) => {
+          if (!confirmed) return;
+          loreTemplates.reassignLoreTypeInTemplates(loreTypeId, replacementLoreTypeId);
+          void content.reassignLoreType(loreTypeId, replacementLoreTypeId).then(() => {
+            loreTypes.deleteLoreType(loreTypeId);
+          });
+        });
+    },
+    [
+      content.reassignLoreType,
+      feedback.confirmAction,
+      loreTemplates.reassignLoreTypeInTemplates,
+      loreTypes.deleteLoreType,
+    ],
   );
 
   return (
@@ -63,8 +137,8 @@ export default function App() {
           onOpenLore={contentTabActions.openLoreEntryPoint}
           onOpenTemplates={tabs.openTemplatesTab}
           onOpenLoreTypes={tabs.openLoreTypesTab}
-          onOpenRelationships={() => tabs.openSpecialTab("rels")}
-          onOpenTimeline={() => tabs.openSpecialTab("timeline")}
+          onOpenRelationships={handleOpenRelationshipsTab}
+          onOpenTimeline={handleOpenTimelineTab}
           onFocusSearch={search.openQuickOpen}
         />
 
@@ -205,14 +279,7 @@ export default function App() {
           onLoreTagsChange={content.setLoreTags}
           onLoreFieldsChange={content.setLoreFields}
           onLorePageTypeChange={content.setLorePageTypeId}
-          onCreateLoreItem={({ title, loreTypeId, templateId, tags }) => {
-            const template = loreTemplates.templates.find((item) => item.id === templateId) ?? null;
-            void content.createLoreItem({ title, loreTypeId, template, tags }).then((created) => {
-              if (created) {
-                tabs.openLoreTab(created);
-              }
-            });
-          }}
+          onCreateLoreItem={handleCreateLoreItem}
           onSelectTemplate={loreTemplates.setSelectedTemplateId}
           onCreateTemplate={() => loreTemplates.createTemplate()}
           onUpdateTemplate={loreTemplates.updateTemplate}
@@ -224,23 +291,8 @@ export default function App() {
           onSelectLoreType={loreTypes.setSelectedLoreTypeId}
           onCreateLoreType={() => loreTypes.createLoreType()}
           onUpdateLoreType={loreTypes.updateLoreType}
-          onDeleteLoreType={(loreTypeId) => {
-            if ((loreItemsInUse[loreTypeId] ?? 0) > 0 || (templatesInUse[loreTypeId] ?? 0) > 0) return;
-            void feedback.confirmAction("Delete this lore type?").then((confirmed) => {
-              if (confirmed) loreTypes.deleteLoreType(loreTypeId);
-            });
-          }}
-          onReassignAndDeleteLoreType={(loreTypeId, replacementLoreTypeId) => {
-            void feedback
-              .confirmAction("Reassign this lore type's items and templates, then delete it?")
-              .then((confirmed) => {
-                if (!confirmed) return;
-                loreTemplates.reassignLoreTypeInTemplates(loreTypeId, replacementLoreTypeId);
-                void content.reassignLoreType(loreTypeId, replacementLoreTypeId).then(() => {
-                  loreTypes.deleteLoreType(loreTypeId);
-                });
-              });
-          }}
+          onDeleteLoreType={handleDeleteLoreType}
+          onReassignAndDeleteLoreType={handleReassignAndDeleteLoreType}
           onMoveLoreType={loreTypes.moveLoreType}
           onSelectRelationship={worldStructures.selectRelationship}
           onAddRelationship={mainContentActions.addRelationship}
@@ -298,26 +350,12 @@ export default function App() {
       <AppOverlays
         confirmState={feedback.confirmState}
         toast={feedback.toast}
-        quickOpenState={{
-          isOpen: search.isQuickOpenOpen,
-          query: search.searchQuery,
-          results: search.quickOpenResults,
-          activeIndex: search.activeQuickOpenIndex,
-        }}
+        quickOpenState={quickOpenState}
         onResolveConfirm={feedback.resolveConfirm}
         onClearToast={feedback.clearToast}
         onQuickOpenQueryChange={search.setSearchQuery}
         onQuickOpenClose={search.closeQuickOpen}
-        onQuickOpenMove={(direction) => {
-          const total = search.quickOpenResults.length;
-          if (total === 0) return;
-          search.setActiveQuickOpenIndex((current) => {
-            const next = current + direction;
-            if (next < 0) return total - 1;
-            if (next >= total) return 0;
-            return next;
-          });
-        }}
+        onQuickOpenMove={handleQuickOpenMove}
         onQuickOpenHover={search.setActiveQuickOpenIndex}
         onQuickOpenSelect={search.selectSearchResult}
       />
