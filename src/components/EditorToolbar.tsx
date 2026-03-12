@@ -277,6 +277,7 @@ export function EditorToolbar({
                 type="button"
                 onClick={closeAfter(onRenameDocument)}
                 disabled={!activeDocumentId}
+                title="Rename document (Ctrl/Cmd+Alt+R)"
               >
                 Rename document
               </button>
@@ -285,6 +286,7 @@ export function EditorToolbar({
                 type="button"
                 onClick={closeAfter(onDuplicateDocument)}
                 disabled={!activeDocumentId}
+                title="Duplicate document (Ctrl/Cmd+Alt+D)"
               >
                 Duplicate document
               </button>
@@ -323,6 +325,7 @@ export function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.sceneBreak ? "active" : ""}`}
                 type="button"
                 onClick={closeAfter(onInsertSceneBreak)}
+                title="Scene break (Ctrl/Cmd+Shift+-)"
               >
                 Scene break
               </button>

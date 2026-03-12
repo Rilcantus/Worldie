@@ -153,6 +153,13 @@ export function EditorView({
     setDismissedSlashStart(dismissStart);
   };
 
+  const focusTitleInput = () => {
+    window.requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    });
+  };
+
   useEffect(() => {
     if (!availableLorePages.some((page) => page.id === selectedLorePageId)) {
       setSelectedLorePageId(availableLorePages[0]?.id ?? "");
@@ -704,6 +711,16 @@ export function EditorView({
         onAddDocument();
         return;
       }
+      if (key === "d") {
+        event.preventDefault();
+        onDuplicateDocument();
+        return;
+      }
+      if (key === "r") {
+        event.preventDefault();
+        focusTitleInput();
+        return;
+      }
       if (key === "1") {
         event.preventDefault();
         applyLinePrefix("# ");
@@ -758,6 +775,11 @@ export function EditorView({
       if (normalizedKey === "n") {
         event.preventDefault();
         insertNoteBlock();
+        return;
+      }
+      if (key === "_" || key === "-") {
+        event.preventDefault();
+        insertSceneBreak();
         return;
       }
       if (normalizedKey === "p") {
@@ -1043,7 +1065,7 @@ export function EditorView({
           onAddDocument={onAddDocument}
           onRenameDocument={() => {
             setIsDocumentMenuOpen(false);
-            window.requestAnimationFrame(() => titleInputRef.current?.focus());
+            focusTitleInput();
           }}
           onDuplicateDocument={onDuplicateDocument}
           editorWidth={editorWidth}

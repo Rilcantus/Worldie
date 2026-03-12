@@ -133,11 +133,14 @@ export function EditorDetailsDrawer({
               <span>Ctrl/Cmd+Shift+7 numbered list</span>
               <span>Ctrl/Cmd+Shift+9 quote block</span>
               <span>Ctrl/Cmd+Shift+N note block</span>
+              <span>Ctrl/Cmd+Shift+- scene break</span>
               <span>Ctrl/Cmd+Shift+P preview</span>
               <span>Ctrl/Cmd+Shift+D details</span>
               <span>Ctrl/Cmd+Alt+F focus mode</span>
               <span>Ctrl/Cmd+Alt+M typewriter mode</span>
               <span>Ctrl/Cmd+Alt+N new document</span>
+              <span>Ctrl/Cmd+Alt+D duplicate document</span>
+              <span>Ctrl/Cmd+Alt+R rename document</span>
               <span>Ctrl/Cmd+Shift+[ or ] switch docs</span>
             </div>
           </div>
