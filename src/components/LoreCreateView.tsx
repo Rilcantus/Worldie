@@ -45,6 +45,7 @@ export function LoreCreateView({
     () => templates.filter((template) => template.loreTypeId === loreTypeId),
     [templates, loreTypeId],
   );
+  const hasLoreTypes = loreTypes.length > 0;
 
   useEffect(() => {
     if (templateId && filteredTemplates.some((template) => template.id === templateId)) return;
@@ -91,7 +92,7 @@ export function LoreCreateView({
         <button className="tb-btn" type="button" onClick={onOpenTemplates}>
           Manage Templates
         </button>
-        <button className="tb-btn tb-save" type="button" onClick={handleCreate}>
+        <button className="tb-btn tb-save" type="button" onClick={handleCreate} disabled={!hasLoreTypes}>
           Create Lore Item
         </button>
       </div>
@@ -113,8 +114,19 @@ export function LoreCreateView({
         <div className="lore-panel-header">
           <div className="linked-lore-label">Basic Info</div>
         </div>
+        {!hasLoreTypes ? (
+          <div className="rp-empty">
+            Create a lore type first. Lore items need a real lore type before they can be created.
+          </div>
+        ) : null}
         <label className="lore-label" htmlFor={loreTypeInputId}>Lore Type</label>
-        <select id={loreTypeInputId} className="lore-input" value={loreTypeId} onChange={(event) => setLoreTypeId(event.target.value)}>
+        <select
+          id={loreTypeInputId}
+          className="lore-input"
+          value={loreTypeId}
+          onChange={(event) => setLoreTypeId(event.target.value)}
+          disabled={!hasLoreTypes}
+        >
           {loreTypes.map((type) => (
             <option key={type.id} value={type.id}>
               {type.name}
@@ -128,6 +140,7 @@ export function LoreCreateView({
           className="lore-input"
           value={templateId ?? ""}
           onChange={(event) => setTemplateId(event.target.value || null)}
+          disabled={!hasLoreTypes}
         >
           <option value="">No template</option>
           {filteredTemplates.map((template) => (

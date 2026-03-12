@@ -45,6 +45,7 @@ export function TemplatesView({
 }: TemplatesViewProps) {
   const templateNameInputId = "template-name";
   const templateLoreTypeInputId = "template-lore-type";
+  const hasLoreTypes = loreTypes.length > 0;
   const selectedTemplate = useMemo(
     () => templates.find((template) => template.id === selectedTemplateId) ?? templates[0] ?? null,
     [selectedTemplateId, templates],
@@ -77,7 +78,7 @@ export function TemplatesView({
         <button className="tb-btn" type="button" onClick={onOpenLoreTypes}>
           Lore Types
         </button>
-        <button className="tb-btn tb-save" type="button" onClick={onCreateTemplate}>
+        <button className="tb-btn tb-save" type="button" onClick={onCreateTemplate} disabled={!hasLoreTypes}>
           New Template
         </button>
       </div>
@@ -94,19 +95,25 @@ export function TemplatesView({
           <div className="lore-panel-header">
             <div className="linked-lore-label">Templates</div>
           </div>
-          {templates.map((template) => (
-            <button
-              key={template.id}
-              className={`template-list-item ${template.id === selectedTemplate?.id ? "active" : ""}`}
-              type="button"
-              onClick={() => onSelectTemplate(template.id)}
-            >
-              <span>{template.name}</span>
-              <span className="template-list-meta">
-                {loreTypes.find((type) => type.id === template.loreTypeId)?.name ?? "Unknown"}
-              </span>
-            </button>
-          ))}
+          {templates.length === 0 ? (
+            <div className="rp-empty">
+              {hasLoreTypes ? "No templates yet. Create one to define starter traits." : "Create a lore type first."}
+            </div>
+          ) : (
+            templates.map((template) => (
+              <button
+                key={template.id}
+                className={`template-list-item ${template.id === selectedTemplate?.id ? "active" : ""}`}
+                type="button"
+                onClick={() => onSelectTemplate(template.id)}
+              >
+                <span>{template.name}</span>
+                <span className="template-list-meta">
+                  {loreTypes.find((type) => type.id === template.loreTypeId)?.name ?? "Unknown"}
+                </span>
+              </button>
+            ))
+          )}
         </div>
 
         <div className="templates-editor">
@@ -203,7 +210,9 @@ export function TemplatesView({
             </>
           ) : (
             <div className="lore-panel">
-              <div className="rp-empty">Select a template to edit it.</div>
+              <div className="rp-empty">
+                {hasLoreTypes ? "Select a template to edit it." : "Create a lore type before creating templates."}
+              </div>
             </div>
           )}
         </div>
