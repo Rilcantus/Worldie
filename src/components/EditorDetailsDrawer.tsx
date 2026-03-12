@@ -134,6 +134,7 @@ export function EditorDetailsDrawer({
               <span>Ctrl/Cmd+Shift+D details</span>
               <span>Ctrl/Cmd+Alt+F focus mode</span>
               <span>Ctrl/Cmd+Alt+M typewriter mode</span>
+              <span>Ctrl/Cmd+Alt+N new document</span>
               <span>Ctrl/Cmd+Shift+[ or ] switch docs</span>
             </div>
           </div>

@@ -585,6 +585,28 @@ export function EditorView({
     }
   };
 
+  const handleEditorBlur = () => {
+    if (isTypewriterMode) {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const currentDraft = trimTypewriterCommit(serializeEditorDom(editor));
+      if (currentDraft) {
+        commitTypewriterDraft();
+      }
+      return;
+    }
+
+    if (documentSaveState === "dirty") {
+      onSave();
+    }
+  };
+
+  const handleTitleBlur = () => {
+    if (documentSaveState === "dirty") {
+      onSave();
+    }
+  };
+
   const handleEditorPaste = (event: ReactClipboardEvent<HTMLDivElement>) => {
     event.preventDefault();
     const html = event.clipboardData.getData("text/html");
@@ -663,6 +685,11 @@ export function EditorView({
 
     if ((event.ctrlKey || event.metaKey) && event.altKey) {
       const key = event.key.toLowerCase();
+      if (key === "n") {
+        event.preventDefault();
+        onAddDocument();
+        return;
+      }
       if (key === "1") {
         event.preventDefault();
         applyLinePrefix("# ");
@@ -1059,6 +1086,8 @@ export function EditorView({
             onEditorInput={handleEditorInput}
             onEditorKeyDown={handleEditorKeyDown}
             onEditorPaste={handleEditorPaste}
+            onEditorBlur={handleEditorBlur}
+            onTitleBlur={handleTitleBlur}
             onSyncSelection={syncEditorSelection}
             isPreviewOpen={isPreviewOpen}
             isDetailsOpen={isDetailsOpen}

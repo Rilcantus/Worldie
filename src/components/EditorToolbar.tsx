@@ -246,7 +246,12 @@ export function EditorToolbar({
           </button>
           {isDocumentMenuOpen ? (
             <div className="toolbar-menu" role="menu">
-              <button className="toolbar-menu-item" type="button" onClick={closeAfter(onAddDocument)}>
+              <button
+                className="toolbar-menu-item"
+                type="button"
+                onClick={closeAfter(onAddDocument)}
+                title="New document (Ctrl/Cmd+Alt+N)"
+              >
                 New document
               </button>
               <button

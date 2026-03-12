@@ -21,6 +21,8 @@ type EditorSurfaceProps = {
   onEditorInput: () => void;
   onEditorKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   onEditorPaste: (event: ClipboardEvent<HTMLDivElement>) => void;
+  onEditorBlur: () => void;
+  onTitleBlur: () => void;
   onSyncSelection: () => void;
   isPreviewOpen: boolean;
   isDetailsOpen: boolean;
@@ -49,6 +51,8 @@ export function EditorSurface({
   onEditorInput,
   onEditorKeyDown,
   onEditorPaste,
+  onEditorBlur,
+  onTitleBlur,
   onSyncSelection,
   isPreviewOpen,
   isDetailsOpen,
@@ -77,6 +81,7 @@ export function EditorSurface({
           className={`doc-title-input ${isFocusMode ? "doc-title-input-inline" : ""}`}
           value={documentTitle}
           onChange={(event) => onTitleChange(event.target.value)}
+          onBlur={onTitleBlur}
           placeholder="Document title"
         />
         <div className={`doc-meta ${isFocusMode ? "doc-meta-inline" : ""}`}>
@@ -108,6 +113,7 @@ export function EditorSurface({
               onInput={onEditorInput}
               onKeyDown={onEditorKeyDown}
               onPaste={onEditorPaste}
+              onBlur={onEditorBlur}
               onMouseUp={onSyncSelection}
               onKeyUp={onSyncSelection}
               spellCheck
@@ -125,6 +131,7 @@ export function EditorSurface({
             onInput={onEditorInput}
             onKeyDown={onEditorKeyDown}
             onPaste={onEditorPaste}
+            onBlur={onEditorBlur}
             onMouseUp={onSyncSelection}
             onKeyUp={onSyncSelection}
             spellCheck
