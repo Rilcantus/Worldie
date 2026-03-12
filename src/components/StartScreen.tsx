@@ -6,6 +6,7 @@ type StartScreenProps = {
   statusMessage: string;
   onNewProject: () => void;
   onOpenProject: () => void;
+  onOpenDemoProject: () => void;
   onOpenRecentProject: (projectId: string) => void;
 };
 
@@ -15,10 +16,12 @@ export function StartScreen({
   statusMessage,
   onNewProject,
   onOpenProject,
+  onOpenDemoProject,
   onOpenRecentProject,
 }: StartScreenProps) {
   const openLabel = isBusy && statusMessage.toLowerCase().includes("opening") ? "Opening..." : "Open Project";
   const newLabel = isBusy && statusMessage.toLowerCase().includes("creating") ? "Creating..." : "New Project";
+  const demoLabel = isBusy && statusMessage.toLowerCase().includes("demo") ? "Building Demo..." : "Open Demo Project";
 
   return (
     <div className="start-screen">
@@ -34,6 +37,9 @@ export function StartScreen({
           </button>
           <button className="tb-btn start-action-secondary" type="button" onClick={onNewProject} disabled={isBusy}>
             {newLabel}
+          </button>
+          <button className="tb-btn start-action-secondary" type="button" onClick={onOpenDemoProject} disabled={isBusy}>
+            {demoLabel}
           </button>
         </div>
         {statusMessage ? <div className="start-status">{statusMessage}</div> : null}

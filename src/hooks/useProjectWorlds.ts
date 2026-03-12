@@ -54,8 +54,10 @@ type ProjectActionState =
   | { status: "idle"; message: "" }
   | { status: "loading"; message: string }
   | { status: "creating"; message: string }
+  | { status: "creatingDemo"; message: string }
   | { status: "opening"; message: string }
   | { status: "openingRecent"; message: string }
+  | { status: "switching"; message: string }
   | { status: "savingAs"; message: string };
 
 const IDLE_PROJECT_ACTION_STATE: ProjectActionState = { status: "idle", message: "" };
@@ -239,24 +241,28 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
   };
 
   const addDemoProject = async () => {
-    let nextProjects: Project[] = [];
-    try {
-      nextProjects = await createDemoProjectBundle();
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not create the demo project.");
-      return;
-    }
-    setProjects(nextProjects);
-    const project = nextProjects[0];
-    if (!project) return;
-    setActiveProjectId(project.id);
-    setProjectTitle(project.title);
-    setProjectDraft(project.title);
-    try {
-      await hydrateWorlds(project.id);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not load the demo project.");
-    }
+    return runProjectAction("creatingDemo", "Creating demo project...", async () => {
+      let nextProjects: Project[] = [];
+      try {
+        nextProjects = await createDemoProjectBundle();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Worldie could not create the demo project.");
+        return false;
+      }
+      setProjects(nextProjects);
+      const project = nextProjects[0];
+      if (!project) return false;
+      setActiveProjectId(project.id);
+      setProjectTitle(project.title);
+      setProjectDraft(project.title);
+      try {
+        await hydrateWorlds(project.id);
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Worldie could not load the demo project.");
+        return false;
+      }
+      return true;
+    });
   };
 
   const openProject = async () => {
@@ -351,12 +357,15 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
   };
 
   const switchProject = async (projectId: string) => {
-    const project = projects.find((item) => item.id === projectId);
-    if (!project) return;
-    setActiveProjectId(project.id);
-    setProjectTitle(project.title);
-    setProjectDraft(project.title);
-    await hydrateWorlds(project.id);
+    return runProjectAction("switching", "Switching project...", async () => {
+      const project = projects.find((item) => item.id === projectId);
+      if (!project) return false;
+      setActiveProjectId(project.id);
+      setProjectTitle(project.title);
+      setProjectDraft(project.title);
+      await hydrateWorlds(project.id);
+      return true;
+    });
   };
 
   const commitProjectTitle = async () => {

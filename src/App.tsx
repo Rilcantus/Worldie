@@ -93,7 +93,7 @@ export default function App() {
           onAddProject={projectFileActions.addProject}
           onOpenProject={projectFileActions.openProject}
           onSaveProjectAs={projectFileActions.saveCurrentProjectAs}
-          onAddDemoProject={projectWorlds.addDemoProject}
+          onAddDemoProject={projectFileActions.addDemoProject}
           onRemoveProject={sidebarActions.removeProject}
           onCollapse={sidebarActions.collapseSidebar}
           onOpenRecentProject={projectFileActions.openRecentProject}
@@ -277,6 +277,7 @@ export default function App() {
               statusMessage={projectWorlds.projectActionState.message}
               onNewProject={projectFileActions.addProject}
               onOpenProject={projectFileActions.openProject}
+              onOpenDemoProject={projectFileActions.addDemoProject}
               onOpenRecentProject={projectFileActions.openRecentProject}
             />
           </div>

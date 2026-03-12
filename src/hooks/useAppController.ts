@@ -223,6 +223,12 @@ export function useAppController() {
         tabs.resetTabs();
       }
     },
+    addDemoProject: async () => {
+      if (!(await confirmProjectSwitch())) return;
+      if (await projectWorlds.addDemoProject()) {
+        tabs.resetTabs();
+      }
+    },
   };
 
   return {
