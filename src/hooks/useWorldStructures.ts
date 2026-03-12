@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createRelationship,
   createTimelineEvent,
@@ -73,14 +73,14 @@ export function useWorldStructures({
     setTimelineLastSavedAt((current) => (current === null ? current : null));
   };
 
-  const markRelationshipSaved = () => {
+  const markRelationshipSaved = useCallback(() => {
     setRelationshipSaveState("saved");
     setRelationshipLastSavedAt(Date.now());
-  };
-  const markTimelineSaved = () => {
+  }, []);
+  const markTimelineSaved = useCallback(() => {
     setTimelineSaveState("saved");
     setTimelineLastSavedAt(Date.now());
-  };
+  }, []);
   const activeRelationship = useMemo(
     () => relationships.find((item) => item.id === activeRelationshipId) ?? null,
     [activeRelationshipId, relationships],
@@ -176,7 +176,7 @@ export function useWorldStructures({
     void loadTimeline();
   }, [activeProjectId, activeWorldId]);
 
-  const selectRelationship = (relationship: Relationship) => {
+  const selectRelationship = useCallback((relationship: Relationship) => {
     const nextNotes = relationship.notes ?? "";
     const changed =
       activeRelationshipId !== relationship.id ||
@@ -191,7 +191,14 @@ export function useWorldStructures({
     setRelationshipNotes((current) => (current === nextNotes ? current : nextNotes));
     if (!changed) return;
     markRelationshipSaved();
-  };
+  }, [
+    activeRelationshipId,
+    markRelationshipSaved,
+    relationshipNotes,
+    relationshipSourceId,
+    relationshipTargetId,
+    relationshipType,
+  ]);
 
   const addRelationship = async () => {
     return addRelationshipWithSeed();
@@ -311,7 +318,7 @@ export function useWorldStructures({
     return true;
   };
 
-  const selectTimelineEvent = (event: TimelineEvent) => {
+  const selectTimelineEvent = useCallback((event: TimelineEvent) => {
     const nextType = event.eventType ?? "event";
     const nextLinkedPageId = event.linkedPageId ?? "";
     const nextDescription = event.description ?? "";
@@ -330,7 +337,15 @@ export function useWorldStructures({
     setTimelineDescription((current) => (current === nextDescription ? current : nextDescription));
     if (!changed) return;
     markTimelineSaved();
-  };
+  }, [
+    activeTimelineEventId,
+    markTimelineSaved,
+    timelineDate,
+    timelineDescription,
+    timelineLinkedPageId,
+    timelineTitle,
+    timelineType,
+  ]);
 
   const addTimelineEvent = async () => {
     return addTimelineEventWithSeed();
