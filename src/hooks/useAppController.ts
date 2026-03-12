@@ -211,39 +211,27 @@ export function useAppController() {
   const projectFileActions = {
     addProject: async () => {
       if (!(await confirmProjectSwitch())) return;
-      if (await projectWorlds.addProject()) {
-        tabs.resetTabs();
-      }
+      await projectWorlds.addProject();
     },
     openProject: async () => {
       if (!(await confirmProjectSwitch())) return;
-      if (await projectWorlds.openProject()) {
-        tabs.resetTabs();
-      }
+      await projectWorlds.openProject();
     },
     openRecentProject: async (projectId: string) => {
       if (!(await confirmProjectSwitch())) return;
-      if (await projectWorlds.openRecentProject(projectId)) {
-        tabs.resetTabs();
-      }
+      await projectWorlds.openRecentProject(projectId);
     },
     saveCurrentProjectAs: async () => {
       if (!(await confirmProjectSwitch())) return;
-      if (await projectWorlds.saveCurrentProjectAs()) {
-        tabs.resetTabs();
-      }
+      await projectWorlds.saveCurrentProjectAs();
     },
     addDemoProject: async () => {
       if (!(await confirmProjectSwitch())) return;
-      if (await projectWorlds.addDemoProject()) {
-        tabs.resetTabs();
-      }
+      await projectWorlds.addDemoProject();
     },
     removeProject: async () => {
       if (!(await confirmProjectSwitch())) return;
-      if (await projectWorlds.removeProject()) {
-        tabs.resetTabs();
-      }
+      await projectWorlds.removeProject();
     },
   };
 
