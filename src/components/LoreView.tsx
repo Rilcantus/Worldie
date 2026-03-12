@@ -145,16 +145,17 @@ export function LoreView({
                 <div className="doc-empty">No lore pages yet.</div>
               ) : (
                 lorePages.map((page) => (
-                  <button
-                    key={page.id}
-                    className={`doc-item ${page.id === activeLoreId ? "active" : ""}`}
-                    type="button"
-                    onClick={() => onOpenLore(page)}
-                  >
-                    <div className="doc-item-info">
-                      <div className="doc-item-title">{page.title}</div>
-                      <div className="doc-item-meta">{page.type}</div>
-                    </div>
+                  <div key={page.id} className="doc-item-row">
+                    <button
+                      className={`doc-item ${page.id === activeLoreId ? "active" : ""}`}
+                      type="button"
+                      onClick={() => onOpenLore(page)}
+                    >
+                      <div className="doc-item-info">
+                        <div className="doc-item-title">{page.title}</div>
+                        <div className="doc-item-meta">{page.type}</div>
+                      </div>
+                    </button>
                     <button
                       className="doc-item-delete"
                       type="button"
@@ -165,7 +166,7 @@ export function LoreView({
                     >
                       x
                     </button>
-                  </button>
+                  </div>
                 ))
               )}
             </div>

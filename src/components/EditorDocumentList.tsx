@@ -66,16 +66,17 @@ export function EditorDocumentList({
                     <span className="doc-folder-count">{group.docs.length}</span>
                   </div>
                   {group.docs.map((doc) => (
-                    <button
-                      key={doc.id}
-                      className={`doc-item ${doc.id === activeDocumentId ? "active" : ""}`}
-                      type="button"
-                      onClick={() => onOpenDocument(doc)}
-                    >
-                      <div className="doc-item-info">
-                        <div className="doc-item-title">{doc.title}</div>
-                        <div className="doc-item-meta">{doc.folderPath?.trim() || "No folder"}</div>
-                      </div>
+                    <div key={doc.id} className="doc-item-row">
+                      <button
+                        className={`doc-item ${doc.id === activeDocumentId ? "active" : ""}`}
+                        type="button"
+                        onClick={() => onOpenDocument(doc)}
+                      >
+                        <div className="doc-item-info">
+                          <div className="doc-item-title">{doc.title}</div>
+                          <div className="doc-item-meta">{doc.folderPath?.trim() || "No folder"}</div>
+                        </div>
+                      </button>
                       <button
                         className="doc-item-delete"
                         type="button"
@@ -86,7 +87,7 @@ export function EditorDocumentList({
                       >
                         x
                       </button>
-                    </button>
+                    </div>
                   ))}
                 </div>
               ))

@@ -282,16 +282,17 @@ export function TimelineView({
                 </div>
               ) : (
                 orderedEvents.map((item) => (
-                  <button
-                    key={item.id}
-                    className={`doc-item ${item.id === activeTimelineEventId ? "active" : ""}`}
-                    type="button"
-                    onClick={() => onSelectTimelineEvent(item)}
-                  >
-                    <div className="doc-item-info">
-                      <div className="doc-item-title">{item.title}</div>
-                      <div className="doc-item-meta">{item.eventDate || "No date"}</div>
-                    </div>
+                  <div key={item.id} className="doc-item-row">
+                    <button
+                      className={`doc-item ${item.id === activeTimelineEventId ? "active" : ""}`}
+                      type="button"
+                      onClick={() => onSelectTimelineEvent(item)}
+                    >
+                      <div className="doc-item-info">
+                        <div className="doc-item-title">{item.title}</div>
+                        <div className="doc-item-meta">{item.eventDate || "No date"}</div>
+                      </div>
+                    </button>
                     <button
                       className="doc-item-delete"
                       type="button"
@@ -302,7 +303,7 @@ export function TimelineView({
                     >
                       x
                     </button>
-                  </button>
+                  </div>
                 ))
               )}
             </div>

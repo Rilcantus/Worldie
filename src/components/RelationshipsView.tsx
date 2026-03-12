@@ -373,16 +373,17 @@ export function RelationshipsView({
                 </div>
               ) : (
                 filteredRelationships.map((relationship) => (
-                  <button
-                    key={relationship.id}
-                    className={`doc-item ${relationship.id === activeRelationshipId ? "active" : ""}`}
-                    type="button"
-                    onClick={() => onSelectRelationship(relationship)}
-                  >
-                    <div className="doc-item-info">
-                      <div className="doc-item-title">{relationLabel(relationship, lorePages)}</div>
-                      <div className="doc-item-meta">{relationship.relationType}</div>
-                    </div>
+                  <div key={relationship.id} className="doc-item-row">
+                    <button
+                      className={`doc-item ${relationship.id === activeRelationshipId ? "active" : ""}`}
+                      type="button"
+                      onClick={() => onSelectRelationship(relationship)}
+                    >
+                      <div className="doc-item-info">
+                        <div className="doc-item-title">{relationLabel(relationship, lorePages)}</div>
+                        <div className="doc-item-meta">{relationship.relationType}</div>
+                      </div>
+                    </button>
                     <button
                       className="doc-item-delete"
                       type="button"
@@ -393,7 +394,7 @@ export function RelationshipsView({
                     >
                       x
                     </button>
-                  </button>
+                  </div>
                 ))
               )}
             </div>
