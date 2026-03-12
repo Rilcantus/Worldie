@@ -45,10 +45,15 @@ export function useAppController() {
     showToast: feedback.showToast,
   });
 
+  const worldIds = useMemo(
+    () => projectWorlds.worlds.map((world) => world.id),
+    [projectWorlds.worlds],
+  );
+
   const tabs = useTabs({
     activeProjectId: projectWorlds.activeProjectId,
     activeWorldId: projectWorlds.activeWorldId,
-    worldIds: projectWorlds.worlds.map((world) => world.id),
+    worldIds,
     documents: content.documents,
     allLorePages: content.allLorePages,
     activeDocumentId: content.activeDocumentId,

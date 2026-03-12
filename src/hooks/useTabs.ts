@@ -89,11 +89,18 @@ export function useTabs({
     if (!activeProjectId || tabsProjectId !== activeProjectId || worldIds.length === 0) return;
     setTabs((prev) => {
       const next = prev.filter((tab) => !tab.worldId || worldIds.includes(tab.worldId));
+      const nextTabs = next.length > 0 ? next : [WORKBENCH_TAB];
       if (!next.some((tab) => tab.id === activeTabId)) {
         pendingTabOpenId.current = null;
         pendingWorldScopedTabId.current = null;
       }
-      return next.length > 0 ? next : [WORKBENCH_TAB];
+      if (
+        nextTabs.length === prev.length &&
+        nextTabs.every((tab, index) => tab === prev[index])
+      ) {
+        return prev;
+      }
+      return nextTabs;
     });
   }, [activeProjectId, activeTabId, tabsProjectId, worldIds]);
 
