@@ -297,9 +297,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const openRecentProject = async (projectId: string) => {
     return runProjectAction("openingRecent", "Opening recent project...", async () => {
       const project = projects.find((item) => item.id === projectId);
+      if (!project) {
+        showToast("Worldie could not find that recent project.");
+        return false;
+      }
       if (!project?.filepath) {
         try {
-          const switched = await applyActiveProject(project ?? null);
+          const switched = await applyActiveProject(project);
           if (!switched) {
             showToast("Worldie could not switch to that recent project.");
             return false;
@@ -359,7 +363,11 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const switchProject = async (projectId: string) => {
     return runProjectAction("switching", "Switching project...", async () => {
       const project = projects.find((item) => item.id === projectId);
-      return applyActiveProject(project ?? null);
+      if (!project) {
+        showToast("Worldie could not find that project.");
+        return false;
+      }
+      return applyActiveProject(project);
     });
   };
 
