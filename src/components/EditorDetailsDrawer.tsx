@@ -119,6 +119,9 @@ export function EditorDetailsDrawer({
           <div className="editor-shortcuts">
             <div className="linked-lore-label">Shortcuts</div>
             <div className="editor-shortcuts-list">
+              <span>Ctrl/Cmd+Z undo</span>
+              <span>Ctrl/Cmd+Shift+Z redo</span>
+              <span>Ctrl/Cmd+Y redo</span>
               <span>Ctrl/Cmd+B bold</span>
               <span>Ctrl/Cmd+I italic</span>
               <span>Ctrl/Cmd+U underline</span>

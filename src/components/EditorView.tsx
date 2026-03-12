@@ -627,7 +627,7 @@ export function EditorView({
     });
   };
 
-  const applyRichFormat = (command: "bold" | "italic" | "underline") => {
+  const applyEditorCommand = (command: "bold" | "italic" | "underline" | "undo" | "redo") => {
     const editor = editorRef.current;
     if (!editor) return;
 
@@ -642,6 +642,10 @@ export function EditorView({
     } else {
       onContentChange(nextText);
     }
+  };
+
+  const applyRichFormat = (command: "bold" | "italic" | "underline") => {
+    applyEditorCommand(command);
   };
 
   const handleEditorKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -674,6 +678,16 @@ export function EditorView({
       if (key === "s") {
         event.preventDefault();
         onSave();
+        return;
+      }
+      if (key === "z") {
+        event.preventDefault();
+        applyEditorCommand(event.shiftKey ? "redo" : "undo");
+        return;
+      }
+      if (key === "y") {
+        event.preventDefault();
+        applyEditorCommand("redo");
         return;
       }
       if (key === "k") {
@@ -1003,6 +1017,7 @@ export function EditorView({
           saveState={documentSaveState}
           saveTimestamp={documentSaveTimestamp}
           onSave={onSave}
+          onApplyHistoryCommand={applyEditorCommand}
           onApplyRichFormat={applyRichFormat}
           onApplyLinePrefix={applyLinePrefix}
           onApplyOrderedList={applyOrderedList}

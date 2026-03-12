@@ -11,6 +11,7 @@ type EditorToolbarProps = {
   saveState: SaveState;
   saveTimestamp: number | null;
   onSave: () => void;
+  onApplyHistoryCommand: (command: "undo" | "redo") => void;
   onApplyRichFormat: (command: "bold" | "italic" | "underline") => void;
   onApplyLinePrefix: (prefix: string) => void;
   onApplyOrderedList: () => void;
@@ -47,6 +48,7 @@ export function EditorToolbar({
   saveState,
   saveTimestamp,
   onSave,
+  onApplyHistoryCommand,
   onApplyRichFormat,
   onApplyLinePrefix,
   onApplyOrderedList,
@@ -118,6 +120,22 @@ export function EditorToolbar({
           title={saveTitle}
         >
           {saveLabel}
+        </button>
+        <button
+          className="tb-btn"
+          type="button"
+          onClick={() => onApplyHistoryCommand("undo")}
+          title="Undo (Ctrl/Cmd+Z)"
+        >
+          Undo
+        </button>
+        <button
+          className="tb-btn"
+          type="button"
+          onClick={() => onApplyHistoryCommand("redo")}
+          title="Redo (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y)"
+        >
+          Redo
         </button>
         <button
           className={`tb-btn ${editorFormattingState.bold ? "active" : ""}`}
