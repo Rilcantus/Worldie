@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import type { Document, LorePage } from "../lib/data";
 
 type UseContentTabActionsArgs = {
@@ -23,44 +24,47 @@ export function useContentTabActions({
   openNewTab,
   removeTabById,
 }: UseContentTabActionsArgs) {
-  const handleAddDocument = async () => {
+  const handleAddDocument = useCallback(async () => {
     const created = await addDocument();
     if (created) {
       openDocumentTab(created);
     }
-  };
+  }, [addDocument, openDocumentTab]);
 
-  const handleRemoveDocument = async (docId: string) => {
+  const handleRemoveDocument = useCallback(async (docId: string) => {
     const removed = await removeDocument(docId);
     if (removed) {
       removeTabById(`doc:${docId}`);
     }
-  };
+  }, [removeDocument, removeTabById]);
 
-  const handleOpenLoreCreate = async () => {
+  const handleOpenLoreCreate = useCallback(async () => {
     openLoreCreateTab();
-  };
+  }, [openLoreCreateTab]);
 
-  const handleRemoveLorePage = async (loreId: string) => {
+  const handleRemoveLorePage = useCallback(async (loreId: string) => {
     const removed = await removeLorePage(loreId);
     if (removed) {
       removeTabById(`lore:${loreId}`);
     }
-  };
+  }, [removeLorePage, removeTabById]);
 
-  const openLoreEntryPoint = () => {
+  const openLoreEntryPoint = useCallback(() => {
     if (activeLore) {
       openLoreTab(activeLore);
     } else {
       openLoreCreateTab();
     }
-  };
+  }, [activeLore, openLoreCreateTab, openLoreTab]);
 
-  return {
-    handleAddDocument,
-    handleRemoveDocument,
-    handleOpenLoreCreate,
-    handleRemoveLorePage,
-    openLoreEntryPoint,
-  };
+  return useMemo(
+    () => ({
+      handleAddDocument,
+      handleRemoveDocument,
+      handleOpenLoreCreate,
+      handleRemoveLorePage,
+      openLoreEntryPoint,
+    }),
+    [handleAddDocument, handleOpenLoreCreate, handleRemoveDocument, handleRemoveLorePage, openLoreEntryPoint],
+  );
 }
