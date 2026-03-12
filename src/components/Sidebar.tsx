@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { getProjectFilename, getProjectPathDisplay, type Project } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 
@@ -92,11 +92,38 @@ export function Sidebar({
   onOpenTimeline,
 }: SidebarProps) {
   const worldClickTimeoutRef = useRef<number | null>(null);
+  const projectMenuRef = useRef<HTMLDivElement | null>(null);
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
+  const projectMenuButtonId = "sidebar-project-menu-button";
+  const projectMenuId = "sidebar-project-menu";
   const activeWorld = useMemo(
     () => worlds.find((world) => world.id === activeWorldId) ?? worlds[0] ?? null,
     [activeWorldId, worlds],
   );
+
+  useEffect(() => {
+    if (!isProjectMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (projectMenuRef.current?.contains(target)) return;
+      setIsProjectMenuOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsProjectMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isProjectMenuOpen]);
 
   return (
     <div className={`sidebar ${isCollapsed ? "collapsed" : ""}`} style={{ width: isCollapsed ? 0 : width }}>
@@ -105,10 +132,14 @@ export function Sidebar({
           <div className="project-label">Current Project</div>
           <div className="project-header-actions">
             <button
+              id={projectMenuButtonId}
               className="project-menu-button"
               type="button"
               disabled={isProjectBusy}
               onClick={() => setIsProjectMenuOpen((current) => !current)}
+              aria-haspopup="menu"
+              aria-expanded={isProjectMenuOpen}
+              aria-controls={isProjectMenuOpen ? projectMenuId : undefined}
             >
               Project
             </button>
@@ -143,10 +174,17 @@ export function Sidebar({
         </div>
 
         {isProjectMenuOpen ? (
-          <div className="project-menu">
+          <div
+            ref={projectMenuRef}
+            className="project-menu"
+            id={projectMenuId}
+            role="menu"
+            aria-labelledby={projectMenuButtonId}
+          >
             <button
               className="project-menu-item"
               type="button"
+              role="menuitem"
               disabled={isProjectBusy}
               onClick={() => {
                 setIsProjectMenuOpen(false);
@@ -158,6 +196,7 @@ export function Sidebar({
             <button
               className="project-menu-item"
               type="button"
+              role="menuitem"
               disabled={isProjectBusy}
               onClick={() => {
                 setIsProjectMenuOpen(false);
@@ -169,6 +208,7 @@ export function Sidebar({
             <button
               className="project-menu-item"
               type="button"
+              role="menuitem"
               disabled={!activeProjectId || isProjectBusy}
               onClick={() => {
                 setIsProjectMenuOpen(false);
@@ -180,6 +220,7 @@ export function Sidebar({
             <button
               className="project-menu-item"
               type="button"
+              role="menuitem"
               disabled={isProjectBusy}
               onClick={() => {
                 setIsProjectMenuOpen(false);
@@ -191,6 +232,7 @@ export function Sidebar({
             <button
               className="project-menu-item danger"
               type="button"
+              role="menuitem"
               disabled={!activeProjectId || isProjectBusy}
               onClick={() => {
                 setIsProjectMenuOpen(false);
@@ -199,16 +241,17 @@ export function Sidebar({
             >
               Delete Project
             </button>
-            <div className="project-menu-divider"></div>
-            <div className="project-menu-label">Recent Projects</div>
+            <div className="project-menu-divider" role="separator"></div>
+            <div className="project-menu-label" role="presentation">Recent Projects</div>
             {recentProjects.length === 0 ? (
-              <div className="project-menu-empty">No recent projects yet.</div>
+              <div className="project-menu-empty" role="presentation">No recent projects yet.</div>
             ) : (
               recentProjects.map((project) => (
                 <button
                   key={project.id}
                   className={`project-menu-item project-menu-recent ${project.id === activeProjectId ? "active" : ""}`}
                   type="button"
+                  role="menuitem"
                   disabled={isProjectBusy}
                   onClick={() => {
                     setIsProjectMenuOpen(false);

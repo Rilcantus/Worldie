@@ -79,6 +79,8 @@ export function EditorToolbar({
   editorMode,
   onSetEditorMode,
 }: EditorToolbarProps) {
+  const documentMenuButtonId = "editor-toolbar-more-button";
+  const documentMenuId = "editor-toolbar-more-menu";
   const closeAfter = (action: () => void) => () => {
     action();
     onCloseDocumentMenu();
@@ -254,19 +256,27 @@ export function EditorToolbar({
         </button>
         <div ref={documentMenuRef} className="toolbar-menu-wrap">
           <button
+            id={documentMenuButtonId}
             className={`tb-btn ${isDocumentMenuOpen ? "active" : ""}`}
             type="button"
             onClick={onToggleDocumentMenu}
             aria-haspopup="menu"
             aria-expanded={isDocumentMenuOpen}
+            aria-controls={isDocumentMenuOpen ? documentMenuId : undefined}
           >
             More
           </button>
           {isDocumentMenuOpen ? (
-            <div className="toolbar-menu" role="menu">
+            <div
+              className="toolbar-menu"
+              id={documentMenuId}
+              role="menu"
+              aria-labelledby={documentMenuButtonId}
+            >
               <button
                 className="toolbar-menu-item"
                 type="button"
+                role="menuitem"
                 onClick={closeAfter(onAddDocument)}
                 title="New document (Ctrl/Cmd+Alt+N)"
               >
@@ -275,6 +285,7 @@ export function EditorToolbar({
               <button
                 className="toolbar-menu-item"
                 type="button"
+                role="menuitem"
                 onClick={closeAfter(onRenameDocument)}
                 disabled={!activeDocumentId}
                 title="Rename document (Ctrl/Cmd+Alt+R)"
@@ -284,6 +295,7 @@ export function EditorToolbar({
               <button
                 className="toolbar-menu-item"
                 type="button"
+                role="menuitem"
                 onClick={closeAfter(onDuplicateDocument)}
                 disabled={!activeDocumentId}
                 title="Duplicate document (Ctrl/Cmd+Alt+D)"
@@ -293,6 +305,7 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorFormattingState.heading1 ? "active" : ""}`}
                 type="button"
+                role="menuitem"
                 onClick={closeAfter(() => onApplyLinePrefix("# "))}
                 title="Large heading (Ctrl/Cmd+Alt+1)"
               >
@@ -301,6 +314,7 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorFormattingState.heading2 ? "active" : ""}`}
                 type="button"
+                role="menuitem"
                 onClick={closeAfter(() => onApplyLinePrefix("## "))}
                 title="Medium heading (Ctrl/Cmd+Alt+2)"
               >
@@ -309,6 +323,7 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorFormattingState.orderedList ? "active" : ""}`}
                 type="button"
+                role="menuitem"
                 onClick={closeAfter(onApplyOrderedList)}
               >
                 Numbered list
@@ -316,6 +331,7 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorFormattingState.noteBlock ? "active" : ""}`}
                 type="button"
+                role="menuitem"
                 onClick={closeAfter(onInsertNoteBlock)}
                 title="Note block (Ctrl/Cmd+Shift+N)"
               >
@@ -324,6 +340,7 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorFormattingState.sceneBreak ? "active" : ""}`}
                 type="button"
+                role="menuitem"
                 onClick={closeAfter(onInsertSceneBreak)}
                 title="Scene break (Ctrl/Cmd+Shift+-)"
               >
@@ -332,6 +349,8 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorWidth === "narrow" ? "active" : ""}`}
                 type="button"
+                role="menuitemradio"
+                aria-checked={editorWidth === "narrow"}
                 onClick={closeAfter(() => onSetEditorWidth("narrow"))}
               >
                 Narrow page width
@@ -339,6 +358,8 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorWidth === "standard" ? "active" : ""}`}
                 type="button"
+                role="menuitemradio"
+                aria-checked={editorWidth === "standard"}
                 onClick={closeAfter(() => onSetEditorWidth("standard"))}
               >
                 Standard page width
@@ -346,6 +367,8 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorWidth === "wide" ? "active" : ""}`}
                 type="button"
+                role="menuitemradio"
+                aria-checked={editorWidth === "wide"}
                 onClick={closeAfter(() => onSetEditorWidth("wide"))}
               >
                 Wide page width
@@ -353,6 +376,8 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorMode === "standard" ? "active" : ""}`}
                 type="button"
+                role="menuitemradio"
+                aria-checked={editorMode === "standard"}
                 onClick={closeAfter(() => onSetEditorMode("standard"))}
               >
                 Standard mode
@@ -360,6 +385,8 @@ export function EditorToolbar({
               <button
                 className={`toolbar-menu-item ${editorMode === "typewriter" ? "active" : ""}`}
                 type="button"
+                role="menuitemradio"
+                aria-checked={editorMode === "typewriter"}
                 onClick={closeAfter(() => onSetEditorMode("typewriter"))}
                 title="Toggle typewriter mode (Ctrl/Cmd+Alt+M)"
               >
