@@ -55,18 +55,6 @@ export function useTabs({
   }, [tabs, activeTabId, activeProjectId]);
 
   useEffect(() => {
-    setTabs((prev) => {
-      const next = prev.filter((tab) => {
-        if (!tab.refId) return true;
-        if (tab.kind === "editor") return documents.some((doc) => doc.id === tab.refId);
-        if (tab.kind === "lore") return allLorePages.some((page) => page.id === tab.refId);
-        return true;
-      });
-      return next.length > 0 ? next : [WORKBENCH_TAB];
-    });
-  }, [documents, allLorePages]);
-
-  useEffect(() => {
     if (!tabs.some((tab) => tab.id === activeTabId)) {
       setActiveTabId(tabs[0]?.id ?? "workbench");
     }
