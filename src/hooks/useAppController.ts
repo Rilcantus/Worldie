@@ -236,6 +236,11 @@ export function useAppController() {
         tabs.resetTabs();
       }
     },
+    removeProject: async () => {
+      if (!(await confirmProjectSwitch())) return;
+      await projectWorlds.removeProject();
+      tabs.resetTabs();
+    },
   };
 
   return {

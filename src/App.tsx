@@ -95,7 +95,7 @@ export default function App() {
           onOpenProject={projectFileActions.openProject}
           onSaveProjectAs={projectFileActions.saveCurrentProjectAs}
           onAddDemoProject={projectFileActions.addDemoProject}
-          onRemoveProject={sidebarActions.removeProject}
+          onRemoveProject={projectFileActions.removeProject}
           onCollapse={sidebarActions.collapseSidebar}
           onOpenRecentProject={projectFileActions.openRecentProject}
           onSearchQueryChange={search.setSearchQuery}
