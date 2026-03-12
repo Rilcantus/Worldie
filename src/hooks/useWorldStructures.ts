@@ -393,7 +393,7 @@ export function useWorldStructures({
   };
 
   const duplicateTimelineEvent = async (eventId: string) => {
-    const sourceEvent = timelineEvents.find((item) => item.id === eventId);
+    const sourceEvent = timelineEventsById.get(eventId);
     if (!sourceEvent) return null;
     return addTimelineEventWithSeed({
       title: `${sourceEvent.title} Copy`,
