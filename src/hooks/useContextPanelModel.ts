@@ -117,7 +117,10 @@ export function useContextPanelModel({
           : activeNav === "timeline"
             ? `${timelineTitle} ${timelineDescription}`.trim().split(/\s+/).filter(Boolean).length
             : activeNav === "rels"
-              ? `${activeRelationship?.relationType ?? ""} ${activeRelationship?.notes ?? ""}`.trim().split(/\s+/).filter(Boolean).length
+              ? `${activeRelationship?.relationType ?? ""} ${activeRelationship?.notes ?? ""}`
+                  .trim()
+                  .split(/\s+/)
+                  .filter(Boolean).length
               : 0;
 
     const linkedPages =
@@ -145,21 +148,25 @@ export function useContextPanelModel({
 
     const tags =
       activeNav === "lore" && loreTags.trim()
-        ? loreTags.split(",").map((tag) => tag.trim()).filter(Boolean).map((label) => ({
-            key: label,
-            label,
-            style: {
-              background: "rgba(157,125,232,0.12)",
-              color: "var(--accent-bright)",
-              border: "1px solid rgba(157,125,232,0.25)",
-            },
-          }))
+        ? loreTags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean)
+            .map((label) => ({
+              key: label,
+              label,
+              style: {
+                background: "rgba(157,125,232,0.12)",
+                color: "var(--accent-bright)",
+                border: "1px solid rgba(157,125,232,0.25)",
+              },
+            }))
         : [];
 
     const summary =
       activeNav === "timeline"
         ? activeTimelineEvent
-          ? `${timelineDate || "No date"} · ${timelineDescription || "No description yet."}`
+          ? `${timelineDate || "No date"} - ${timelineDescription || "No description yet."}`
           : "Create a timeline event to see it summarized here."
         : activeNav === "rels"
           ? activeRelationship
@@ -184,7 +191,7 @@ export function useContextPanelModel({
       linkedPages,
       tags,
       summary,
-      activeWorldName: activeWorld?.name ?? "None",
+      activeWorldName: activeWorld?.name ?? "No world selected",
     };
   }, [
     activeNav,
