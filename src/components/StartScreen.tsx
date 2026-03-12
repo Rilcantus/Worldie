@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { getProjectFilename, getProjectPathDisplay, type Project } from "../lib/data";
 
 type StartScreenProps = {
@@ -10,7 +11,7 @@ type StartScreenProps = {
   onOpenRecentProject: (projectId: string) => void;
 };
 
-export function StartScreen({
+export const StartScreen = memo(function StartScreen({
   recentProjects,
   isBusy,
   statusMessage,
@@ -72,4 +73,4 @@ export function StartScreen({
       </div>
     </div>
   );
-}
+});

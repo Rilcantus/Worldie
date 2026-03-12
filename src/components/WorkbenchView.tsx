@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Document, LorePage } from "../lib/data";
 import type { TabItem, WorldUI } from "../types/ui";
 
@@ -21,7 +22,7 @@ type WorkbenchViewProps = {
   onOpenLore: (page: LorePage) => void;
 };
 
-export function WorkbenchView({
+export const WorkbenchView = memo(function WorkbenchView({
   isSidebarCollapsed,
   isRightPanelCollapsed,
   projectTitle,
@@ -158,4 +159,4 @@ export function WorkbenchView({
       </div>
     </div>
   );
-}
+});

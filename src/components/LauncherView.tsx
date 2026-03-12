@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 type LauncherViewProps = {
   isSidebarCollapsed: boolean;
   isRightPanelCollapsed: boolean;
@@ -12,7 +14,7 @@ type LauncherViewProps = {
   onOpenTimeline: () => void;
 };
 
-export function LauncherView({
+export const LauncherView = memo(function LauncherView({
   isSidebarCollapsed,
   isRightPanelCollapsed,
   onExpandSidebar,
@@ -101,4 +103,4 @@ export function LauncherView({
       </div>
     </div>
   );
-}
+});
