@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useAppFeedback } from "./useAppFeedback";
 import { useContentManager } from "./useContentManager";
 import { useContentTabActions } from "./useContentTabActions";
@@ -50,6 +50,14 @@ export function useAppController() {
     [projectWorlds.worlds],
   );
 
+  const handleSelectLorePage = useCallback(
+    (page: Parameters<typeof content.selectLorePage>[0], loreTypeId: string | null) => {
+      content.setActiveLoreTypeId(loreTypeId);
+      content.selectLorePage(page);
+    },
+    [content.selectLorePage, content.setActiveLoreTypeId],
+  );
+
   const tabs = useTabs({
     activeProjectId: projectWorlds.activeProjectId,
     activeWorldId: projectWorlds.activeWorldId,
@@ -63,10 +71,7 @@ export function useAppController() {
     resolveLoreTypeId: content.resolveLoreTypeId,
     setActiveWorldId: projectWorlds.setActiveWorldId,
     onSelectDocument: content.selectDocument,
-    onSelectLorePage: (page, loreTypeId) => {
-      content.setActiveLoreTypeId(loreTypeId);
-      content.selectLorePage(page);
-    },
+    onSelectLorePage: handleSelectLorePage,
   });
 
   const search = useSearch({
@@ -210,37 +215,40 @@ export function useAppController() {
               : null,
   });
 
-  const confirmProjectSwitch = async () => {
+  const confirmProjectSwitch = useCallback(async () => {
     if (!hasUnsavedProjectChanges) return true;
     return feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?");
-  };
+  }, [feedback, hasUnsavedProjectChanges]);
 
-  const projectFileActions = {
-    addProject: async () => {
-      if (!(await confirmProjectSwitch())) return;
-      await projectWorlds.addProject();
-    },
-    openProject: async () => {
-      if (!(await confirmProjectSwitch())) return;
-      await projectWorlds.openProject();
-    },
-    openRecentProject: async (projectId: string) => {
-      if (!(await confirmProjectSwitch())) return;
-      await projectWorlds.openRecentProject(projectId);
-    },
-    saveCurrentProjectAs: async () => {
-      if (!(await confirmProjectSwitch())) return;
-      await projectWorlds.saveCurrentProjectAs();
-    },
-    addDemoProject: async () => {
-      if (!(await confirmProjectSwitch())) return;
-      await projectWorlds.addDemoProject();
-    },
-    removeProject: async () => {
-      if (!(await confirmProjectSwitch())) return;
-      await projectWorlds.removeProject();
-    },
-  };
+  const projectFileActions = useMemo(
+    () => ({
+      addProject: async () => {
+        if (!(await confirmProjectSwitch())) return;
+        await projectWorlds.addProject();
+      },
+      openProject: async () => {
+        if (!(await confirmProjectSwitch())) return;
+        await projectWorlds.openProject();
+      },
+      openRecentProject: async (projectId: string) => {
+        if (!(await confirmProjectSwitch())) return;
+        await projectWorlds.openRecentProject(projectId);
+      },
+      saveCurrentProjectAs: async () => {
+        if (!(await confirmProjectSwitch())) return;
+        await projectWorlds.saveCurrentProjectAs();
+      },
+      addDemoProject: async () => {
+        if (!(await confirmProjectSwitch())) return;
+        await projectWorlds.addDemoProject();
+      },
+      removeProject: async () => {
+        if (!(await confirmProjectSwitch())) return;
+        await projectWorlds.removeProject();
+      },
+    }),
+    [confirmProjectSwitch, projectWorlds],
+  );
 
   return {
     feedback,
