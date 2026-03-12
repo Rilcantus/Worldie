@@ -217,14 +217,15 @@ export function useContentManager({
 
     if (renamedPages.length === 0) return;
 
+    const renamedPagesById = new Map(renamedPages.map((page) => [page.id, page]));
     setAllLorePages((prev) =>
-      prev.map((page) => renamedPages.find((updated) => updated.id === page.id) ?? page),
+      prev.map((page) => renamedPagesById.get(page.id) ?? page),
     );
     setLorePages((prev) =>
-      prev.map((page) => renamedPages.find((updated) => updated.id === page.id) ?? page),
+      prev.map((page) => renamedPagesById.get(page.id) ?? page),
     );
     if (activeLoreId) {
-      const activeUpdated = renamedPages.find((page) => page.id === activeLoreId);
+      const activeUpdated = renamedPagesById.get(activeLoreId);
       if (activeUpdated) {
         setLorePageTypeId(resolveLoreTypeId(activeUpdated));
       }
@@ -830,7 +831,8 @@ export function useContentManager({
       return;
     }
 
-    const nextAll = allLorePages.map((page) => updates.find((updated) => updated.id === page.id) ?? page);
+    const updatesById = new Map(updates.map((page) => [page.id, page]));
+    const nextAll = allLorePages.map((page) => updatesById.get(page.id) ?? page);
     const nextActiveLoreTypeId = activeLoreTypeId === fromLoreTypeId ? toLoreTypeId : (activeLoreTypeId ?? toLoreTypeId);
     const nextPages = nextAll.filter((page) => resolveLoreTypeId(page) === nextActiveLoreTypeId);
     setAllLorePages(nextAll);
