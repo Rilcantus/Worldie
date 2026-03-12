@@ -127,6 +127,18 @@ export function useContentManager({
     (loreTypeId: string | null | undefined) => orderedLoreTypes.find((type) => type.id === loreTypeId) ?? null,
     [orderedLoreTypes],
   );
+  const buildLoreTypeCounts = useCallback(
+    (pages: LorePage[]) => {
+      const counts = Object.fromEntries(orderedLoreTypes.map((type) => [type.id, 0]));
+      for (const page of pages) {
+        const loreTypeId = resolveLoreTypeId(page);
+        if (!loreTypeId || !(loreTypeId in counts)) continue;
+        counts[loreTypeId] += 1;
+      }
+      return counts;
+    },
+    [orderedLoreTypes, resolveLoreTypeId],
+  );
 
   const activeLoreType = getLoreType(activeLoreTypeId);
   const selectedLorePageType = getLoreType(lorePageTypeId);
@@ -327,9 +339,7 @@ export function useContentManager({
         setLorePageTypeId(firstTypeId);
         markLoreSaved();
 
-        const counts = Object.fromEntries(
-          orderedLoreTypes.map((type) => [type.id, allPages.filter((page) => resolveLoreTypeId(page) === type.id).length]),
-        );
+        const counts = buildLoreTypeCounts(allPages);
         setWorlds((prev) =>
           prev.map((world) =>
             world.id === activeWorldId
@@ -721,9 +731,7 @@ export function useContentManager({
       }
     }
     if (activeWorldId) {
-      const counts = Object.fromEntries(
-        orderedLoreTypes.map((type) => [type.id, nextAll.filter((page) => resolveLoreTypeId(page) === type.id).length]),
-      );
+      const counts = buildLoreTypeCounts(nextAll);
       setWorlds((prev) =>
         prev.map((world) =>
           world.id === activeWorldId
@@ -761,12 +769,7 @@ export function useContentManager({
             const restoredLoreTypeId = resolveLoreTypeId(restoredPage);
             setAllLorePages((prev) => {
               const nextAll = [restoredPage, ...prev];
-              const counts = Object.fromEntries(
-                orderedLoreTypes.map((type) => [
-                  type.id,
-                  nextAll.filter((page) => resolveLoreTypeId(page) === type.id).length,
-                ]),
-              );
+              const counts = buildLoreTypeCounts(nextAll);
               setWorlds((worldsPrev) =>
                 worldsPrev.map((world) =>
                   world.id === activeWorldId
@@ -837,9 +840,7 @@ export function useContentManager({
     }
 
     if (activeWorldId) {
-      const counts = Object.fromEntries(
-        orderedLoreTypes.map((type) => [type.id, nextAll.filter((page) => resolveLoreTypeId(page) === type.id).length]),
-      );
+      const counts = buildLoreTypeCounts(nextAll);
       setWorlds((prev) =>
         prev.map((world) =>
           world.id === activeWorldId
