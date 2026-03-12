@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ResizeTarget = "sidebar" | "doclist" | "right";
 
@@ -123,7 +123,7 @@ export function usePanelLayout() {
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  const startResize = (target: ResizeTarget, clientX: number) => {
+  const startResize = useCallback((target: ResizeTarget, clientX: number) => {
     dragState.current = {
       target,
       startX: clientX,
@@ -134,18 +134,29 @@ export function usePanelLayout() {
             ? docListWidth
             : rightPanelWidth,
     };
-  };
+  }, [docListWidth, rightPanelWidth, sidebarWidth]);
 
-  return {
-    sidebarWidth,
-    docListWidth,
-    rightPanelWidth,
-    isSidebarCollapsed,
-    isDocListCollapsed,
-    isRightPanelCollapsed,
-    setIsSidebarCollapsed,
-    setIsDocListCollapsed,
-    setIsRightPanelCollapsed,
-    startResize,
-  };
+  return useMemo(
+    () => ({
+      sidebarWidth,
+      docListWidth,
+      rightPanelWidth,
+      isSidebarCollapsed,
+      isDocListCollapsed,
+      isRightPanelCollapsed,
+      setIsSidebarCollapsed,
+      setIsDocListCollapsed,
+      setIsRightPanelCollapsed,
+      startResize,
+    }),
+    [
+      sidebarWidth,
+      docListWidth,
+      rightPanelWidth,
+      isSidebarCollapsed,
+      isDocListCollapsed,
+      isRightPanelCollapsed,
+      startResize,
+    ],
+  );
 }
