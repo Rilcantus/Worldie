@@ -32,30 +32,41 @@ export function useWorkspaceNavigation({
   openLoreCreateTab,
   openNewTab,
 }: UseWorkspaceNavigationArgs) {
-  const pendingOpenKind = useRef<"editor" | "loreRoot" | "loreCategory" | null>(null);
+  const pendingOpen = useRef<{ kind: "editor" | "loreRoot" | "loreCategory"; worldId: string; loreTypeId?: string } | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (pendingOpenKind.current !== "editor") return;
-    pendingOpenKind.current = null;
+    if (!activeWorldId) {
+      pendingOpen.current = null;
+    }
+  }, [activeWorldId]);
+
+  useEffect(() => {
+    if (pendingOpen.current?.kind !== "editor" || pendingOpen.current.worldId !== activeWorldId) return;
+    pendingOpen.current = null;
     if (documents[0]) openDocumentTab(documents[0]);
     else openNewTab();
-  }, [documents, openDocumentTab, openNewTab]);
+  }, [activeWorldId, documents, openDocumentTab, openNewTab]);
 
   useEffect(() => {
-    if (pendingOpenKind.current !== "loreRoot" && pendingOpenKind.current !== "loreCategory") return;
-    const pendingKind = pendingOpenKind.current;
-    pendingOpenKind.current = null;
+    if (!pendingOpen.current || (pendingOpen.current.kind !== "loreRoot" && pendingOpen.current.kind !== "loreCategory")) return;
+    if (pendingOpen.current.worldId !== activeWorldId) return;
+    const pending = pendingOpen.current;
+    pendingOpen.current = null;
     const nextPage =
-      pendingKind === "loreRoot"
+      pending.kind === "loreRoot"
         ? allLorePages.find((page) => page.worldId === activeWorldId) ?? null
-        : lorePages[0] ?? null;
+        : allLorePages.find(
+            (page) => page.worldId === activeWorldId && resolveLoreTypeId(page) === pending.loreTypeId,
+          ) ?? null;
     if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
-  }, [activeWorldId, allLorePages, lorePages, openLoreCreateTab, openLoreTab]);
+  }, [activeWorldId, allLorePages, openLoreCreateTab, openLoreTab, resolveLoreTypeId]);
 
   const openEditorForWorld = (worldId: string) => {
     if (worldId !== activeWorldId) {
-      pendingOpenKind.current = "editor";
+      pendingOpen.current = { kind: "editor", worldId };
       setActiveWorldId(worldId);
       return;
     }
@@ -67,7 +78,7 @@ export function useWorkspaceNavigation({
   const openLoreRootForWorld = (worldId: string) => {
     setActiveLoreTypeId(null);
     if (worldId !== activeWorldId) {
-      pendingOpenKind.current = "loreRoot";
+      pendingOpen.current = { kind: "loreRoot", worldId };
       setActiveWorldId(worldId);
       return;
     }
@@ -82,7 +93,7 @@ export function useWorkspaceNavigation({
   const openLoreCategoryForWorld = (worldId: string, loreTypeId: string) => {
     setActiveLoreTypeId(loreTypeId);
     if (worldId !== activeWorldId) {
-      pendingOpenKind.current = "loreCategory";
+      pendingOpen.current = { kind: "loreCategory", worldId, loreTypeId };
       setActiveWorldId(worldId);
       return;
     }
