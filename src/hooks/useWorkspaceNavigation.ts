@@ -1,4 +1,4 @@
-import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react";
 import type { Document, LorePage } from "../lib/data";
 
 type UseWorkspaceNavigationArgs = {
@@ -70,7 +70,7 @@ export function useWorkspaceNavigation({
     else openLoreCreateTab();
   }, [activeWorldId, allLorePages, loreLoadedWorldId, openLoreCreateTab, openLoreTab, resolveLoreTypeId]);
 
-  const openEditorForWorld = (worldId: string) => {
+  const openEditorForWorld = useCallback((worldId: string) => {
     if (worldId !== activeWorldId) {
       pendingOpen.current = { kind: "editor", worldId };
       setActiveWorldId(worldId);
@@ -79,9 +79,9 @@ export function useWorkspaceNavigation({
     const nextDoc = documents.find((doc) => doc.id === activeDocumentId) ?? documents[0];
     if (nextDoc) openDocumentTab(nextDoc);
     else openNewTab();
-  };
+  }, [activeDocumentId, activeWorldId, documents, openDocumentTab, openNewTab, setActiveWorldId]);
 
-  const openLoreRootForWorld = (worldId: string) => {
+  const openLoreRootForWorld = useCallback((worldId: string) => {
     setActiveLoreTypeId((current) => (current ? null : current));
     if (worldId !== activeWorldId) {
       pendingOpen.current = { kind: "loreRoot", worldId };
@@ -94,9 +94,17 @@ export function useWorkspaceNavigation({
       null;
     if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
-  };
+  }, [
+    activeLoreId,
+    activeWorldId,
+    allLorePages,
+    openLoreCreateTab,
+    openLoreTab,
+    setActiveLoreTypeId,
+    setActiveWorldId,
+  ]);
 
-  const openLoreCategoryForWorld = (worldId: string, loreTypeId: string) => {
+  const openLoreCategoryForWorld = useCallback((worldId: string, loreTypeId: string) => {
     setActiveLoreTypeId((current) => (current === loreTypeId ? current : loreTypeId));
     if (worldId !== activeWorldId) {
       pendingOpen.current = { kind: "loreCategory", worldId, loreTypeId };
@@ -106,11 +114,22 @@ export function useWorkspaceNavigation({
     const nextPage = allLorePages.find((page) => page.worldId === worldId && resolveLoreTypeId(page) === loreTypeId);
     if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
-  };
+  }, [
+    activeWorldId,
+    allLorePages,
+    openLoreCreateTab,
+    openLoreTab,
+    resolveLoreTypeId,
+    setActiveLoreTypeId,
+    setActiveWorldId,
+  ]);
 
-  return {
-    openEditorForWorld,
-    openLoreRootForWorld,
-    openLoreCategoryForWorld,
-  };
+  return useMemo(
+    () => ({
+      openEditorForWorld,
+      openLoreRootForWorld,
+      openLoreCategoryForWorld,
+    }),
+    [openEditorForWorld, openLoreRootForWorld, openLoreCategoryForWorld],
+  );
 }
