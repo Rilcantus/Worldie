@@ -218,7 +218,7 @@ export function useAppController() {
   const confirmProjectSwitch = useCallback(async () => {
     if (!hasUnsavedProjectChanges) return true;
     return feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?");
-  }, [feedback, hasUnsavedProjectChanges]);
+  }, [feedback.confirmAction, hasUnsavedProjectChanges]);
 
   const projectFileActions = useMemo(
     () => ({
@@ -247,24 +247,51 @@ export function useAppController() {
         await projectWorlds.removeProject();
       },
     }),
-    [confirmProjectSwitch, projectWorlds],
+    [
+      confirmProjectSwitch,
+      projectWorlds.addProject,
+      projectWorlds.openProject,
+      projectWorlds.openRecentProject,
+      projectWorlds.saveCurrentProjectAs,
+      projectWorlds.addDemoProject,
+      projectWorlds.removeProject,
+    ],
   );
 
-  return {
-    feedback,
-    panelLayout,
-    projectWorlds,
-    projectFileActions,
-    content,
-    loreTypes,
-    loreTemplates,
-    worldStructures,
-    tabs,
-    search,
-    contentTabActions,
-    workspaceNavigation,
-    sidebarActions,
-    mainContentActions,
-    statusBarModel,
-  };
+  return useMemo(
+    () => ({
+      feedback,
+      panelLayout,
+      projectWorlds,
+      projectFileActions,
+      content,
+      loreTypes,
+      loreTemplates,
+      worldStructures,
+      tabs,
+      search,
+      contentTabActions,
+      workspaceNavigation,
+      sidebarActions,
+      mainContentActions,
+      statusBarModel,
+    }),
+    [
+      feedback,
+      panelLayout,
+      projectWorlds,
+      projectFileActions,
+      content,
+      loreTypes,
+      loreTemplates,
+      worldStructures,
+      tabs,
+      search,
+      contentTabActions,
+      workspaceNavigation,
+      sidebarActions,
+      mainContentActions,
+      statusBarModel,
+    ],
+  );
 }
