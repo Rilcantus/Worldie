@@ -297,7 +297,11 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       const project = projects.find((item) => item.id === projectId);
       if (!project?.filepath) {
         try {
-          await switchProject(projectId);
+          const switched = await switchProject(projectId);
+          if (!switched) {
+            showToast("Worldie could not switch to that recent project.");
+            return false;
+          }
         } catch (error) {
           showToast(error instanceof Error ? error.message : "Worldie could not switch projects.");
           return false;

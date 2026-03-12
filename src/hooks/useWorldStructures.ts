@@ -183,7 +183,11 @@ export function useWorldStructures({
     const defaultPage = sourcePage;
     const secondPage = targetPage;
     if (!defaultPage || !secondPage) {
-      showToast("Create at least one lore page before adding relationships");
+      showToast("Create at least two lore pages before adding relationships.");
+      return null;
+    }
+    if (defaultPage.id === secondPage.id) {
+      showToast("Choose two different lore pages before adding a relationship.");
       return null;
     }
     let created: Relationship;
