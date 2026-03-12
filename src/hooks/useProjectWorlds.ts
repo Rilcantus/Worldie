@@ -102,6 +102,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   };
 
   const applyActiveProject = async (project: Project | null) => {
+    setIsEditingProject(false);
+    setEditingWorldId(null);
+    setWorldDraft("");
     if (!project) {
       setActiveProjectId(null);
       setProjectTitle("No Project Open");
@@ -114,9 +117,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setActiveWorldId(null);
     setActiveProjectId(project.id);
     setProjectTitle(project.title);
-    setProjectDraft(project.title);
-    await hydrateWorlds(project.id);
-    return true;
+      setProjectDraft(project.title);
+      await hydrateWorlds(project.id);
+      return true;
   };
 
   const hydrateWorlds = async (projectId: string) => {
@@ -460,6 +463,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return;
     }
     const nextWorlds = worlds.filter((world) => world.id !== worldId);
+    if (editingWorldId === worldId) {
+      setEditingWorldId(null);
+      setWorldDraft("");
+    }
     setWorlds(nextWorlds);
     if (activeWorldId === worldId) {
       setActiveWorldId(nextWorlds[0]?.id ?? null);
