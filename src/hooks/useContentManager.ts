@@ -865,96 +865,163 @@ export function useContentManager({
     }
   };
 
-  return {
-    documents,
-    documentsLoadedWorldId,
-    activeDocument,
-    activeDocumentId,
-    documentSaveState,
-    documentLastSavedAt,
-    documentTitle,
-    documentContent,
-    documentFolderPath,
-    lorePages,
-    allLorePages,
-    loreLoadedWorldId,
-    activeLore,
-    activeLoreId,
-    loreSaveState,
-    loreLastSavedAt,
-    activeLoreFields,
-    loreTitle,
-    loreTags,
-    loreFields,
-    lorePageTypeId,
-    activeLoreTypeId,
-    activeLoreType,
-    recentDocuments,
-    recentLorePages,
-    totalWordCount,
-    hasUnsavedChanges: hasUnsavedDocumentChanges || hasUnsavedLoreChanges,
-    loreTypes: orderedLoreTypes,
-    resolveLoreTypeId,
-    getLoreType,
-    setDocumentTitle: (value: string) => {
-      setDocumentTitle((current) => {
-        if (current === value) return current;
-        setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setDocumentContent: (value: string) => {
-      setDocumentContent((current) => {
-        if (current === value) return current;
-        setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setDocumentFolderPath: (value: string) => {
-      setDocumentFolderPath((current) => {
-        if (current === value) return current;
-        setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setLoreTitle: (value: string) => {
-      setLoreTitle((current) => {
-        if (current === value) return current;
-        setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setLoreTags: (value: string) => {
-      setLoreTags((current) => {
-        if (current === value) return current;
-        setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setLoreFields: (value: string) => {
-      setLoreFields((current) => {
-        if (current === value) return current;
-        setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setLorePageTypeId: (value: string | null) => {
-      setLorePageTypeId((current) => {
-        if (current === value) return current;
-        setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setActiveLoreTypeId,
-    selectDocument,
-    addDocument,
-    duplicateDocument,
-    saveDocument,
-    removeDocument,
-    selectLorePage,
-    createLoreItem,
-    reassignLoreType,
-    saveLorePage,
-    removeLorePage,
-  };
+  const updateDocumentTitle = useCallback((value: string) => {
+    setDocumentTitle((current) => {
+      if (current === value) return current;
+      setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateDocumentContent = useCallback((value: string) => {
+    setDocumentContent((current) => {
+      if (current === value) return current;
+      setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateDocumentFolderPath = useCallback((value: string) => {
+    setDocumentFolderPath((current) => {
+      if (current === value) return current;
+      setDocumentSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateLoreTitle = useCallback((value: string) => {
+    setLoreTitle((current) => {
+      if (current === value) return current;
+      setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateLoreTags = useCallback((value: string) => {
+    setLoreTags((current) => {
+      if (current === value) return current;
+      setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateLoreFields = useCallback((value: string) => {
+    setLoreFields((current) => {
+      if (current === value) return current;
+      setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateLorePageTypeId = useCallback((value: string | null) => {
+    setLorePageTypeId((current) => {
+      if (current === value) return current;
+      setLoreSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  return useMemo(
+    () => ({
+      documents,
+      documentsLoadedWorldId,
+      activeDocument,
+      activeDocumentId,
+      documentSaveState,
+      documentLastSavedAt,
+      documentTitle,
+      documentContent,
+      documentFolderPath,
+      lorePages,
+      allLorePages,
+      loreLoadedWorldId,
+      activeLore,
+      activeLoreId,
+      loreSaveState,
+      loreLastSavedAt,
+      activeLoreFields,
+      loreTitle,
+      loreTags,
+      loreFields,
+      lorePageTypeId,
+      activeLoreTypeId,
+      activeLoreType,
+      recentDocuments,
+      recentLorePages,
+      totalWordCount,
+      hasUnsavedChanges: hasUnsavedDocumentChanges || hasUnsavedLoreChanges,
+      loreTypes: orderedLoreTypes,
+      resolveLoreTypeId,
+      getLoreType,
+      setDocumentTitle: updateDocumentTitle,
+      setDocumentContent: updateDocumentContent,
+      setDocumentFolderPath: updateDocumentFolderPath,
+      setLoreTitle: updateLoreTitle,
+      setLoreTags: updateLoreTags,
+      setLoreFields: updateLoreFields,
+      setLorePageTypeId: updateLorePageTypeId,
+      setActiveLoreTypeId,
+      selectDocument,
+      addDocument,
+      duplicateDocument,
+      saveDocument,
+      removeDocument,
+      selectLorePage,
+      createLoreItem,
+      reassignLoreType,
+      saveLorePage,
+      removeLorePage,
+    }),
+    [
+      documents,
+      documentsLoadedWorldId,
+      activeDocument,
+      activeDocumentId,
+      documentSaveState,
+      documentLastSavedAt,
+      documentTitle,
+      documentContent,
+      documentFolderPath,
+      lorePages,
+      allLorePages,
+      loreLoadedWorldId,
+      activeLore,
+      activeLoreId,
+      loreSaveState,
+      loreLastSavedAt,
+      activeLoreFields,
+      loreTitle,
+      loreTags,
+      loreFields,
+      lorePageTypeId,
+      activeLoreTypeId,
+      activeLoreType,
+      recentDocuments,
+      recentLorePages,
+      totalWordCount,
+      hasUnsavedDocumentChanges,
+      hasUnsavedLoreChanges,
+      orderedLoreTypes,
+      resolveLoreTypeId,
+      getLoreType,
+      updateDocumentTitle,
+      updateDocumentContent,
+      updateDocumentFolderPath,
+      updateLoreTitle,
+      updateLoreTags,
+      updateLoreFields,
+      updateLorePageTypeId,
+      setActiveLoreTypeId,
+      selectDocument,
+      addDocument,
+      duplicateDocument,
+      saveDocument,
+      removeDocument,
+      selectLorePage,
+      createLoreItem,
+      reassignLoreType,
+      saveLorePage,
+      removeLorePage,
+    ],
+  );
 }

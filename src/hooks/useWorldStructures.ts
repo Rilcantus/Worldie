@@ -462,98 +462,159 @@ export function useWorldStructures({
     return true;
   };
 
-  return {
-    relationships,
-    activeRelationshipId,
-    relationshipSourceId,
-    relationshipTargetId,
-    relationshipType,
-    relationshipNotes,
-    timelineEvents,
-    activeTimelineEventId,
-    timelineTitle,
-    timelineDate,
-    timelineType,
-    timelineLinkedPageId,
-    timelineDescription,
-    hasUnsavedChanges: hasUnsavedRelationshipChanges || hasUnsavedTimelineChanges,
-    relationshipSaveState,
-    relationshipLastSavedAt,
-    timelineSaveState,
-    timelineLastSavedAt,
-    setRelationshipSourceId: (value: string) => {
-      setRelationshipSourceId((current) => {
-        if (current === value) return current;
-        setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setRelationshipTargetId: (value: string) => {
-      setRelationshipTargetId((current) => {
-        if (current === value) return current;
-        setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setRelationshipType: (value: string) => {
-      setRelationshipType((current) => {
-        if (current === value) return current;
-        setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setRelationshipNotes: (value: string) => {
-      setRelationshipNotes((current) => {
-        if (current === value) return current;
-        setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setTimelineTitle: (value: string) => {
-      setTimelineTitle((current) => {
-        if (current === value) return current;
-        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setTimelineDate: (value: string) => {
-      setTimelineDate((current) => {
-        if (current === value) return current;
-        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setTimelineType: (value: string) => {
-      setTimelineType((current) => {
-        if (current === value) return current;
-        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setTimelineLinkedPageId: (value: string) => {
-      setTimelineLinkedPageId((current) => {
-        if (current === value) return current;
-        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    setTimelineDescription: (value: string) => {
-      setTimelineDescription((current) => {
-        if (current === value) return current;
-        setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
-        return value;
-      });
-    },
-    selectRelationship,
-    addRelationship,
-    addRelationshipWithSeed,
-    saveRelationship,
-    removeRelationship,
-    selectTimelineEvent,
-    addTimelineEvent,
-    addTimelineEventWithSeed,
-    duplicateTimelineEvent,
-    saveTimelineEvent,
-    removeTimelineEvent,
-  };
+  const updateRelationshipSourceId = useCallback((value: string) => {
+    setRelationshipSourceId((current) => {
+      if (current === value) return current;
+      setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateRelationshipTargetId = useCallback((value: string) => {
+    setRelationshipTargetId((current) => {
+      if (current === value) return current;
+      setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateRelationshipType = useCallback((value: string) => {
+    setRelationshipType((current) => {
+      if (current === value) return current;
+      setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateRelationshipNotes = useCallback((value: string) => {
+    setRelationshipNotes((current) => {
+      if (current === value) return current;
+      setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateTimelineTitle = useCallback((value: string) => {
+    setTimelineTitle((current) => {
+      if (current === value) return current;
+      setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateTimelineDate = useCallback((value: string) => {
+    setTimelineDate((current) => {
+      if (current === value) return current;
+      setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateTimelineType = useCallback((value: string) => {
+    setTimelineType((current) => {
+      if (current === value) return current;
+      setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateTimelineLinkedPageId = useCallback((value: string) => {
+    setTimelineLinkedPageId((current) => {
+      if (current === value) return current;
+      setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  const updateTimelineDescription = useCallback((value: string) => {
+    setTimelineDescription((current) => {
+      if (current === value) return current;
+      setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
+  return useMemo(
+    () => ({
+      relationships,
+      activeRelationshipId,
+      relationshipSourceId,
+      relationshipTargetId,
+      relationshipType,
+      relationshipNotes,
+      timelineEvents,
+      activeTimelineEventId,
+      timelineTitle,
+      timelineDate,
+      timelineType,
+      timelineLinkedPageId,
+      timelineDescription,
+      hasUnsavedChanges: hasUnsavedRelationshipChanges || hasUnsavedTimelineChanges,
+      relationshipSaveState,
+      relationshipLastSavedAt,
+      timelineSaveState,
+      timelineLastSavedAt,
+      setRelationshipSourceId: updateRelationshipSourceId,
+      setRelationshipTargetId: updateRelationshipTargetId,
+      setRelationshipType: updateRelationshipType,
+      setRelationshipNotes: updateRelationshipNotes,
+      setTimelineTitle: updateTimelineTitle,
+      setTimelineDate: updateTimelineDate,
+      setTimelineType: updateTimelineType,
+      setTimelineLinkedPageId: updateTimelineLinkedPageId,
+      setTimelineDescription: updateTimelineDescription,
+      selectRelationship,
+      addRelationship,
+      addRelationshipWithSeed,
+      saveRelationship,
+      removeRelationship,
+      selectTimelineEvent,
+      addTimelineEvent,
+      addTimelineEventWithSeed,
+      duplicateTimelineEvent,
+      saveTimelineEvent,
+      removeTimelineEvent,
+    }),
+    [
+      relationships,
+      activeRelationshipId,
+      relationshipSourceId,
+      relationshipTargetId,
+      relationshipType,
+      relationshipNotes,
+      timelineEvents,
+      activeTimelineEventId,
+      timelineTitle,
+      timelineDate,
+      timelineType,
+      timelineLinkedPageId,
+      timelineDescription,
+      hasUnsavedRelationshipChanges,
+      hasUnsavedTimelineChanges,
+      relationshipSaveState,
+      relationshipLastSavedAt,
+      timelineSaveState,
+      timelineLastSavedAt,
+      updateRelationshipSourceId,
+      updateRelationshipTargetId,
+      updateRelationshipType,
+      updateRelationshipNotes,
+      updateTimelineTitle,
+      updateTimelineDate,
+      updateTimelineType,
+      updateTimelineLinkedPageId,
+      updateTimelineDescription,
+      selectRelationship,
+      addRelationship,
+      addRelationshipWithSeed,
+      saveRelationship,
+      removeRelationship,
+      selectTimelineEvent,
+      addTimelineEvent,
+      addTimelineEventWithSeed,
+      duplicateTimelineEvent,
+      saveTimelineEvent,
+      removeTimelineEvent,
+    ],
+  );
 }
