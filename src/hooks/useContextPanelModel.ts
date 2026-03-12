@@ -66,8 +66,9 @@ export function useContextPanelModel({
       timelineEvents.find((event) => event.id === activeTimelineEventId) ?? null;
 
     const activeLoreType = loreTypes.find((type) => type.id === activeLoreTypeId) ?? null;
+    const lorePagesById = new Map(allLorePages.map((page) => [page.id, page]));
     const findLorePage = (pageId: string | null | undefined) =>
-      allLorePages.find((page) => page.id === pageId) ?? null;
+      (pageId ? lorePagesById.get(pageId) : null) ?? null;
     const findLoreTitle = (pageId: string | null | undefined) =>
       findLorePage(pageId)?.title ?? "Unknown";
 
