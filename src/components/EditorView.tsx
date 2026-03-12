@@ -1,4 +1,5 @@
 import {
+  memo,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -90,7 +91,7 @@ type SlashCommandOption = {
   keywords: string[];
 };
 
-export function EditorView({
+export const EditorView = memo(function EditorView({
   isDocListCollapsed,
   isSidebarCollapsed,
   isRightPanelCollapsed,
@@ -1219,4 +1220,4 @@ export function EditorView({
       </div>
     </>
   );
-}
+});

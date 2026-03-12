@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { TabKind, WorldUI } from "../types/ui";
 
 type PlaceholderViewProps = {
@@ -9,7 +10,7 @@ type PlaceholderViewProps = {
   onExpandRightPanel: () => void;
 };
 
-export function PlaceholderView({
+export const PlaceholderView = memo(function PlaceholderView({
   activeNav,
   isSidebarCollapsed,
   isRightPanelCollapsed,
@@ -74,4 +75,4 @@ export function PlaceholderView({
       </div>
     </div>
   );
-}
+});
