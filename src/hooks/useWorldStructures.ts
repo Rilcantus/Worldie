@@ -164,9 +164,24 @@ export function useWorldStructures({
   };
 
   const addRelationship = async () => {
+    return addRelationshipWithSeed();
+  };
+
+  const addRelationshipWithSeed = async (seed?: {
+    sourcePageId?: string;
+    targetPageId?: string;
+    relationType?: string;
+    notes?: string;
+  }) => {
     if (!activeProjectId || !activeWorldId) return null;
-    const defaultPage = allLorePages[0];
-    const secondPage = allLorePages[1] ?? allLorePages[0];
+    const sourcePage =
+      (seed?.sourcePageId ? allLorePages.find((page) => page.id === seed.sourcePageId) : null) ?? allLorePages[0];
+    const targetPage =
+      (seed?.targetPageId ? allLorePages.find((page) => page.id === seed.targetPageId) : null) ??
+      allLorePages.find((page) => page.id !== sourcePage?.id) ??
+      allLorePages[0];
+    const defaultPage = sourcePage;
+    const secondPage = targetPage;
     if (!defaultPage || !secondPage) {
       showToast("Create at least one lore page before adding relationships");
       return null;
@@ -176,8 +191,8 @@ export function useWorldStructures({
       created = await createRelationship(activeProjectId, activeWorldId, {
         sourcePageId: defaultPage.id,
         targetPageId: secondPage.id,
-        relationType: "ally",
-        notes: "",
+        relationType: seed?.relationType?.trim() || "ally",
+        notes: seed?.notes ?? "",
       });
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Worldie could not create the relationship.");
@@ -273,15 +288,25 @@ export function useWorldStructures({
   };
 
   const addTimelineEvent = async () => {
+    return addTimelineEventWithSeed();
+  };
+
+  const addTimelineEventWithSeed = async (seed?: {
+    title?: string;
+    eventDate?: string;
+    eventType?: string;
+    linkedPageId?: string;
+    description?: string;
+  }) => {
     if (!activeProjectId || !activeWorldId) return null;
     let created: TimelineEvent;
     try {
       created = await createTimelineEvent(activeProjectId, activeWorldId, {
-        title: `New Event ${timelineEvents.length + 1}`,
-        eventDate: "",
-        eventType: "event",
-        linkedPageId: "",
-        description: "",
+        title: seed?.title?.trim() || `New Event ${timelineEvents.length + 1}`,
+        eventDate: seed?.eventDate ?? "",
+        eventType: seed?.eventType?.trim() || "event",
+        linkedPageId: seed?.linkedPageId ?? "",
+        description: seed?.description ?? "",
       });
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Worldie could not create the timeline event.");
@@ -291,6 +316,18 @@ export function useWorldStructures({
     selectTimelineEvent(created);
     markTimelineSaved();
     return created;
+  };
+
+  const duplicateTimelineEvent = async (eventId: string) => {
+    const sourceEvent = timelineEvents.find((item) => item.id === eventId);
+    if (!sourceEvent) return null;
+    return addTimelineEventWithSeed({
+      title: `${sourceEvent.title} Copy`,
+      eventDate: sourceEvent.eventDate,
+      eventType: sourceEvent.eventType ?? "event",
+      linkedPageId: sourceEvent.linkedPageId ?? "",
+      description: sourceEvent.description ?? "",
+    });
   };
 
   const saveTimelineEvent = async () => {
@@ -422,10 +459,13 @@ export function useWorldStructures({
     },
     selectRelationship,
     addRelationship,
+    addRelationshipWithSeed,
     saveRelationship,
     removeRelationship,
     selectTimelineEvent,
     addTimelineEvent,
+    addTimelineEventWithSeed,
+    duplicateTimelineEvent,
     saveTimelineEvent,
     removeTimelineEvent,
   };

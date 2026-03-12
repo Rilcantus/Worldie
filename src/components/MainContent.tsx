@@ -120,6 +120,12 @@ type MainContentProps = {
   onMoveLoreType: (loreTypeId: string, direction: -1 | 1) => void;
   onSelectRelationship: (relationship: Relationship) => void;
   onAddRelationship: () => void;
+  onAddRelationshipWithSeed: (seed?: {
+    sourcePageId?: string;
+    targetPageId?: string;
+    relationType?: string;
+    notes?: string;
+  }) => void;
   onRemoveRelationship: (relationshipId: string) => void;
   onSaveRelationship: () => void;
   onRelationshipSourceChange: (value: string) => void;
@@ -128,6 +134,14 @@ type MainContentProps = {
   onRelationshipNotesChange: (value: string) => void;
   onSelectTimelineEvent: (event: TimelineEvent) => void;
   onAddTimelineEvent: () => void;
+  onAddTimelineEventWithSeed: (seed?: {
+    title?: string;
+    eventDate?: string;
+    eventType?: string;
+    linkedPageId?: string;
+    description?: string;
+  }) => void;
+  onDuplicateTimelineEvent: (eventId: string) => void;
   onRemoveTimelineEvent: (eventId: string) => void;
   onSaveTimelineEvent: () => void;
   onTimelineTitleChange: (value: string) => void;
@@ -358,6 +372,7 @@ export function MainContent(props: MainContentProps) {
               onResizeStart={props.onStartDocListResize}
               onSelectRelationship={props.onSelectRelationship}
               onAddRelationship={props.onAddRelationship}
+              onAddRelationshipWithSeed={props.onAddRelationshipWithSeed}
               onRemoveRelationship={props.onRemoveRelationship}
               onSave={props.onSaveRelationship}
               onSourceChange={props.onRelationshipSourceChange}
@@ -390,6 +405,8 @@ export function MainContent(props: MainContentProps) {
               onResizeStart={props.onStartDocListResize}
               onSelectTimelineEvent={props.onSelectTimelineEvent}
               onAddTimelineEvent={props.onAddTimelineEvent}
+              onAddTimelineEventWithSeed={props.onAddTimelineEventWithSeed}
+              onDuplicateTimelineEvent={props.onDuplicateTimelineEvent}
               onRemoveTimelineEvent={props.onRemoveTimelineEvent}
               onSave={props.onSaveTimelineEvent}
               onTitleChange={props.onTimelineTitleChange}

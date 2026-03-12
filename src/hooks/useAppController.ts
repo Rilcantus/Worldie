@@ -155,9 +155,12 @@ export function useAppController() {
     handleRemoveLorePage: contentTabActions.handleRemoveLorePage,
     saveLorePage: content.saveLorePage,
     addRelationship: worldStructures.addRelationship,
+    addRelationshipWithSeed: worldStructures.addRelationshipWithSeed,
     removeRelationship: worldStructures.removeRelationship,
     saveRelationship: worldStructures.saveRelationship,
     addTimelineEvent: worldStructures.addTimelineEvent,
+    addTimelineEventWithSeed: worldStructures.addTimelineEventWithSeed,
+    duplicateTimelineEvent: worldStructures.duplicateTimelineEvent,
     removeTimelineEvent: worldStructures.removeTimelineEvent,
     saveTimelineEvent: worldStructures.saveTimelineEvent,
   });

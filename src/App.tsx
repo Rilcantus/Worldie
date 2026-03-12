@@ -243,6 +243,7 @@ export default function App() {
           onMoveLoreType={loreTypes.moveLoreType}
           onSelectRelationship={worldStructures.selectRelationship}
           onAddRelationship={mainContentActions.addRelationship}
+          onAddRelationshipWithSeed={mainContentActions.addRelationshipWithSeed}
           onRemoveRelationship={mainContentActions.removeRelationship}
           onSaveRelationship={mainContentActions.saveRelationship}
           onRelationshipSourceChange={worldStructures.setRelationshipSourceId}
@@ -251,6 +252,8 @@ export default function App() {
           onRelationshipNotesChange={worldStructures.setRelationshipNotes}
           onSelectTimelineEvent={worldStructures.selectTimelineEvent}
           onAddTimelineEvent={mainContentActions.addTimelineEvent}
+          onAddTimelineEventWithSeed={mainContentActions.addTimelineEventWithSeed}
+          onDuplicateTimelineEvent={mainContentActions.duplicateTimelineEvent}
           onRemoveTimelineEvent={mainContentActions.removeTimelineEvent}
           onSaveTimelineEvent={mainContentActions.saveTimelineEvent}
           onTimelineTitleChange={worldStructures.setTimelineTitle}

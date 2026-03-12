@@ -23,6 +23,14 @@ type TimelineViewProps = {
   onResizeStart: (event: React.MouseEvent<HTMLDivElement>) => void;
   onSelectTimelineEvent: (event: TimelineEvent) => void;
   onAddTimelineEvent: () => void;
+  onAddTimelineEventWithSeed: (seed?: {
+    title?: string;
+    eventDate?: string;
+    eventType?: string;
+    linkedPageId?: string;
+    description?: string;
+  }) => void;
+  onDuplicateTimelineEvent: (eventId: string) => void;
   onRemoveTimelineEvent: (eventId: string) => void;
   onSave: () => void;
   onTitleChange: (value: string) => void;
@@ -82,6 +90,8 @@ export function TimelineView({
   onResizeStart,
   onSelectTimelineEvent,
   onAddTimelineEvent,
+  onAddTimelineEventWithSeed,
+  onDuplicateTimelineEvent,
   onRemoveTimelineEvent,
   onSave,
   onTitleChange,
@@ -561,6 +571,18 @@ export function TimelineView({
             </div>
             {focusedTrackType ? (
               <div className="relationship-action-row">
+                <button
+                  className="tb-btn"
+                  type="button"
+                  onClick={() =>
+                    onAddTimelineEventWithSeed({
+                      title: `New ${focusedTrackType} Event`,
+                      eventType: focusedTrackType,
+                    })
+                  }
+                >
+                  New in this track
+                </button>
                 <button className="tb-btn" type="button" onClick={() => setFocusedTrackType(null)}>
                   Clear track focus
                 </button>
@@ -717,6 +739,20 @@ export function TimelineView({
               <div className="advanced-json-note">
                 {focusedTrackType} track with {focusedTrackEvents.length} visible events.
               </div>
+              <div className="relationship-action-row">
+                <button
+                  className="tb-btn"
+                  type="button"
+                  onClick={() =>
+                    onAddTimelineEventWithSeed({
+                      title: `New ${focusedTrackType} Event`,
+                      eventType: focusedTrackType,
+                    })
+                  }
+                >
+                  Add event to {focusedTrackType}
+                </button>
+              </div>
               <div className="timeline-track-list">
                 {focusedTrackEvents.slice(0, 6).map((event) => {
                   const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
@@ -868,13 +904,37 @@ export function TimelineView({
                 <span>{activeLinkedPage?.title ?? "None"}</span>
               </div>
             </div>
-            {activeLinkedPage ? (
-              <div className="relationship-action-row">
-                <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(activeLinkedPage)}>
-                  Open linked lore page
+            <div className="relationship-action-row">
+              {activeTimelineEventId ? (
+                <button
+                  className="tb-btn"
+                  type="button"
+                  onClick={() => onDuplicateTimelineEvent(activeTimelineEventId)}
+                >
+                  Duplicate event
                 </button>
-              </div>
-            ) : null}
+              ) : null}
+              {activeLinkedPage ? (
+                <>
+                  <button
+                    className="tb-btn"
+                    type="button"
+                    onClick={() =>
+                      onAddTimelineEventWithSeed({
+                        title: `New Event for ${activeLinkedPage.title}`,
+                        linkedPageId: activeLinkedPage.id,
+                        eventType: timelineType || "event",
+                      })
+                    }
+                  >
+                    New linked event
+                  </button>
+                  <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(activeLinkedPage)}>
+                    Open linked lore page
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>

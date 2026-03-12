@@ -16,11 +16,40 @@ type UseMainContentActionsArgs = {
   handleRemoveLorePage: (loreId: string) => Promise<void>;
   saveLorePage: () => Promise<void>;
   addRelationship: () => Promise<unknown>;
+  addRelationshipWithSeed: (seed?: {
+    sourcePageId?: string;
+    targetPageId?: string;
+    relationType?: string;
+    notes?: string;
+  }) => Promise<unknown>;
   removeRelationship: (relationshipId: string) => Promise<boolean>;
   saveRelationship: () => Promise<void>;
   addTimelineEvent: () => Promise<unknown>;
+  addTimelineEventWithSeed: (seed?: {
+    title?: string;
+    eventDate?: string;
+    eventType?: string;
+    linkedPageId?: string;
+    description?: string;
+  }) => Promise<unknown>;
+  duplicateTimelineEvent: (eventId: string) => Promise<unknown>;
   removeTimelineEvent: (eventId: string) => Promise<boolean>;
   saveTimelineEvent: () => Promise<void>;
+};
+
+type RelationshipSeed = {
+  sourcePageId?: string;
+  targetPageId?: string;
+  relationType?: string;
+  notes?: string;
+};
+
+type TimelineSeed = {
+  title?: string;
+  eventDate?: string;
+  eventType?: string;
+  linkedPageId?: string;
+  description?: string;
 };
 
 export function useMainContentActions({
@@ -41,9 +70,12 @@ export function useMainContentActions({
   handleRemoveLorePage,
   saveLorePage,
   addRelationship,
+  addRelationshipWithSeed,
   removeRelationship,
   saveRelationship,
   addTimelineEvent,
+  addTimelineEventWithSeed,
+  duplicateTimelineEvent,
   removeTimelineEvent,
   saveTimelineEvent,
 }: UseMainContentActionsArgs) {
@@ -69,9 +101,12 @@ export function useMainContentActions({
     removeLorePage: (loreId: string) => void handleRemoveLorePage(loreId),
     saveLorePage: () => void saveLorePage(),
     addRelationship: () => void addRelationship(),
+    addRelationshipWithSeed: (seed?: RelationshipSeed) => void addRelationshipWithSeed(seed),
     removeRelationship: (relationshipId: string) => void removeRelationship(relationshipId),
     saveRelationship: () => void saveRelationship(),
     addTimelineEvent: () => void addTimelineEvent(),
+    addTimelineEventWithSeed: (seed?: TimelineSeed) => void addTimelineEventWithSeed(seed),
+    duplicateTimelineEvent: (eventId: string) => void duplicateTimelineEvent(eventId),
     removeTimelineEvent: (eventId: string) => void removeTimelineEvent(eventId),
     saveTimelineEvent: () => void saveTimelineEvent(),
   };

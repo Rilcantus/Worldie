@@ -22,6 +22,12 @@ type RelationshipsViewProps = {
   onResizeStart: (event: React.MouseEvent<HTMLDivElement>) => void;
   onSelectRelationship: (relationship: Relationship) => void;
   onAddRelationship: () => void;
+  onAddRelationshipWithSeed: (seed?: {
+    sourcePageId?: string;
+    targetPageId?: string;
+    relationType?: string;
+    notes?: string;
+  }) => void;
   onRemoveRelationship: (relationshipId: string) => void;
   onSave: () => void;
   onSourceChange: (value: string) => void;
@@ -70,6 +76,7 @@ export function RelationshipsView({
   onResizeStart,
   onSelectRelationship,
   onAddRelationship,
+  onAddRelationshipWithSeed,
   onRemoveRelationship,
   onSave,
   onSourceChange,
@@ -720,6 +727,13 @@ export function RelationshipsView({
             ) : null}
             {focusedPage ? (
               <div className="relationship-action-row">
+                <button
+                  className="tb-btn"
+                  type="button"
+                  onClick={() => onAddRelationshipWithSeed({ sourcePageId: focusedPage.id })}
+                >
+                  Connect focused page
+                </button>
                 <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(focusedPage)}>
                   Open focused page
                 </button>
@@ -755,6 +769,13 @@ export function RelationshipsView({
                     >
                       <span>{page.title}</span>
                       <span>{count} links</span>
+                    </button>
+                    <button
+                      className="tb-btn"
+                      type="button"
+                      onClick={() => onAddRelationshipWithSeed({ sourcePageId: page.id })}
+                    >
+                      Connect
                     </button>
                     <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(page)}>
                       Open
