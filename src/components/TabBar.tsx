@@ -13,6 +13,7 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onAdd }: TabBarPr
     <div className="tab-bar" role="tablist" aria-label="Open pages">
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
+        const canClose = tab.kind !== "workbench" && (tab.kind !== "new" || Boolean(tab.refId));
         return (
           <div key={tab.id} className={`tab ${isActive ? "active" : ""}`} role="presentation">
             <button
@@ -25,7 +26,7 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onAdd }: TabBarPr
               <span className="tab-icon">{tab.icon}</span>
               {tab.label}
             </button>
-            {tab.kind !== "new" || tab.refId ? (
+            {canClose ? (
               <button
                 className="tab-close"
                 type="button"
