@@ -44,6 +44,20 @@ const hydrateWorldUi = (
     loreCategories: buildLoreCategories(loreTypes),
   }));
 
+const areProjectsEqual = (left: Project[], right: Project[]) =>
+  left.length === right.length &&
+  left.every((project, index) => {
+    const other = right[index];
+    return (
+      !!other &&
+      project.id === other.id &&
+      project.title === other.title &&
+      project.filepath === other.filepath &&
+      project.lastEdited === other.lastEdited &&
+      project.createdAt === other.createdAt
+    );
+  });
+
 type UseProjectWorldsArgs = {
   confirmAction: (message: string) => Promise<boolean>;
   showToast: (message: string) => void;
@@ -92,6 +106,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setProjectActionState((current) =>
       current.status === nextState.status && current.message === nextState.message ? current : nextState,
     );
+  };
+
+  const setProjectsIfChanged = (nextProjects: Project[]) => {
+    setProjects((current) => (areProjectsEqual(current, nextProjects) ? current : nextProjects));
   };
 
   const runProjectAction = async <T,>(
@@ -167,7 +185,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         showToast(error instanceof Error ? error.message : "Worldie could not load recent project files.");
       }
       if (requestId !== hydrateRequestId.current) return;
-      setProjects(loadedProjects);
+      setProjectsIfChanged(loadedProjects);
       const project = loadedProjects[0];
       if (!project) {
         await applyActiveProject(null);
@@ -279,7 +297,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         showToast(error instanceof Error ? error.message : "Worldie could not create the new project file.");
         return false;
       }
-      setProjects(nextProjects);
+      setProjectsIfChanged(nextProjects);
       const project = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!project) return false;
       try {
@@ -301,7 +319,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         showToast(error instanceof Error ? error.message : "Worldie could not create the demo project.");
         return false;
       }
-      setProjects(nextProjects);
+      setProjectsIfChanged(nextProjects);
       const project = nextProjects[0];
       if (!project) return false;
       try {
@@ -325,7 +343,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         showToast(error instanceof Error ? error.message : "Worldie could not open that project file.");
         return false;
       }
-      setProjects(nextProjects);
+      setProjectsIfChanged(nextProjects);
       const project = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!project) return false;
       try {
@@ -365,7 +383,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         showToast(error instanceof Error ? error.message : "Worldie could not reopen that project file.");
         return false;
       }
-      setProjects(nextProjects);
+      setProjectsIfChanged(nextProjects);
       const reopened = nextProjects.find((item) => item.filepath === project.filepath) ?? nextProjects[0];
       if (!reopened) return false;
       try {
@@ -391,7 +409,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         showToast(error instanceof Error ? error.message : "Worldie could not save a copy of this project.");
         return false;
       }
-      setProjects(nextProjects);
+      setProjectsIfChanged(nextProjects);
       const savedProject = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!savedProject) return false;
       try {
@@ -430,7 +448,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       showToast(error instanceof Error ? error.message : "Worldie could not rename the project.");
       return;
     }
-    setProjects(nextProjects);
+    setProjectsIfChanged(nextProjects);
     setProjectTitle((current) => (current === nextTitle ? current : nextTitle));
     setIsEditingProject((current) => (current ? false : current));
   };
@@ -473,7 +491,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       showToast(error instanceof Error ? error.message : "Worldie could not delete the project.");
       return false;
     }
-    setProjects(nextProjects);
+    setProjectsIfChanged(nextProjects);
     const next = nextProjects[0];
     if (!next) {
       await applyActiveProject(null);
