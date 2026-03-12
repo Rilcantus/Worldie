@@ -121,6 +121,13 @@ export function EditorView({
   onContentChange,
   onFolderPathChange,
 }: EditorViewProps) {
+  const areSelectionsEqual = (left: SelectionOffsets | null, right: SelectionOffsets | null) =>
+    left?.start === right?.start && left?.end === right?.end;
+  const arePositionsEqual = (
+    left: { top: number; left: number } | null,
+    right: { top: number; left: number } | null,
+  ) => left?.top === right?.top && left?.left === right?.left;
+
   const editorRef = useRef<HTMLDivElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const slashMenuRef = useRef<HTMLDivElement | null>(null);
@@ -150,9 +157,17 @@ export function EditorView({
   const editorDisplay = useMemo(() => buildEditorDisplayRepresentation(activeEditorText), [activeEditorText]);
 
   const clearSlashSession = (dismissStart: number | null = null) => {
-    setSelectedSlashIndex(0);
-    setSlashMenuPosition(null);
-    setDismissedSlashStart(dismissStart);
+    setSelectedSlashIndex((current) => (current === 0 ? current : 0));
+    setSlashMenuPosition((current) => (current === null ? current : null));
+    setDismissedSlashStart((current) => (current === dismissStart ? current : dismissStart));
+  };
+
+  const updateSelectionSnapshot = (next: SelectionOffsets | null) => {
+    setSelectionSnapshot((current) => (areSelectionsEqual(current, next) ? current : next));
+  };
+
+  const updateSlashMenuPosition = (next: { top: number; left: number } | null) => {
+    setSlashMenuPosition((current) => (arePositionsEqual(current, next) ? current : next));
   };
 
   const focusTitleInput = () => {
@@ -285,7 +300,7 @@ export function EditorView({
       const editor = editorRef.current;
       if (!editor) return;
       const displaySelection = getSelectionOffsets(editor);
-      setSelectionSnapshot(displaySelectionToSource(activeEditorText, displaySelection));
+      updateSelectionSnapshot(displaySelectionToSource(activeEditorText, displaySelection));
     };
 
     document.addEventListener("selectionchange", syncSelection);
@@ -392,12 +407,12 @@ export function EditorView({
 
   useEffect(() => {
     if (!slashCommandMatch) {
-      setSelectedSlashIndex(0);
-      setSlashMenuPosition(null);
-      setDismissedSlashStart(null);
+      setSelectedSlashIndex((current) => (current === 0 ? current : 0));
+      updateSlashMenuPosition(null);
+      setDismissedSlashStart((current) => (current === null ? current : null));
       return;
     }
-    setSelectedSlashIndex(0);
+    setSelectedSlashIndex((current) => (current === 0 ? current : 0));
   }, [slashCommandMatch?.query]);
 
   useEffect(() => {
@@ -410,13 +425,13 @@ export function EditorView({
 
   useLayoutEffect(() => {
     if (!slashCommandMatch || !editorRef.current) {
-      setSlashMenuPosition(null);
+      updateSlashMenuPosition(null);
       return;
     }
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
-      setSlashMenuPosition(null);
+      updateSlashMenuPosition(null);
       return;
     }
 
@@ -459,7 +474,7 @@ export function EditorView({
           : viewportPadding;
     }
 
-    setSlashMenuPosition({
+    updateSlashMenuPosition({
       top: Math.max(viewportPadding, nextTop),
       left: clampedLeft,
     });
@@ -493,7 +508,7 @@ export function EditorView({
     };
     const next = transform(activeEditorText, selection);
     pendingSelectionRef.current = next.selection;
-    setSelectionSnapshot(next.selection);
+    updateSelectionSnapshot(next.selection);
     if (isTypewriterMode) {
       setTypewriterDraft(next.text);
     } else {
@@ -516,7 +531,7 @@ export function EditorView({
     if (!currentDraft) {
       setTypewriterDraft("");
       pendingSelectionRef.current = { start: 0, end: 0 };
-      setSelectionSnapshot({ start: 0, end: 0 });
+      updateSelectionSnapshot({ start: 0, end: 0 });
       editor.innerHTML = "";
       window.requestAnimationFrame(() => {
         editor.focus();
@@ -528,7 +543,7 @@ export function EditorView({
     onContentChange(appendTypewriterCommit(documentContent, currentDraft));
     setTypewriterDraft("");
     pendingSelectionRef.current = { start: 0, end: 0 };
-    setSelectionSnapshot({ start: 0, end: 0 });
+    updateSelectionSnapshot({ start: 0, end: 0 });
     editor.innerHTML = "";
     window.requestAnimationFrame(() => {
       editor.focus();
@@ -598,7 +613,7 @@ export function EditorView({
     if (!editor) return;
     const nextText = serializeEditorDom(editor);
     const displaySelection = getSelectionOffsets(editor);
-    setSelectionSnapshot(displaySelectionToSource(nextText, displaySelection));
+    updateSelectionSnapshot(displaySelectionToSource(nextText, displaySelection));
     if (isTypewriterMode) {
       setTypewriterDraft(nextText);
     } else {
@@ -657,7 +672,7 @@ export function EditorView({
 
     const nextText = serializeEditorDom(editor);
     const nextSelection = displaySelectionToSource(nextText, getSelectionOffsets(editor));
-    setSelectionSnapshot(nextSelection);
+    updateSelectionSnapshot(nextSelection);
     if (isTypewriterMode) {
       setTypewriterDraft(nextText);
     } else {
@@ -1044,7 +1059,7 @@ export function EditorView({
   const syncEditorSelection = () => {
     const editor = editorRef.current;
     if (!editor) return;
-    setSelectionSnapshot(displaySelectionToSource(activeEditorText, getSelectionOffsets(editor)));
+    updateSelectionSnapshot(displaySelectionToSource(activeEditorText, getSelectionOffsets(editor)));
   };
 
   return (
