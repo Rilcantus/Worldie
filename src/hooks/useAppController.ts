@@ -166,6 +166,7 @@ export function useAppController() {
   });
 
   const statusBarModel = useStatusBarModel({
+    hasActiveProject: Boolean(projectWorlds.activeProjectId),
     activeNav: tabs.activeNav,
     projectTitle: projectWorlds.projectTitle,
     activeWorld: projectWorlds.activeWorld,
