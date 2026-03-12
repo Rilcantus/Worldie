@@ -77,7 +77,9 @@ type TimelineEvent = {
   updatedAt?: string;
 };
 
-const isTauri = () => typeof window !== "undefined" && "__TAURI__" in window;
+const isTauri = () =>
+  typeof window !== "undefined" &&
+  ("__TAURI__" in window || "__TAURI_INTERNALS__" in window);
 
 const importTauriCore = () =>
   import(/* @vite-ignore */ "@tauri-apps/api/core");
@@ -131,7 +133,9 @@ export function getProjectPathDisplay(project: Pick<Project, "filepath"> | null 
 }
 
 async function invokeDialogCommand<T>(command: string, args?: Record<string, unknown>) {
-  if (!isTauri()) return null;
+  if (!isTauri()) {
+    throw new ProjectStoreError("Project file dialogs require the desktop app runtime.");
+  }
   const { invoke } = await importTauriCore();
   return (await invoke(command, args)) as T;
 }
