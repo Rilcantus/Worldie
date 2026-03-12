@@ -163,8 +163,10 @@ export function EditorView({
   };
 
   useEffect(() => {
-    if (!availableLorePages.some((page) => page.id === selectedLorePageId)) {
-      setSelectedLorePageId(availableLorePages[0]?.id ?? "");
+    const nextSelectedLorePageId =
+      availableLorePages.find((page) => page.id === selectedLorePageId)?.id ?? availableLorePages[0]?.id ?? "";
+    if (nextSelectedLorePageId !== selectedLorePageId) {
+      setSelectedLorePageId(nextSelectedLorePageId);
     }
   }, [availableLorePages, selectedLorePageId]);
 
@@ -197,14 +199,24 @@ export function EditorView({
   }, [isDocumentMenuOpen]);
 
   useEffect(() => {
-    setTypewriterDraft("");
-    setSelectionSnapshot(null);
-    clearSlashSession();
+    if (typewriterDraft) {
+      setTypewriterDraft("");
+    }
+    if (selectionSnapshot !== null) {
+      setSelectionSnapshot(null);
+    }
+    if (selectedSlashIndex !== 0 || slashMenuPosition !== null || dismissedSlashStart !== null) {
+      clearSlashSession();
+    }
   }, [activeDocumentId]);
 
   useEffect(() => {
-    setSelectionSnapshot(null);
-    clearSlashSession();
+    if (selectionSnapshot !== null) {
+      setSelectionSnapshot(null);
+    }
+    if (selectedSlashIndex !== 0 || slashMenuPosition !== null || dismissedSlashStart !== null) {
+      clearSlashSession();
+    }
   }, [editorMode]);
 
   useEffect(() => {
