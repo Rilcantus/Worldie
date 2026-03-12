@@ -93,6 +93,7 @@ export function useWorldStructures({
     () => new Map(allLorePages.map((page) => [page.id, page])),
     [allLorePages],
   );
+  const firstLorePage = useMemo(() => allLorePages[0] ?? null, [allLorePages]);
   const activeRelationship = useMemo(
     () => (activeRelationshipId ? relationshipsById.get(activeRelationshipId) ?? null : null),
     [activeRelationshipId, relationshipsById],
@@ -223,14 +224,20 @@ export function useWorldStructures({
     notes?: string;
   }) => {
     if (!activeProjectId || !activeWorldId) return null;
-    const getAlternateLorePage = (excludedId: string | undefined) =>
-      allLorePages.find((page) => page.id !== excludedId) ?? null;
+    const getAlternateLorePage = (excludedId: string | undefined) => {
+      for (const page of allLorePages) {
+        if (page.id !== excludedId) {
+          return page;
+        }
+      }
+      return null;
+    };
     const sourcePage =
-      (seed?.sourcePageId ? lorePagesById.get(seed.sourcePageId) ?? null : null) ?? allLorePages[0];
+      (seed?.sourcePageId ? lorePagesById.get(seed.sourcePageId) ?? null : null) ?? firstLorePage;
     const targetPage =
       (seed?.targetPageId ? lorePagesById.get(seed.targetPageId) ?? null : null) ??
       getAlternateLorePage(sourcePage?.id) ??
-      allLorePages[0];
+      firstLorePage;
     const defaultPage = sourcePage;
     const secondPage = targetPage;
     if (!defaultPage || !secondPage) {
