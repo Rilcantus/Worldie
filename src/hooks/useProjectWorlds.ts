@@ -116,14 +116,16 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const hydrateRequestId = useRef(0);
   const currentLoreTypesRef = useRef(initialLoreTypes);
   const [projectActionState, setProjectActionState] = useState<ProjectActionState>(IDLE_PROJECT_ACTION_STATE);
+  const worldsById = useMemo(() => new Map(worlds.map((world) => [world.id, world])), [worlds]);
+  const projectsById = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
 
   const activeWorld = useMemo(
-    () => worlds.find((world) => world.id === activeWorldId) ?? worlds[0],
-    [worlds, activeWorldId],
+    () => (activeWorldId ? worldsById.get(activeWorldId) : undefined) ?? worlds[0],
+    [activeWorldId, worlds, worldsById],
   );
   const activeProject = useMemo(
-    () => projects.find((project) => project.id === activeProjectId) ?? null,
-    [activeProjectId, projects],
+    () => (activeProjectId ? projectsById.get(activeProjectId) : null) ?? null,
+    [activeProjectId, projectsById],
   );
   const recentProjects = useMemo(() => projects.slice(0, 6), [projects]);
   const isProjectActionPending = projectActionState.status !== "idle";
