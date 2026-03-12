@@ -85,9 +85,18 @@ export function usePanelLayout() {
   useEffect(() => {
     const handleResize = () => {
       const bounds = getPanelBounds(getViewportWidth());
-      setSidebarWidth((current) => Math.min(bounds.sidebar.max, Math.max(bounds.sidebar.min, current)));
-      setDocListWidth((current) => Math.min(bounds.doclist.max, Math.max(bounds.doclist.min, current)));
-      setRightPanelWidth((current) => Math.min(bounds.right.max, Math.max(bounds.right.min, current)));
+      setSidebarWidth((current) => {
+        const next = Math.min(bounds.sidebar.max, Math.max(bounds.sidebar.min, current));
+        return next === current ? current : next;
+      });
+      setDocListWidth((current) => {
+        const next = Math.min(bounds.doclist.max, Math.max(bounds.doclist.min, current));
+        return next === current ? current : next;
+      });
+      setRightPanelWidth((current) => {
+        const next = Math.min(bounds.right.max, Math.max(bounds.right.min, current));
+        return next === current ? current : next;
+      });
     };
 
     window.addEventListener("resize", handleResize);

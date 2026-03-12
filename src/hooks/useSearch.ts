@@ -163,12 +163,12 @@ export function useSearch({
 
   useEffect(() => {
     if (enabled) return;
-    setIsQuickOpenOpen(false);
-    setSearchQuery("");
+    setIsQuickOpenOpen((current) => (current ? false : current));
+    setSearchQuery((current) => (current ? "" : current));
   }, [enabled]);
 
   useEffect(() => {
-    setActiveQuickOpenIndex(0);
+    setActiveQuickOpenIndex((current) => (current === 0 ? current : 0));
   }, [searchQuery, isQuickOpenOpen]);
 
   useEffect(() => {
@@ -177,12 +177,12 @@ export function useSearch({
   }, [activeQuickOpenIndex, quickOpenResults]);
 
   const closeQuickOpen = () => {
-    setIsQuickOpenOpen(false);
+    setIsQuickOpenOpen((current) => (current ? false : current));
   };
 
   const openQuickOpen = () => {
     if (!enabled) return;
-    setIsQuickOpenOpen(true);
+    setIsQuickOpenOpen((current) => (current ? current : true));
   };
 
   const selectSearchResult = (result: SearchResult) => {
@@ -193,7 +193,7 @@ export function useSearch({
       const page = allLorePages.find((item) => item.id === result.id);
       if (page) onOpenLore(page);
     }
-    setIsQuickOpenOpen(false);
+    setIsQuickOpenOpen((current) => (current ? false : current));
   };
 
   return {

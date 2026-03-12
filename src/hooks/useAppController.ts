@@ -89,12 +89,12 @@ export function useAppController() {
 
   useEffect(() => {
     if (tabs.activeNav === "editor" || tabs.activeNav === "lore") {
-      panelLayout.setIsDocListCollapsed(false);
+      panelLayout.setIsDocListCollapsed((current) => (current ? false : current));
     }
   }, [panelLayout.setIsDocListCollapsed, tabs.activeNav]);
 
   useEffect(() => {
-    search.setSearchQuery("");
+    search.setSearchQuery((current) => (current ? "" : current));
     search.closeQuickOpen();
   }, [projectWorlds.activeProjectId]);
 

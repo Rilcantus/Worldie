@@ -229,18 +229,18 @@ export function EditorView({
         docListCollapsed: isDocListCollapsed,
         rightPanelCollapsed: isRightPanelCollapsed,
       };
-      setEditorWidth("wide");
+      setEditorWidth((current) => (current === "wide" ? current : "wide"));
       onCollapseSidebar();
       onCollapseDocList();
       onCollapseRightPanel();
-      setIsDetailsOpen(false);
-      setIsPreviewOpen(false);
-      setIsDocumentMenuOpen(false);
+      setIsDetailsOpen((current) => (current ? false : current));
+      setIsPreviewOpen((current) => (current ? false : current));
+      setIsDocumentMenuOpen((current) => (current ? false : current));
     }
 
     if (!isFocusMode && wasFocusMode && focusStateRef.current) {
       const previous = focusStateRef.current;
-      setEditorWidth(previousEditorWidthRef.current);
+      setEditorWidth((current) => (current === previousEditorWidthRef.current ? current : previousEditorWidthRef.current));
       if (!previous.sidebarCollapsed) onExpandSidebar();
       if (!previous.docListCollapsed) onExpandDocList();
       if (!previous.rightPanelCollapsed) onExpandRightPanel();
