@@ -57,6 +57,7 @@ export function useContentManager({
   const loreLoadRequestId = useRef(0);
 
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [documentsLoadedWorldId, setDocumentsLoadedWorldId] = useState<string | null>(null);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentContent, setDocumentContent] = useState("");
@@ -66,6 +67,7 @@ export function useContentManager({
 
   const [lorePages, setLorePages] = useState<LorePage[]>([]);
   const [allLorePages, setAllLorePages] = useState<LorePage[]>([]);
+  const [loreLoadedWorldId, setLoreLoadedWorldId] = useState<string | null>(null);
   const [activeLoreId, setActiveLoreId] = useState<string | null>(null);
   const [loreTitle, setLoreTitle] = useState("");
   const [loreTags, setLoreTags] = useState("");
@@ -199,6 +201,7 @@ export function useContentManager({
     if (!activeProjectId || !activeWorldId) {
       docsLoadRequestId.current += 1;
       setDocuments([]);
+      setDocumentsLoadedWorldId(null);
       setActiveDocumentId(null);
       setDocumentTitle("");
       setDocumentContent("");
@@ -208,6 +211,7 @@ export function useContentManager({
       return;
     }
     setDocuments([]);
+    setDocumentsLoadedWorldId(null);
     setActiveDocumentId(null);
     setDocumentTitle("");
     setDocumentContent("");
@@ -220,6 +224,7 @@ export function useContentManager({
         const docs = await listDocuments(activeProjectId, activeWorldId);
         if (requestId !== docsLoadRequestId.current) return;
         setDocuments(docs);
+        setDocumentsLoadedWorldId(activeWorldId);
         const first = docs[0] ?? null;
         setActiveDocumentId(first?.id ?? null);
         setDocumentTitle(first?.title ?? "");
@@ -234,6 +239,7 @@ export function useContentManager({
       } catch (error) {
         if (requestId !== docsLoadRequestId.current) return;
         setDocuments([]);
+        setDocumentsLoadedWorldId(activeWorldId);
         setActiveDocumentId(null);
         setDocumentTitle("");
         setDocumentContent("");
@@ -289,6 +295,7 @@ export function useContentManager({
       loreLoadRequestId.current += 1;
       setLorePages([]);
       setAllLorePages([]);
+      setLoreLoadedWorldId(null);
       setActiveLoreId(null);
       setLoreTitle("");
       setLoreTags("");
@@ -299,6 +306,7 @@ export function useContentManager({
     }
     setLorePages([]);
     setAllLorePages([]);
+    setLoreLoadedWorldId(null);
     setActiveLoreId(null);
     setLoreTitle("");
     setLoreTags("");
@@ -315,6 +323,7 @@ export function useContentManager({
         const pages = allPages.filter((page) => resolveLoreTypeId(page) === currentTypeId);
         setAllLorePages(allPages);
         setLorePages(pages);
+        setLoreLoadedWorldId(activeWorldId);
         const first = pages[0] ?? null;
         const firstTypeId = first ? resolveLoreTypeId(first) : currentTypeId;
         setActiveLoreId(first?.id ?? null);
@@ -347,6 +356,7 @@ export function useContentManager({
         if (requestId !== loreLoadRequestId.current) return;
         setLorePages([]);
         setAllLorePages([]);
+        setLoreLoadedWorldId(activeWorldId);
         setActiveLoreId(null);
         setLoreTitle("");
         setLoreTags("");
@@ -848,6 +858,7 @@ export function useContentManager({
 
   return {
     documents,
+    documentsLoadedWorldId,
     activeDocument,
     activeDocumentId,
     documentSaveState,
@@ -857,6 +868,7 @@ export function useContentManager({
     documentFolderPath,
     lorePages,
     allLorePages,
+    loreLoadedWorldId,
     activeLore,
     activeLoreId,
     loreSaveState,

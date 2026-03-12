@@ -120,6 +120,8 @@ export function useAppController() {
 
   const workspaceNavigation = useWorkspaceNavigation({
     activeWorldId: projectWorlds.activeWorldId,
+    documentsLoadedWorldId: content.documentsLoadedWorldId,
+    loreLoadedWorldId: content.loreLoadedWorldId,
     activeDocumentId: content.activeDocumentId,
     activeLoreId: content.activeLoreId,
     documents: content.documents,

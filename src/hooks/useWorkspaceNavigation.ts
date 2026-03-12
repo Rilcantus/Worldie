@@ -3,6 +3,8 @@ import type { Document, LorePage } from "../lib/data";
 
 type UseWorkspaceNavigationArgs = {
   activeWorldId: string | null;
+  documentsLoadedWorldId: string | null;
+  loreLoadedWorldId: string | null;
   activeDocumentId: string | null;
   activeLoreId: string | null;
   documents: Document[];
@@ -19,6 +21,8 @@ type UseWorkspaceNavigationArgs = {
 
 export function useWorkspaceNavigation({
   activeWorldId,
+  documentsLoadedWorldId,
+  loreLoadedWorldId,
   activeDocumentId,
   activeLoreId,
   documents,
@@ -44,14 +48,16 @@ export function useWorkspaceNavigation({
 
   useEffect(() => {
     if (pendingOpen.current?.kind !== "editor" || pendingOpen.current.worldId !== activeWorldId) return;
+    if (documentsLoadedWorldId !== activeWorldId) return;
     pendingOpen.current = null;
     if (documents[0]) openDocumentTab(documents[0]);
     else openNewTab();
-  }, [activeWorldId, documents, openDocumentTab, openNewTab]);
+  }, [activeWorldId, documents, documentsLoadedWorldId, openDocumentTab, openNewTab]);
 
   useEffect(() => {
     if (!pendingOpen.current || (pendingOpen.current.kind !== "loreRoot" && pendingOpen.current.kind !== "loreCategory")) return;
     if (pendingOpen.current.worldId !== activeWorldId) return;
+    if (loreLoadedWorldId !== activeWorldId) return;
     const pending = pendingOpen.current;
     pendingOpen.current = null;
     const nextPage =
@@ -62,7 +68,7 @@ export function useWorkspaceNavigation({
           ) ?? null;
     if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
-  }, [activeWorldId, allLorePages, openLoreCreateTab, openLoreTab, resolveLoreTypeId]);
+  }, [activeWorldId, allLorePages, loreLoadedWorldId, openLoreCreateTab, openLoreTab, resolveLoreTypeId]);
 
   const openEditorForWorld = (worldId: string) => {
     if (worldId !== activeWorldId) {
