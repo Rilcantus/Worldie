@@ -72,6 +72,8 @@ export function useSearch({
   const [searchQuery, setSearchQuery] = useState("");
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
   const [activeQuickOpenIndex, setActiveQuickOpenIndex] = useState(0);
+  const documentsById = useMemo(() => new Map(documents.map((item) => [item.id, item])), [documents]);
+  const lorePagesById = useMemo(() => new Map(allLorePages.map((item) => [item.id, item])), [allLorePages]);
 
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -188,15 +190,15 @@ export function useSearch({
   const selectSearchResult = useCallback(
     (result: SearchResult) => {
       if (result.kind === "Document") {
-        const doc = documents.find((item) => item.id === result.id);
+        const doc = documentsById.get(result.id);
         if (doc) onOpenDocument(doc);
       } else {
-        const page = allLorePages.find((item) => item.id === result.id);
+        const page = lorePagesById.get(result.id);
         if (page) onOpenLore(page);
       }
       setIsQuickOpenOpen((current) => (current ? false : current));
     },
-    [allLorePages, documents, onOpenDocument, onOpenLore],
+    [documentsById, lorePagesById, onOpenDocument, onOpenLore],
   );
 
   return useMemo(
