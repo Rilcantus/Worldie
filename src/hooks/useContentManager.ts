@@ -428,10 +428,18 @@ export function useContentManager({
   }, [activeProjectId, activeLoreId, loreFields, lorePageTypeId, loreTags, loreTitle, selectedLorePageTypeName]);
 
   const selectDocument = (doc: Document) => {
+    const nextContent = doc.contentJson ?? "";
+    const nextFolderPath = doc.folderPath ?? "";
+    const changed =
+      activeDocumentId !== doc.id ||
+      documentTitle !== doc.title ||
+      documentContent !== nextContent ||
+      documentFolderPath !== nextFolderPath;
     setActiveDocumentId((current) => (current === doc.id ? current : doc.id));
     setDocumentTitle((current) => (current === doc.title ? current : doc.title));
-    setDocumentContent((current) => (current === (doc.contentJson ?? "") ? current : doc.contentJson ?? ""));
-    setDocumentFolderPath((current) => (current === (doc.folderPath ?? "") ? current : doc.folderPath ?? ""));
+    setDocumentContent((current) => (current === nextContent ? current : nextContent));
+    setDocumentFolderPath((current) => (current === nextFolderPath ? current : nextFolderPath));
+    if (!changed) return;
     markDocumentSaved();
   };
 
@@ -580,12 +588,21 @@ export function useContentManager({
       ...parsedFields,
       loreTypeId,
     });
+    const nextTags = page.tagsJson ?? "";
+    const changed =
+      activeLoreId !== page.id ||
+      loreTitle !== page.title ||
+      loreTags !== nextTags ||
+      loreFields !== normalizedFields ||
+      lorePageTypeId !== loreTypeId ||
+      activeLoreTypeId !== loreTypeId;
     setActiveLoreId((current) => (current === page.id ? current : page.id));
     setLoreTitle((current) => (current === page.title ? current : page.title));
-    setLoreTags((current) => (current === (page.tagsJson ?? "") ? current : page.tagsJson ?? ""));
+    setLoreTags((current) => (current === nextTags ? current : nextTags));
     setLoreFields((current) => (current === normalizedFields ? current : normalizedFields));
     setLorePageTypeId((current) => (current === loreTypeId ? current : loreTypeId));
     setActiveLoreTypeId((current) => (current === loreTypeId ? current : loreTypeId));
+    if (!changed) return;
     markLoreSaved();
   };
 

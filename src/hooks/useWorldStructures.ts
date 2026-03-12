@@ -177,11 +177,19 @@ export function useWorldStructures({
   }, [activeProjectId, activeWorldId]);
 
   const selectRelationship = (relationship: Relationship) => {
+    const nextNotes = relationship.notes ?? "";
+    const changed =
+      activeRelationshipId !== relationship.id ||
+      relationshipSourceId !== relationship.sourcePageId ||
+      relationshipTargetId !== relationship.targetPageId ||
+      relationshipType !== relationship.relationType ||
+      relationshipNotes !== nextNotes;
     setActiveRelationshipId((current) => (current === relationship.id ? current : relationship.id));
     setRelationshipSourceId((current) => (current === relationship.sourcePageId ? current : relationship.sourcePageId));
     setRelationshipTargetId((current) => (current === relationship.targetPageId ? current : relationship.targetPageId));
     setRelationshipType((current) => (current === relationship.relationType ? current : relationship.relationType));
-    setRelationshipNotes((current) => (current === (relationship.notes ?? "") ? current : relationship.notes ?? ""));
+    setRelationshipNotes((current) => (current === nextNotes ? current : nextNotes));
+    if (!changed) return;
     markRelationshipSaved();
   };
 
@@ -304,12 +312,23 @@ export function useWorldStructures({
   };
 
   const selectTimelineEvent = (event: TimelineEvent) => {
+    const nextType = event.eventType ?? "event";
+    const nextLinkedPageId = event.linkedPageId ?? "";
+    const nextDescription = event.description ?? "";
+    const changed =
+      activeTimelineEventId !== event.id ||
+      timelineTitle !== event.title ||
+      timelineDate !== event.eventDate ||
+      timelineType !== nextType ||
+      timelineLinkedPageId !== nextLinkedPageId ||
+      timelineDescription !== nextDescription;
     setActiveTimelineEventId((current) => (current === event.id ? current : event.id));
     setTimelineTitle((current) => (current === event.title ? current : event.title));
     setTimelineDate((current) => (current === event.eventDate ? current : event.eventDate));
-    setTimelineType((current) => (current === (event.eventType ?? "event") ? current : event.eventType ?? "event"));
-    setTimelineLinkedPageId((current) => (current === (event.linkedPageId ?? "") ? current : event.linkedPageId ?? ""));
-    setTimelineDescription((current) => (current === (event.description ?? "") ? current : event.description ?? ""));
+    setTimelineType((current) => (current === nextType ? current : nextType));
+    setTimelineLinkedPageId((current) => (current === nextLinkedPageId ? current : nextLinkedPageId));
+    setTimelineDescription((current) => (current === nextDescription ? current : nextDescription));
+    if (!changed) return;
     markTimelineSaved();
   };
 
