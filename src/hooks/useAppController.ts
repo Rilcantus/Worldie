@@ -74,6 +74,7 @@ export function useAppController() {
   }, [feedback.showToast]);
 
   useEffect(() => {
+    if (loreTypes.loreTypes.length === 0) return;
     projectWorlds.syncLoreTypes(loreTypes.loreTypes);
   }, [loreTypes.loreTypes, projectWorlds.syncLoreTypes]);
 
