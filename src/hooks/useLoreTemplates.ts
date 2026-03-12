@@ -8,9 +8,26 @@ import { getDefaultLoreTypeId, type LoreType } from "../lib/loreTypes";
 
 export function useLoreTemplates(activeProjectId: string | null, loreTypes: LoreType[]) {
   const [templates, setTemplates] = useState<LoreTemplate[]>([]);
+  const templatesById = useMemo(
+    () => new Map(templates.map((template) => [template.id, template])),
+    [templates],
+  );
+  const templatesByLoreTypeId = useMemo(() => {
+    const grouped = new Map<string, LoreTemplate[]>();
+    for (const template of templates) {
+      const current = grouped.get(template.loreTypeId);
+      if (current) {
+        current.push(template);
+      } else {
+        grouped.set(template.loreTypeId, [template]);
+      }
+    }
+    return grouped;
+  }, [templates]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const loadRequestId = useRef(0);
+  const defaultLoreTypeId = useMemo(() => getDefaultLoreTypeId(loreTypes) ?? "", [loreTypes]);
 
   useEffect(() => {
     if (!activeProjectId || loreTypes.length === 0) {
@@ -40,19 +57,19 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
   }, [activeProjectId, hasLoaded, templates]);
 
   useEffect(() => {
-    if (selectedTemplateId && templates.some((template) => template.id === selectedTemplateId)) {
+    if (selectedTemplateId && templatesById.has(selectedTemplateId)) {
       return;
     }
     const nextSelectedTemplateId = templates[0]?.id ?? null;
     setSelectedTemplateId((current) => (current === nextSelectedTemplateId ? current : nextSelectedTemplateId));
-  }, [selectedTemplateId, templates]);
+  }, [selectedTemplateId, templates, templatesById]);
 
   const selectedTemplate = useMemo(
-    () => templates.find((template) => template.id === selectedTemplateId) ?? null,
-    [selectedTemplateId, templates],
+    () => (selectedTemplateId ? templatesById.get(selectedTemplateId) ?? null : null),
+    [selectedTemplateId, templatesById],
   );
 
-  const createTemplate = useCallback((loreTypeId = getDefaultLoreTypeId(loreTypes) ?? "") => {
+  const createTemplate = useCallback((loreTypeId = defaultLoreTypeId) => {
     if (!loreTypeId) return null;
     const nextTemplate: LoreTemplate = {
       id: crypto.randomUUID(),
@@ -63,7 +80,7 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
     setTemplates((prev) => [nextTemplate, ...prev]);
     setSelectedTemplateId(nextTemplate.id);
     return nextTemplate;
-  }, [loreTypes]);
+  }, [defaultLoreTypeId]);
 
   const updateTemplate = useCallback((templateId: string, updates: Partial<Omit<LoreTemplate, "id">>) => {
     setTemplates((prev) =>
@@ -147,8 +164,8 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
   }, []);
 
   const templatesForLoreType = useCallback(
-    (loreTypeId: string) => templates.filter((template) => template.loreTypeId === loreTypeId),
-    [templates],
+    (loreTypeId: string) => templatesByLoreTypeId.get(loreTypeId) ?? [],
+    [templatesByLoreTypeId],
   );
 
   const reassignLoreTypeInTemplates = useCallback((fromLoreTypeId: string, toLoreTypeId: string) => {

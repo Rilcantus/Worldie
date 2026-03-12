@@ -10,6 +10,10 @@ import {
 export function useLoreTypes(activeProjectId: string | null) {
   const [loreTypes, setLoreTypes] = useState<LoreType[]>([]);
   const sortedLoreTypes = useMemo(() => sortLoreTypes(loreTypes), [loreTypes]);
+  const loreTypesById = useMemo(
+    () => new Map(sortedLoreTypes.map((loreType) => [loreType.id, loreType])),
+    [sortedLoreTypes],
+  );
   const [selectedLoreTypeId, setSelectedLoreTypeId] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const loadRequestId = useRef(0);
@@ -42,14 +46,14 @@ export function useLoreTypes(activeProjectId: string | null) {
   }, [activeProjectId, hasLoaded, loreTypes]);
 
   useEffect(() => {
-    if (selectedLoreTypeId && sortedLoreTypes.some((type) => type.id === selectedLoreTypeId)) return;
+    if (selectedLoreTypeId && loreTypesById.has(selectedLoreTypeId)) return;
     const nextSelectedLoreTypeId = getDefaultLoreTypeId(sortedLoreTypes);
     setSelectedLoreTypeId((current) => (current === nextSelectedLoreTypeId ? current : nextSelectedLoreTypeId));
-  }, [selectedLoreTypeId, sortedLoreTypes]);
+  }, [selectedLoreTypeId, sortedLoreTypes, loreTypesById]);
 
   const selectedLoreType = useMemo(
-    () => sortedLoreTypes.find((type) => type.id === selectedLoreTypeId) ?? null,
-    [selectedLoreTypeId, sortedLoreTypes],
+    () => (selectedLoreTypeId ? loreTypesById.get(selectedLoreTypeId) ?? null : null),
+    [selectedLoreTypeId, loreTypesById],
   );
 
   const createLoreType = useCallback(() => {
