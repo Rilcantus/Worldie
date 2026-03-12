@@ -51,6 +51,7 @@ export function useTabs({
   const [tabsProjectId, setTabsProjectId] = useState<string | null>(null);
   const pendingTabOpenId = useRef<string | null>(null);
   const pendingWorldScopedTabId = useRef<string | null>(null);
+  const tabsById = useMemo(() => new Map(tabs.map((item) => [item.id, item])), [tabs]);
   const documentsById = useMemo(() => new Map(documents.map((item) => [item.id, item])), [documents]);
   const lorePagesById = useMemo(() => new Map(allLorePages.map((item) => [item.id, item])), [allLorePages]);
 
@@ -121,7 +122,7 @@ export function useTabs({
   useEffect(() => {
     const pendingId = pendingTabOpenId.current;
     if (!pendingId) return;
-    const tab = tabs.find((item) => item.id === pendingId);
+    const tab = tabsById.get(pendingId);
     if (!tab) {
       pendingTabOpenId.current = null;
       return;
@@ -141,12 +142,12 @@ export function useTabs({
       return;
     }
     pendingTabOpenId.current = null;
-  }, [activeWorldId, documentsById, lorePagesById, onSelectDocument, onSelectLorePage, resolveLoreTypeId, tabs]);
+  }, [activeWorldId, documentsById, lorePagesById, onSelectDocument, onSelectLorePage, resolveLoreTypeId, tabsById]);
 
   useEffect(() => {
     const pendingId = pendingWorldScopedTabId.current;
     if (!pendingId) return;
-    const tab = tabs.find((item) => item.id === pendingId);
+    const tab = tabsById.get(pendingId);
     if (!tab) {
       pendingWorldScopedTabId.current = null;
       return;
@@ -154,7 +155,7 @@ export function useTabs({
     if ((tab.kind === "rels" || tab.kind === "timeline") && tab.worldId === activeWorldId) {
       pendingWorldScopedTabId.current = null;
     }
-  }, [activeWorldId, tabs]);
+  }, [activeWorldId, tabsById]);
 
   useEffect(() => {
     if (!activeDocumentId) return;
@@ -205,7 +206,7 @@ export function useTabs({
     });
   }, [activeTabId, activeWorldId]);
 
-  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0] ?? null;
+  const activeTab = tabsById.get(activeTabId) ?? tabs[0] ?? null;
   const activeNav: TabKind = activeTab?.kind ?? "new";
 
   useEffect(() => {
