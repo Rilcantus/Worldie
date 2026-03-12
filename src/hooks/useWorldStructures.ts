@@ -120,6 +120,23 @@ export function useWorldStructures({
       setTimelineLastSavedAt(null);
       return;
     }
+    setRelationships([]);
+    setActiveRelationshipId(null);
+    setRelationshipSourceId("");
+    setRelationshipTargetId("");
+    setRelationshipType("ally");
+    setRelationshipNotes("");
+    setRelationshipSaveState("idle");
+    setRelationshipLastSavedAt(null);
+    setTimelineEvents([]);
+    setActiveTimelineEventId(null);
+    setTimelineTitle("");
+    setTimelineDate("");
+    setTimelineType("event");
+    setTimelineLinkedPageId("");
+    setTimelineDescription("");
+    setTimelineSaveState("idle");
+    setTimelineLastSavedAt(null);
     const requestId = ++loadRequestId.current;
 
     const loadRelationships = async () => {

@@ -207,6 +207,13 @@ export function useContentManager({
       setDocumentLastSavedAt(null);
       return;
     }
+    setDocuments([]);
+    setActiveDocumentId(null);
+    setDocumentTitle("");
+    setDocumentContent("");
+    setDocumentFolderPath("");
+    setDocumentSaveState("idle");
+    setDocumentLastSavedAt(null);
     const loadDocs = async () => {
       const requestId = ++docsLoadRequestId.current;
       try {
@@ -290,6 +297,15 @@ export function useContentManager({
       setLoreLastSavedAt(null);
       return;
     }
+    setLorePages([]);
+    setAllLorePages([]);
+    setActiveLoreId(null);
+    setLoreTitle("");
+    setLoreTags("");
+    setLoreFields("");
+    setLorePageTypeId(activeLoreTypeId ?? defaultLoreTypeId);
+    setLoreSaveState("idle");
+    setLoreLastSavedAt(null);
     const loadLore = async () => {
       const requestId = ++loreLoadRequestId.current;
       try {
