@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Document, LorePage } from "../lib/data";
 
 export type SearchResult = {
@@ -176,36 +176,51 @@ export function useSearch({
     setActiveQuickOpenIndex(0);
   }, [activeQuickOpenIndex, quickOpenResults]);
 
-  const closeQuickOpen = () => {
+  const closeQuickOpen = useCallback(() => {
     setIsQuickOpenOpen((current) => (current ? false : current));
-  };
+  }, []);
 
-  const openQuickOpen = () => {
+  const openQuickOpen = useCallback(() => {
     if (!enabled) return;
     setIsQuickOpenOpen((current) => (current ? current : true));
-  };
+  }, [enabled]);
 
-  const selectSearchResult = (result: SearchResult) => {
-    if (result.kind === "Document") {
-      const doc = documents.find((item) => item.id === result.id);
-      if (doc) onOpenDocument(doc);
-    } else {
-      const page = allLorePages.find((item) => item.id === result.id);
-      if (page) onOpenLore(page);
-    }
-    setIsQuickOpenOpen((current) => (current ? false : current));
-  };
+  const selectSearchResult = useCallback(
+    (result: SearchResult) => {
+      if (result.kind === "Document") {
+        const doc = documents.find((item) => item.id === result.id);
+        if (doc) onOpenDocument(doc);
+      } else {
+        const page = allLorePages.find((item) => item.id === result.id);
+        if (page) onOpenLore(page);
+      }
+      setIsQuickOpenOpen((current) => (current ? false : current));
+    },
+    [allLorePages, documents, onOpenDocument, onOpenLore],
+  );
 
-  return {
-    searchQuery,
-    setSearchQuery,
-    searchResults,
-    quickOpenResults,
-    isQuickOpenOpen,
-    activeQuickOpenIndex,
-    setActiveQuickOpenIndex,
-    openQuickOpen,
-    closeQuickOpen,
-    selectSearchResult,
-  };
+  return useMemo(
+    () => ({
+      searchQuery,
+      setSearchQuery,
+      searchResults,
+      quickOpenResults,
+      isQuickOpenOpen,
+      activeQuickOpenIndex,
+      setActiveQuickOpenIndex,
+      openQuickOpen,
+      closeQuickOpen,
+      selectSearchResult,
+    }),
+    [
+      searchQuery,
+      searchResults,
+      quickOpenResults,
+      isQuickOpenOpen,
+      activeQuickOpenIndex,
+      openQuickOpen,
+      closeQuickOpen,
+      selectSearchResult,
+    ],
+  );
 }
