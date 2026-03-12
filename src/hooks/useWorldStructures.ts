@@ -81,13 +81,21 @@ export function useWorldStructures({
     setTimelineSaveState("saved");
     setTimelineLastSavedAt(Date.now());
   }, []);
+  const relationshipsById = useMemo(
+    () => new Map(relationships.map((item) => [item.id, item])),
+    [relationships],
+  );
+  const timelineEventsById = useMemo(
+    () => new Map(timelineEvents.map((item) => [item.id, item])),
+    [timelineEvents],
+  );
   const activeRelationship = useMemo(
-    () => relationships.find((item) => item.id === activeRelationshipId) ?? null,
-    [activeRelationshipId, relationships],
+    () => (activeRelationshipId ? relationshipsById.get(activeRelationshipId) ?? null : null),
+    [activeRelationshipId, relationshipsById],
   );
   const activeTimelineEvent = useMemo(
-    () => timelineEvents.find((item) => item.id === activeTimelineEventId) ?? null,
-    [activeTimelineEventId, timelineEvents],
+    () => (activeTimelineEventId ? timelineEventsById.get(activeTimelineEventId) ?? null : null),
+    [activeTimelineEventId, timelineEventsById],
   );
   const hasUnsavedRelationshipChanges = useMemo(() => {
     if (!activeRelationship) return false;
