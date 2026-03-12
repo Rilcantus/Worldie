@@ -225,7 +225,7 @@ export function useContentManager({
     const renamedPages = allLorePages
       .map((page) => {
         const loreTypeId = resolveLoreTypeId(page);
-        const loreType = orderedLoreTypes.find((type) => type.id === loreTypeId);
+        const loreType = loreTypeId ? loreTypesById.get(loreTypeId) ?? null : null;
         if (!loreType || page.type === loreType.name) return null;
         return {
           ...page,
@@ -259,7 +259,7 @@ export function useContentManager({
     ).catch((error) => {
       showToast(error instanceof Error ? error.message : "Worldie could not sync renamed lore type labels.");
     });
-  }, [activeLoreId, activeProjectId, allLorePages, orderedLoreTypes]);
+  }, [activeLoreId, activeProjectId, allLorePages, loreTypesById, resolveLoreTypeId, showToast]);
 
   useEffect(() => {
     if (!activeProjectId || !activeWorldId) {

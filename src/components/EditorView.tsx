@@ -156,10 +156,14 @@ export const EditorView = memo(function EditorView({
   const isTypewriterMode = editorMode === "typewriter";
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
   const editorDisplay = useMemo(() => buildEditorDisplayRepresentation(activeEditorText), [activeEditorText]);
+  const availableLorePagesById = useMemo(
+    () => new Map(availableLorePages.map((page) => [page.id, page])),
+    [availableLorePages],
+  );
   const firstAvailableLorePage = useMemo(() => availableLorePages[0] ?? null, [availableLorePages]);
   const selectedLorePage = useMemo(
-    () => availableLorePages.find((page) => page.id === selectedLorePageId) ?? firstAvailableLorePage,
-    [availableLorePages, firstAvailableLorePage, selectedLorePageId],
+    () => (selectedLorePageId ? availableLorePagesById.get(selectedLorePageId) ?? firstAvailableLorePage : firstAvailableLorePage),
+    [availableLorePagesById, firstAvailableLorePage, selectedLorePageId],
   );
 
   const clearSlashSession = (dismissStart: number | null = null) => {
