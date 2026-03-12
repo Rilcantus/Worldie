@@ -29,24 +29,27 @@ export default function App() {
   } = useAppController();
 
   const loreItemsInUse = useMemo(
-    () =>
-      Object.fromEntries(
-        loreTypes.loreTypes.map((type) => [
-          type.id,
-          content.allLorePages.filter((page) => content.resolveLoreTypeId(page) === type.id).length,
-        ]),
-      ),
+    () => {
+      const counts = Object.fromEntries(loreTypes.loreTypes.map((type) => [type.id, 0]));
+      for (const page of content.allLorePages) {
+        const loreTypeId = content.resolveLoreTypeId(page);
+        if (!loreTypeId || !(loreTypeId in counts)) continue;
+        counts[loreTypeId] += 1;
+      }
+      return counts;
+    },
     [content.allLorePages, content.resolveLoreTypeId, loreTypes.loreTypes],
   );
 
   const templatesInUse = useMemo(
-    () =>
-      Object.fromEntries(
-        loreTypes.loreTypes.map((type) => [
-          type.id,
-          loreTemplates.templates.filter((template) => template.loreTypeId === type.id).length,
-        ]),
-      ),
+    () => {
+      const counts = Object.fromEntries(loreTypes.loreTypes.map((type) => [type.id, 0]));
+      for (const template of loreTemplates.templates) {
+        if (!(template.loreTypeId in counts)) continue;
+        counts[template.loreTypeId] += 1;
+      }
+      return counts;
+    },
     [loreTemplates.templates, loreTypes.loreTypes],
   );
 
