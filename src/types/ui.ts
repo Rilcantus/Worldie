@@ -29,4 +29,5 @@ export type TabItem = {
   label: string;
   icon: string;
   refId?: string | null;
+  worldId?: string | null;
 };

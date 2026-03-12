@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Document, LorePage } from "../lib/data";
 import { loadProjectTabs, saveProjectTabs } from "../lib/uiStore";
 import type { TabItem, TabKind } from "../types/ui";
 
 type UseTabsArgs = {
   activeProjectId: string | null;
+  activeWorldId: string | null;
   documents: Document[];
   allLorePages: LorePage[];
   activeDocumentId: string | null;
@@ -12,6 +13,7 @@ type UseTabsArgs = {
   activeLoreId: string | null;
   activeLoreTitle: string;
   resolveLoreTypeId: (page: LorePage) => string | null;
+  setActiveWorldId: (worldId: string) => void;
   onSelectDocument: (doc: Document) => void;
   onSelectLorePage: (page: LorePage, loreTypeId: string | null) => void;
 };
@@ -20,6 +22,7 @@ const WORKBENCH_TAB: TabItem = { id: "workbench", kind: "workbench", label: "Wor
 
 export function useTabs({
   activeProjectId,
+  activeWorldId,
   documents,
   allLorePages,
   activeDocumentId,
@@ -27,11 +30,13 @@ export function useTabs({
   activeLoreId,
   activeLoreTitle,
   resolveLoreTypeId,
+  setActiveWorldId,
   onSelectDocument,
   onSelectLorePage,
 }: UseTabsArgs) {
   const [tabs, setTabs] = useState<TabItem[]>([WORKBENCH_TAB]);
   const [activeTabId, setActiveTabId] = useState("workbench");
+  const pendingTabOpenId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!activeProjectId) {
@@ -59,6 +64,31 @@ export function useTabs({
       setActiveTabId(tabs[0]?.id ?? "workbench");
     }
   }, [tabs, activeTabId]);
+
+  useEffect(() => {
+    const pendingId = pendingTabOpenId.current;
+    if (!pendingId) return;
+    const tab = tabs.find((item) => item.id === pendingId);
+    if (!tab) {
+      pendingTabOpenId.current = null;
+      return;
+    }
+    if (tab.kind === "editor" && tab.refId) {
+      const doc = documents.find((item) => item.id === tab.refId);
+      if (!doc) return;
+      pendingTabOpenId.current = null;
+      onSelectDocument(doc);
+      return;
+    }
+    if (tab.kind === "lore" && tab.refId) {
+      const page = allLorePages.find((item) => item.id === tab.refId);
+      if (!page) return;
+      pendingTabOpenId.current = null;
+      onSelectLorePage(page, resolveLoreTypeId(page));
+      return;
+    }
+    pendingTabOpenId.current = null;
+  }, [activeWorldId, allLorePages, documents, onSelectDocument, onSelectLorePage, resolveLoreTypeId, tabs]);
 
   useEffect(() => {
     if (!activeDocumentId) return;
@@ -120,21 +150,45 @@ export function useTabs({
 
   const openDocumentTab = (doc: Document) => {
     onSelectDocument(doc);
-    openTab({ id: `doc:${doc.id}`, kind: "editor", label: doc.title || "Untitled Document", icon: "D", refId: doc.id });
+    openTab({
+      id: `doc:${doc.id}`,
+      kind: "editor",
+      label: doc.title || "Untitled Document",
+      icon: "D",
+      refId: doc.id,
+      worldId: doc.worldId,
+    });
   };
 
   const openLoreTab = (page: LorePage) => {
     onSelectLorePage(page, resolveLoreTypeId(page));
-    openTab({ id: `lore:${page.id}`, kind: "lore", label: page.title || "Untitled Lore", icon: "L", refId: page.id });
+    openTab({
+      id: `lore:${page.id}`,
+      kind: "lore",
+      label: page.title || "Untitled Lore",
+      icon: "L",
+      refId: page.id,
+      worldId: page.worldId,
+    });
   };
 
   const handleTabSelect = (tab: TabItem) => {
     setActiveTabId(tab.id);
     if (tab.kind === "editor" && tab.refId) {
+      if (tab.worldId && tab.worldId !== activeWorldId) {
+        pendingTabOpenId.current = tab.id;
+        setActiveWorldId(tab.worldId);
+        return;
+      }
       const doc = documents.find((item) => item.id === tab.refId);
       if (doc) onSelectDocument(doc);
     }
     if (tab.kind === "lore" && tab.refId) {
+      if (tab.worldId && tab.worldId !== activeWorldId) {
+        pendingTabOpenId.current = tab.id;
+        setActiveWorldId(tab.worldId);
+        return;
+      }
       const page = allLorePages.find((item) => item.id === tab.refId);
       if (page) onSelectLorePage(page, resolveLoreTypeId(page));
     }

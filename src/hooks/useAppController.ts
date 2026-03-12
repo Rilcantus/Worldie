@@ -47,6 +47,7 @@ export function useAppController() {
 
   const tabs = useTabs({
     activeProjectId: projectWorlds.activeProjectId,
+    activeWorldId: projectWorlds.activeWorldId,
     documents: content.documents,
     allLorePages: content.allLorePages,
     activeDocumentId: content.activeDocumentId,
@@ -54,6 +55,7 @@ export function useAppController() {
     activeLoreId: content.activeLoreId,
     activeLoreTitle: content.loreTitle || content.activeLore?.title || "",
     resolveLoreTypeId: content.resolveLoreTypeId,
+    setActiveWorldId: projectWorlds.setActiveWorldId,
     onSelectDocument: content.selectDocument,
     onSelectLorePage: (page, loreTypeId) => {
       content.setActiveLoreTypeId(loreTypeId);
