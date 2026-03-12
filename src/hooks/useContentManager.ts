@@ -77,6 +77,34 @@ export function useContentManager({
   const [loreSaveState, setLoreSaveState] = useState<SaveState>("idle");
   const [loreLastSavedAt, setLoreLastSavedAt] = useState<number | null>(null);
 
+  const resetDocumentState = (loadedWorldId: string | null, saveState: SaveState = "idle") => {
+    setDocuments((current) => (current.length === 0 ? current : []));
+    setDocumentsLoadedWorldId((current) => (current === loadedWorldId ? current : loadedWorldId));
+    setActiveDocumentId((current) => (current === null ? current : null));
+    setDocumentTitle((current) => (current === "" ? current : ""));
+    setDocumentContent((current) => (current === "" ? current : ""));
+    setDocumentFolderPath((current) => (current === "" ? current : ""));
+    setDocumentSaveState((current) => (current === saveState ? current : saveState));
+    setDocumentLastSavedAt((current) => (current === null ? current : null));
+  };
+
+  const resetLoreState = (
+    loadedWorldId: string | null,
+    nextLorePageTypeId: string | null,
+    saveState: SaveState = "idle",
+  ) => {
+    setLorePages((current) => (current.length === 0 ? current : []));
+    setAllLorePages((current) => (current.length === 0 ? current : []));
+    setLoreLoadedWorldId((current) => (current === loadedWorldId ? current : loadedWorldId));
+    setActiveLoreId((current) => (current === null ? current : null));
+    setLoreTitle((current) => (current === "" ? current : ""));
+    setLoreTags((current) => (current === "" ? current : ""));
+    setLoreFields((current) => (current === "" ? current : ""));
+    setLorePageTypeId((current) => (current === nextLorePageTypeId ? current : nextLorePageTypeId));
+    setLoreSaveState((current) => (current === saveState ? current : saveState));
+    setLoreLastSavedAt((current) => (current === null ? current : null));
+  };
+
   const markDocumentSaved = () => {
     setDocumentSaveState("saved");
     setDocumentLastSavedAt(Date.now());
@@ -200,24 +228,10 @@ export function useContentManager({
   useEffect(() => {
     if (!activeProjectId || !activeWorldId) {
       docsLoadRequestId.current += 1;
-      setDocuments([]);
-      setDocumentsLoadedWorldId(null);
-      setActiveDocumentId(null);
-      setDocumentTitle("");
-      setDocumentContent("");
-      setDocumentFolderPath("");
-      setDocumentSaveState("idle");
-      setDocumentLastSavedAt(null);
+      resetDocumentState(null, "idle");
       return;
     }
-    setDocuments([]);
-    setDocumentsLoadedWorldId(null);
-    setActiveDocumentId(null);
-    setDocumentTitle("");
-    setDocumentContent("");
-    setDocumentFolderPath("");
-    setDocumentSaveState("idle");
-    setDocumentLastSavedAt(null);
+    resetDocumentState(null, "idle");
     const loadDocs = async () => {
       const requestId = ++docsLoadRequestId.current;
       try {
@@ -238,14 +252,7 @@ export function useContentManager({
         );
       } catch (error) {
         if (requestId !== docsLoadRequestId.current) return;
-        setDocuments([]);
-        setDocumentsLoadedWorldId(activeWorldId);
-        setActiveDocumentId(null);
-        setDocumentTitle("");
-        setDocumentContent("");
-        setDocumentFolderPath("");
-        setDocumentSaveState("error");
-        setDocumentLastSavedAt(null);
+        resetDocumentState(activeWorldId, "error");
         setWorlds((prev) =>
           prev.map((world) =>
             world.id === activeWorldId ? { ...world, editorCount: 0 } : world,
@@ -293,27 +300,10 @@ export function useContentManager({
   useEffect(() => {
     if (!activeProjectId || !activeWorldId || !defaultLoreTypeId) {
       loreLoadRequestId.current += 1;
-      setLorePages([]);
-      setAllLorePages([]);
-      setLoreLoadedWorldId(null);
-      setActiveLoreId(null);
-      setLoreTitle("");
-      setLoreTags("");
-      setLoreFields("");
-      setLoreSaveState("idle");
-      setLoreLastSavedAt(null);
+      resetLoreState(null, lorePageTypeId, "idle");
       return;
     }
-    setLorePages([]);
-    setAllLorePages([]);
-    setLoreLoadedWorldId(null);
-    setActiveLoreId(null);
-    setLoreTitle("");
-    setLoreTags("");
-    setLoreFields("");
-    setLorePageTypeId(activeLoreTypeId ?? defaultLoreTypeId);
-    setLoreSaveState("idle");
-    setLoreLastSavedAt(null);
+    resetLoreState(null, activeLoreTypeId ?? defaultLoreTypeId, "idle");
     const loadLore = async () => {
       const requestId = ++loreLoadRequestId.current;
       try {
@@ -354,16 +344,7 @@ export function useContentManager({
         );
       } catch (error) {
         if (requestId !== loreLoadRequestId.current) return;
-        setLorePages([]);
-        setAllLorePages([]);
-        setLoreLoadedWorldId(activeWorldId);
-        setActiveLoreId(null);
-        setLoreTitle("");
-        setLoreTags("");
-        setLoreFields("");
-        setLorePageTypeId(activeLoreTypeId ?? defaultLoreTypeId);
-        setLoreSaveState("error");
-        setLoreLastSavedAt(null);
+        resetLoreState(activeWorldId, activeLoreTypeId ?? defaultLoreTypeId, "error");
         setWorlds((prev) =>
           prev.map((world) =>
             world.id === activeWorldId
