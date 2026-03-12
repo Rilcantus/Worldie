@@ -44,6 +44,8 @@
   --toolbar-padding-x: 10px;
   --tab-bar-height: 36px;
   --status-bar-height: 24px;
+  --editor-rail-top: 108px;
+  --editor-rail-top-focus: 72px;
 }
 
 html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-base); }
@@ -725,7 +727,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 .editor-collapsed-rail {
   position: absolute;
-  top: 126px;
+  top: var(--editor-rail-top);
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -733,7 +735,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   min-width: 0;
 }
 .editor-pane-focus .editor-collapsed-rail {
-  top: 84px;
+  top: var(--editor-rail-top-focus);
 }
 .editor-collapsed-rail-left {
   left: 0;
@@ -1407,6 +1409,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
     --toolbar-gap: 6px;
     --toolbar-padding-y: 6px;
     --toolbar-padding-x: 8px;
+    --editor-rail-top: 96px;
+    --editor-rail-top-focus: 66px;
   }
 
   .editor-workspace-frame-left-rail {
@@ -1415,14 +1419,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 
   .editor-workspace-frame-right-rail {
     padding-right: 76px;
-  }
-
-  .editor-collapsed-rail {
-    top: 112px;
-  }
-
-  .editor-pane-focus .editor-collapsed-rail {
-    top: 76px;
   }
 
   .tb-select {
