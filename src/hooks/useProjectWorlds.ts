@@ -84,6 +84,9 @@ const areWorldsEqual = (left: WorldUI[], right: WorldUI[]) =>
     );
   });
 
+const getProjectByFilepath = (projects: Project[], filepath: string) =>
+  projects.find((project) => project.filepath === filepath) ?? projects[0];
+
 type UseProjectWorldsArgs = {
   confirmAction: (message: string) => Promise<boolean>;
   showToast: (message: string) => void;
@@ -247,8 +250,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setWorlds((prev) => {
       let changed = false;
       const next = prev.map((world) => {
+        const existingCategoriesById = new Map(world.loreCategories.map((item) => [item.id, item]));
         const nextLoreCategories = buildLoreCategories(loreTypes).map((category) => {
-          const existing = world.loreCategories.find((item) => item.id === category.id);
+          const existing = existingCategoriesById.get(category.id);
           return existing ? { ...category, count: existing.count } : category;
         });
 
@@ -337,10 +341,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const project =
-        nextProjects
-          .filter((item): item is Project & { filepath: string } => Boolean(item.filepath))
-          .find((item) => item.filepath === filepath) ?? nextProjects[0];
+      const project = getProjectByFilepath(nextProjects, filepath);
       if (!project) return false;
       try {
         await applyActiveProject(project);
@@ -386,10 +387,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const project =
-        nextProjects
-          .filter((item): item is Project & { filepath: string } => Boolean(item.filepath))
-          .find((item) => item.filepath === filepath) ?? nextProjects[0];
+      const project = getProjectByFilepath(nextProjects, filepath);
       if (!project) return false;
       try {
         await applyActiveProject(project);
@@ -429,10 +427,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const reopened =
-        nextProjects
-          .filter((item): item is Project & { filepath: string } => Boolean(item.filepath))
-          .find((item) => item.filepath === project.filepath) ?? nextProjects[0];
+      const reopened = getProjectByFilepath(nextProjects, project.filepath);
       if (!reopened) return false;
       try {
         await applyActiveProject(reopened);
@@ -458,10 +453,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const savedProject =
-        nextProjects
-          .filter((item): item is Project & { filepath: string } => Boolean(item.filepath))
-          .find((item) => item.filepath === filepath) ?? nextProjects[0];
+      const savedProject = getProjectByFilepath(nextProjects, filepath);
       if (!savedProject) return false;
       try {
         await applyActiveProject(savedProject);
