@@ -48,6 +48,7 @@ export function useAppController() {
   const tabs = useTabs({
     activeProjectId: projectWorlds.activeProjectId,
     activeWorldId: projectWorlds.activeWorldId,
+    worldIds: projectWorlds.worlds.map((world) => world.id),
     documents: content.documents,
     allLorePages: content.allLorePages,
     activeDocumentId: content.activeDocumentId,

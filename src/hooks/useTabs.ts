@@ -6,6 +6,7 @@ import type { TabItem, TabKind } from "../types/ui";
 type UseTabsArgs = {
   activeProjectId: string | null;
   activeWorldId: string | null;
+  worldIds: string[];
   documents: Document[];
   allLorePages: LorePage[];
   activeDocumentId: string | null;
@@ -23,6 +24,7 @@ const WORKBENCH_TAB: TabItem = { id: "workbench", kind: "workbench", label: "Wor
 export function useTabs({
   activeProjectId,
   activeWorldId,
+  worldIds,
   documents,
   allLorePages,
   activeDocumentId,
@@ -64,6 +66,17 @@ export function useTabs({
       setActiveTabId(tabs[0]?.id ?? "workbench");
     }
   }, [tabs, activeTabId]);
+
+  useEffect(() => {
+    if (!activeProjectId || worldIds.length === 0) return;
+    setTabs((prev) => {
+      const next = prev.filter((tab) => !tab.worldId || worldIds.includes(tab.worldId));
+      if (!next.some((tab) => tab.id === activeTabId)) {
+        pendingTabOpenId.current = null;
+      }
+      return next.length > 0 ? next : [WORKBENCH_TAB];
+    });
+  }, [activeProjectId, activeTabId, worldIds]);
 
   useEffect(() => {
     const pendingId = pendingTabOpenId.current;
