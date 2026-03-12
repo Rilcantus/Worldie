@@ -2642,3 +2642,243 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 1200px) {
+  .sidebar:not(.collapsed) {
+    width: min(220px, 26vw) !important;
+  }
+
+  .doc-list:not(.collapsed) {
+    width: min(220px, 28vw) !important;
+    min-width: min(200px, 28vw) !important;
+  }
+
+  .right-panel:not(.collapsed) {
+    width: min(220px, 26vw) !important;
+  }
+
+  .editor-pane {
+    padding: 18px 18px 34px;
+  }
+
+  .project-card,
+  .project-menu,
+  .start-screen-card,
+  .lore-panel,
+  .workbench-card,
+  .workbench-panel,
+  .launcher-card {
+    border-radius: 14px;
+  }
+
+  .start-screen-card {
+    width: min(760px, 100%);
+  }
+
+  .start-copy {
+    font-size: 16px;
+    max-width: 48ch;
+  }
+
+  .timeline-track-item {
+    grid-template-columns: minmax(72px, 104px) minmax(0, 1fr) minmax(96px, 132px);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-body {
+    flex-wrap: wrap;
+    align-content: stretch;
+  }
+
+  .activity-bar {
+    width: 100%;
+    height: 44px;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0 8px;
+    gap: 6px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ab-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .ab-icon.active::before {
+    left: 50%;
+    top: auto;
+    bottom: -1px;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+  }
+
+  .ab-spacer {
+    display: none;
+  }
+
+  .sidebar:not(.collapsed) {
+    width: min(192px, 38vw) !important;
+  }
+
+  .doc-list:not(.collapsed),
+  .right-panel:not(.collapsed) {
+    width: min(184px, 36vw) !important;
+    min-width: min(168px, 36vw) !important;
+  }
+
+  .sidebar-header,
+  .doc-list-header,
+  .rp-header {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .project-header-top,
+  .project-header-actions,
+  .doc-list-actions,
+  .advanced-json-actions,
+  .status-bar {
+    gap: 8px;
+  }
+
+  .project-card,
+  .project-menu,
+  .start-screen-card {
+    padding: 18px;
+  }
+
+  .project-name,
+  .start-title {
+    font-size: 24px;
+  }
+
+  .project-subtitle,
+  .start-copy {
+    font-size: 14px;
+  }
+
+  .project-path,
+  .recent-project-path,
+  .project-menu-meta,
+  .start-recent-path {
+    font-size: 9px;
+  }
+
+  .main-content {
+    min-width: 0;
+  }
+
+  .tab-bar {
+    padding: 0 8px;
+  }
+
+  .tab {
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .editor-pane {
+    padding: 14px 14px 28px;
+  }
+
+  .doc-editor {
+    padding: 16px 16px;
+    font-size: 16px;
+  }
+
+  .timeline-outline-item,
+  .timeline-track-item,
+  .structure-list-item,
+  .relationship-list-row,
+  .timeline-track-row {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-outline-item,
+  .timeline-track-item {
+    gap: 8px;
+  }
+
+  .timeline-track-item-meta {
+    text-align: left;
+  }
+
+  .relationship-list-row,
+  .timeline-track-row,
+  .relationship-action-row,
+  .start-actions,
+  .advanced-json-buttons {
+    flex-wrap: wrap;
+  }
+
+  .start-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .start-recent-list,
+  .workbench-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .status-bar {
+    height: auto;
+    min-height: 24px;
+    padding: 4px 8px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .sb-spacer {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .sidebar:not(.collapsed),
+  .doc-list:not(.collapsed),
+  .right-panel:not(.collapsed) {
+    width: min(168px, 44vw) !important;
+    min-width: min(148px, 44vw) !important;
+  }
+
+  .world-header,
+  .nav-item,
+  .doc-item,
+  .recent-project-row,
+  .start-recent-item {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .doc-item-title,
+  .recent-project-title,
+  .start-recent-title,
+  .timeline-outline-title,
+  .timeline-track-item-title {
+    font-size: 12px;
+  }
+
+  .start-screen {
+    padding: 12px;
+  }
+
+  .start-screen-card {
+    padding: 16px;
+  }
+
+  .start-title {
+    font-size: 22px;
+    max-width: none;
+  }
+
+  .quick-open-card {
+    width: calc(100vw - 16px);
+  }
+}
