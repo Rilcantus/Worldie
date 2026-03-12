@@ -32,7 +32,7 @@ export function useWorkspaceNavigation({
   openLoreCreateTab,
   openNewTab,
 }: UseWorkspaceNavigationArgs) {
-  const pendingOpenKind = useRef<"editor" | "lore" | null>(null);
+  const pendingOpenKind = useRef<"editor" | "loreRoot" | "loreCategory" | null>(null);
 
   useEffect(() => {
     if (pendingOpenKind.current !== "editor") return;
@@ -42,11 +42,16 @@ export function useWorkspaceNavigation({
   }, [documents, openDocumentTab, openNewTab]);
 
   useEffect(() => {
-    if (pendingOpenKind.current !== "lore") return;
+    if (pendingOpenKind.current !== "loreRoot" && pendingOpenKind.current !== "loreCategory") return;
+    const pendingKind = pendingOpenKind.current;
     pendingOpenKind.current = null;
-    if (lorePages[0]) openLoreTab(lorePages[0]);
+    const nextPage =
+      pendingKind === "loreRoot"
+        ? allLorePages.find((page) => page.worldId === activeWorldId) ?? null
+        : lorePages[0] ?? null;
+    if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
-  }, [lorePages, openLoreCreateTab, openLoreTab]);
+  }, [activeWorldId, allLorePages, lorePages, openLoreCreateTab, openLoreTab]);
 
   const openEditorForWorld = (worldId: string) => {
     if (worldId !== activeWorldId) {
@@ -60,12 +65,16 @@ export function useWorkspaceNavigation({
   };
 
   const openLoreRootForWorld = (worldId: string) => {
+    setActiveLoreTypeId(null);
     if (worldId !== activeWorldId) {
-      pendingOpenKind.current = "lore";
+      pendingOpenKind.current = "loreRoot";
       setActiveWorldId(worldId);
       return;
     }
-    const nextPage = lorePages.find((page) => page.id === activeLoreId) ?? lorePages[0];
+    const nextPage =
+      allLorePages.find((page) => page.id === activeLoreId && page.worldId === worldId) ??
+      allLorePages.find((page) => page.worldId === worldId) ??
+      null;
     if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
   };
@@ -73,7 +82,7 @@ export function useWorkspaceNavigation({
   const openLoreCategoryForWorld = (worldId: string, loreTypeId: string) => {
     setActiveLoreTypeId(loreTypeId);
     if (worldId !== activeWorldId) {
-      pendingOpenKind.current = "lore";
+      pendingOpenKind.current = "loreCategory";
       setActiveWorldId(worldId);
       return;
     }
