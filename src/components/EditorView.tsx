@@ -661,6 +661,76 @@ export function EditorView({
       }
     }
 
+    if ((event.ctrlKey || event.metaKey) && event.altKey) {
+      const key = event.key.toLowerCase();
+      if (key === "1") {
+        event.preventDefault();
+        applyLinePrefix("# ");
+        return;
+      }
+      if (key === "2") {
+        event.preventDefault();
+        applyLinePrefix("## ");
+        return;
+      }
+      if (key === "f") {
+        event.preventDefault();
+        setIsFocusMode((current) => !current);
+        return;
+      }
+      if (key === "m") {
+        event.preventDefault();
+        setEditorMode((current) => (current === "standard" ? "typewriter" : "standard"));
+        return;
+      }
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey) {
+      const key = event.key;
+      const normalizedKey = key.toLowerCase();
+
+      if (key === "[") {
+        event.preventDefault();
+        openDocumentByOffset(-1);
+        return;
+      }
+      if (key === "]") {
+        event.preventDefault();
+        openDocumentByOffset(1);
+        return;
+      }
+      if (key === "*") {
+        event.preventDefault();
+        applyLinePrefix("- ");
+        return;
+      }
+      if (key === "&") {
+        event.preventDefault();
+        applyOrderedList();
+        return;
+      }
+      if (key === "(") {
+        event.preventDefault();
+        applyLinePrefix("> ");
+        return;
+      }
+      if (normalizedKey === "n") {
+        event.preventDefault();
+        insertNoteBlock();
+        return;
+      }
+      if (normalizedKey === "p") {
+        event.preventDefault();
+        setIsPreviewOpen((current) => !current);
+        return;
+      }
+      if (normalizedKey === "d" && !isFocusMode) {
+        event.preventDefault();
+        setIsDetailsOpen((current) => !current);
+        return;
+      }
+    }
+
     if (slashCommandMatch) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
@@ -831,6 +901,17 @@ export function EditorView({
       const cursor = selection.start + insertion.length;
       return { text: nextText, selection: { start: cursor, end: cursor } };
     });
+  };
+
+  const openDocumentByOffset = (offset: -1 | 1) => {
+    if (orderedDocuments.length === 0) return;
+    const currentIndex = orderedDocuments.findIndex((doc) => doc.id === activeDocumentId);
+    const baseIndex = currentIndex === -1 ? 0 : currentIndex;
+    const nextIndex = (baseIndex + offset + orderedDocuments.length) % orderedDocuments.length;
+    const nextDocument = orderedDocuments[nextIndex];
+    if (nextDocument) {
+      onOpenDocument(nextDocument);
+    }
   };
 
   const documentsByFolder = useMemo(() => {

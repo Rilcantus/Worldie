@@ -147,6 +147,7 @@ export function EditorToolbar({
           className={`tb-btn ${editorFormattingState.list ? "active" : ""}`}
           type="button"
           onClick={() => onApplyLinePrefix("- ")}
+          title="Bullet list (Ctrl/Cmd+Shift+8)"
         >
           List
         </button>
@@ -154,6 +155,7 @@ export function EditorToolbar({
           className={`tb-btn ${editorFormattingState.orderedList ? "active" : ""}`}
           type="button"
           onClick={onApplyOrderedList}
+          title="Numbered list (Ctrl/Cmd+Shift+7)"
         >
           1.
         </button>
@@ -161,6 +163,7 @@ export function EditorToolbar({
           className={`tb-btn ${editorFormattingState.quote ? "active" : ""}`}
           type="button"
           onClick={() => onApplyLinePrefix("> ")}
+          title="Quote block (Ctrl/Cmd+Shift+9)"
         >
           Quote
         </button>
@@ -206,7 +209,12 @@ export function EditorToolbar({
       </div>
 
       <div className="editor-toolbar-side">
-        <button className={`tb-btn ${isPreviewOpen ? "active" : ""}`} type="button" onClick={onTogglePreview}>
+        <button
+          className={`tb-btn ${isPreviewOpen ? "active" : ""}`}
+          type="button"
+          onClick={onTogglePreview}
+          title="Toggle preview (Ctrl/Cmd+Shift+P)"
+        >
           Preview
         </button>
         <button
@@ -214,10 +222,16 @@ export function EditorToolbar({
           type="button"
           onClick={onToggleDetails}
           disabled={isFocusMode}
+          title="Toggle details (Ctrl/Cmd+Shift+D)"
         >
           Details
         </button>
-        <button className={`tb-btn ${isFocusMode ? "active" : ""}`} type="button" onClick={onToggleFocusMode}>
+        <button
+          className={`tb-btn ${isFocusMode ? "active" : ""}`}
+          type="button"
+          onClick={onToggleFocusMode}
+          title="Toggle focus mode (Ctrl/Cmd+Alt+F)"
+        >
           {isFocusMode ? "Exit Focus" : "Focus"}
         </button>
         <div ref={documentMenuRef} className="toolbar-menu-wrap">
@@ -255,6 +269,7 @@ export function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.heading1 ? "active" : ""}`}
                 type="button"
                 onClick={closeAfter(() => onApplyLinePrefix("# "))}
+                title="Large heading (Ctrl/Cmd+Alt+1)"
               >
                 Large heading
               </button>
@@ -262,6 +277,7 @@ export function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.heading2 ? "active" : ""}`}
                 type="button"
                 onClick={closeAfter(() => onApplyLinePrefix("## "))}
+                title="Medium heading (Ctrl/Cmd+Alt+2)"
               >
                 Medium heading
               </button>
@@ -276,6 +292,7 @@ export function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.noteBlock ? "active" : ""}`}
                 type="button"
                 onClick={closeAfter(onInsertNoteBlock)}
+                title="Note block (Ctrl/Cmd+Shift+N)"
               >
                 Note block
               </button>
@@ -318,6 +335,7 @@ export function EditorToolbar({
                 className={`toolbar-menu-item ${editorMode === "typewriter" ? "active" : ""}`}
                 type="button"
                 onClick={closeAfter(() => onSetEditorMode("typewriter"))}
+                title="Toggle typewriter mode (Ctrl/Cmd+Alt+M)"
               >
                 Typewriter mode
               </button>

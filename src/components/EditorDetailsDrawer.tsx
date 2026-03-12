@@ -124,6 +124,17 @@ export function EditorDetailsDrawer({
               <span>Ctrl/Cmd+U underline</span>
               <span>Ctrl/Cmd+K lore link</span>
               <span>Ctrl/Cmd+S save</span>
+              <span>Ctrl/Cmd+Alt+1 heading 1</span>
+              <span>Ctrl/Cmd+Alt+2 heading 2</span>
+              <span>Ctrl/Cmd+Shift+8 bullet list</span>
+              <span>Ctrl/Cmd+Shift+7 numbered list</span>
+              <span>Ctrl/Cmd+Shift+9 quote block</span>
+              <span>Ctrl/Cmd+Shift+N note block</span>
+              <span>Ctrl/Cmd+Shift+P preview</span>
+              <span>Ctrl/Cmd+Shift+D details</span>
+              <span>Ctrl/Cmd+Alt+F focus mode</span>
+              <span>Ctrl/Cmd+Alt+M typewriter mode</span>
+              <span>Ctrl/Cmd+Shift+[ or ] switch docs</span>
             </div>
           </div>
         </div>
