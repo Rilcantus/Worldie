@@ -88,38 +88,44 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const recentProjects = useMemo(() => projects.slice(0, 6), [projects]);
   const isProjectActionPending = projectActionState.status !== "idle";
 
+  const setProjectActionStateIfChanged = (nextState: ProjectActionState) => {
+    setProjectActionState((current) =>
+      current.status === nextState.status && current.message === nextState.message ? current : nextState,
+    );
+  };
+
   const runProjectAction = async <T,>(
     status: Exclude<ProjectActionState["status"], "idle">,
     message: string,
     action: () => Promise<T>,
   ) => {
-    setProjectActionState({ status, message });
+    setProjectActionStateIfChanged({ status, message });
     try {
       return await action();
     } finally {
-      setProjectActionState(IDLE_PROJECT_ACTION_STATE);
+      setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
     }
   };
 
   const applyActiveProject = async (project: Project | null) => {
-    setIsEditingProject(false);
-    setEditingWorldId(null);
-    setWorldDraft("");
+    setIsEditingProject((current) => (current ? false : current));
+    setEditingWorldId((current) => (current === null ? current : null));
+    setWorldDraft((current) => (current === "" ? current : ""));
     if (!project) {
-      setActiveProjectId(null);
-      setProjectTitle("No Project Open");
-      setProjectDraft("");
-      setWorlds([]);
-      setActiveWorldId(null);
+      setActiveProjectId((current) => (current === null ? current : null));
+      setProjectTitle((current) => (current === "No Project Open" ? current : "No Project Open"));
+      setProjectDraft((current) => (current === "" ? current : ""));
+      setWorlds((current) => (current.length === 0 ? current : []));
+      setActiveWorldId((current) => (current === null ? current : null));
       return false;
     }
-    setWorlds([]);
-    setActiveWorldId(null);
-    setActiveProjectId(project.id);
-    setProjectTitle(project.title);
-      setProjectDraft(project.title);
-      await hydrateWorlds(project.id);
-      return true;
+    setWorlds((current) => (current.length === 0 ? current : []));
+    setActiveWorldId((current) => (current === null ? current : null));
+    setActiveProjectId((current) => (current === project.id ? current : project.id));
+    setProjectTitle((current) => (current === project.title ? current : project.title));
+    setProjectDraft((current) => (current === project.title ? current : project.title));
+    await hydrateWorlds(project.id);
+    return true;
   };
 
   const hydrateWorlds = async (projectId: string) => {
@@ -152,7 +158,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   useEffect(() => {
     const load = async () => {
-      setProjectActionState({ status: "loading", message: "Loading recent projects..." });
+      setProjectActionStateIfChanged({ status: "loading", message: "Loading recent projects..." });
       const requestId = ++hydrateRequestId.current;
       let loadedProjects: Project[] = [];
       try {
@@ -165,7 +171,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       const project = loadedProjects[0];
       if (!project) {
         await applyActiveProject(null);
-        setProjectActionState(IDLE_PROJECT_ACTION_STATE);
+        setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
         return;
       }
       try {
@@ -173,7 +179,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not load worlds for the active project.");
       }
-      setProjectActionState(IDLE_PROJECT_ACTION_STATE);
+      setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
     };
 
     void load();
