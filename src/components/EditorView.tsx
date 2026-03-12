@@ -1069,6 +1069,44 @@ export function EditorView({
             .filter(Boolean)
             .join(" ")}
         >
+          {isSidebarCollapsed || isDocListCollapsed || isRightPanelCollapsed ? (
+            <div className="editor-panel-controls editor-toolbar-sticky">
+              <div className="editor-panel-controls-main">
+                {isSidebarCollapsed ? (
+                  <button
+                    className="editor-panel-toggle"
+                    type="button"
+                    onClick={onExpandSidebar}
+                    title="Expand project panel (Ctrl+1)"
+                  >
+                    Project
+                  </button>
+                ) : null}
+                {isDocListCollapsed ? (
+                  <button
+                    className="editor-panel-toggle"
+                    type="button"
+                    onClick={onExpandDocList}
+                    title="Expand documents panel (Ctrl+2)"
+                  >
+                    Documents
+                  </button>
+                ) : null}
+              </div>
+              <div className="editor-panel-controls-side">
+                {isRightPanelCollapsed ? (
+                  <button
+                    className="editor-panel-toggle"
+                    type="button"
+                    onClick={onExpandRightPanel}
+                    title="Expand context panel (Ctrl+3)"
+                  >
+                    Context
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <EditorToolbar
             editorFormattingState={editorFormattingState}
             saveState={documentSaveState}
@@ -1110,54 +1148,7 @@ export function EditorView({
           />
         </div>
 
-        <div
-          className={[
-            "editor-workspace-frame",
-            isSidebarCollapsed || isDocListCollapsed ? "editor-workspace-frame-left-rail" : "",
-            isRightPanelCollapsed ? "editor-workspace-frame-right-rail" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <div className="editor-collapsed-rail editor-collapsed-rail-left">
-            {isSidebarCollapsed ? (
-              <button
-                className="editor-edge-toggle"
-                type="button"
-                onClick={onExpandSidebar}
-                title="Expand project panel (Ctrl+1)"
-              >
-                <span className="editor-edge-toggle-label">Project</span>
-                <span className="editor-edge-toggle-icon">&rsaquo;</span>
-              </button>
-            ) : null}
-            {isDocListCollapsed ? (
-              <button
-                className="editor-edge-toggle"
-                type="button"
-                onClick={onExpandDocList}
-                title="Expand documents panel (Ctrl+2)"
-              >
-                <span className="editor-edge-toggle-label">Documents</span>
-                <span className="editor-edge-toggle-icon">&rsaquo;</span>
-              </button>
-            ) : null}
-          </div>
-
-          <div className="editor-collapsed-rail editor-collapsed-rail-right">
-            {isRightPanelCollapsed ? (
-              <button
-                className="editor-edge-toggle editor-edge-toggle-right"
-                type="button"
-                onClick={onExpandRightPanel}
-                title="Expand context panel (Ctrl+3)"
-              >
-                <span className="editor-edge-toggle-icon">&lsaquo;</span>
-                <span className="editor-edge-toggle-label">Context</span>
-              </button>
-            ) : null}
-          </div>
-
+        <div className="editor-workspace-frame">
           <EditorSurface
             titleInputRef={titleInputRef}
             editorRef={editorRef}
