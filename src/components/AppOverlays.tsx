@@ -36,18 +36,66 @@ export function AppOverlays({
   onQuickOpenSelect,
 }: AppOverlaysProps) {
   const quickOpenInputRef = useRef<HTMLInputElement | null>(null);
+  const confirmCancelRef = useRef<HTMLButtonElement | null>(null);
+  const quickOpenReturnFocusRef = useRef<HTMLElement | null>(null);
+  const confirmReturnFocusRef = useRef<HTMLElement | null>(null);
+  const previousQuickOpenStateRef = useRef(false);
+  const previousConfirmStateRef = useRef(false);
   const quickOpenTitleId = "quick-open-title";
   const quickOpenResultsId = "quick-open-results";
   const confirmTitleId = "confirm-title";
   const confirmMessageId = "confirm-message";
 
   useEffect(() => {
-    if (!quickOpenState?.isOpen) return;
-    window.requestAnimationFrame(() => {
-      quickOpenInputRef.current?.focus();
-      quickOpenInputRef.current?.select();
-    });
+    const isQuickOpenActive = Boolean(quickOpenState?.isOpen);
+    const wasQuickOpenActive = previousQuickOpenStateRef.current;
+    previousQuickOpenStateRef.current = isQuickOpenActive;
+
+    if (isQuickOpenActive) {
+      if (!wasQuickOpenActive) {
+        const activeElement = document.activeElement;
+        quickOpenReturnFocusRef.current =
+          activeElement instanceof HTMLElement ? activeElement : null;
+      }
+      window.requestAnimationFrame(() => {
+        quickOpenInputRef.current?.focus();
+        quickOpenInputRef.current?.select();
+      });
+      return;
+    }
+
+    if (wasQuickOpenActive) {
+      window.requestAnimationFrame(() => {
+        quickOpenReturnFocusRef.current?.focus();
+        quickOpenReturnFocusRef.current = null;
+      });
+    }
   }, [quickOpenState?.isOpen]);
+
+  useEffect(() => {
+    const isConfirmActive = Boolean(confirmState);
+    const wasConfirmActive = previousConfirmStateRef.current;
+    previousConfirmStateRef.current = isConfirmActive;
+
+    if (isConfirmActive) {
+      if (!wasConfirmActive) {
+        const activeElement = document.activeElement;
+        confirmReturnFocusRef.current =
+          activeElement instanceof HTMLElement ? activeElement : null;
+      }
+      window.requestAnimationFrame(() => {
+        confirmCancelRef.current?.focus();
+      });
+      return;
+    }
+
+    if (wasConfirmActive) {
+      window.requestAnimationFrame(() => {
+        confirmReturnFocusRef.current?.focus();
+        confirmReturnFocusRef.current = null;
+      });
+    }
+  }, [confirmState]);
 
   return (
     <>
@@ -172,7 +220,12 @@ export function AppOverlays({
               {confirmState.message}
             </div>
             <div className="confirm-actions">
-              <button className="confirm-btn ghost" type="button" onClick={() => onResolveConfirm(false)}>
+              <button
+                ref={confirmCancelRef}
+                className="confirm-btn ghost"
+                type="button"
+                onClick={() => onResolveConfirm(false)}
+              >
                 Cancel
               </button>
               <button className="confirm-btn danger" type="button" onClick={() => onResolveConfirm(true)}>
