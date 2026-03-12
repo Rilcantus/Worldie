@@ -15,22 +15,22 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
   useEffect(() => {
     if (!activeProjectId || loreTypes.length === 0) {
       loadRequestId.current += 1;
-      setTemplates([]);
-      setHasLoaded(false);
+      setTemplates((current) => (current.length === 0 ? current : []));
+      setHasLoaded((current) => (current ? false : current));
       return;
     }
-    setHasLoaded(false);
+    setHasLoaded((current) => (current ? false : current));
     const requestId = ++loadRequestId.current;
     void listProjectLoreTemplates(activeProjectId, loreTypes)
       .then((loaded) => {
         if (requestId !== loadRequestId.current) return;
         setTemplates(loaded);
-        setHasLoaded(true);
+        setHasLoaded((current) => (current ? current : true));
       })
       .catch(() => {
         if (requestId !== loadRequestId.current) return;
-        setTemplates([]);
-        setHasLoaded(false);
+        setTemplates((current) => (current.length === 0 ? current : []));
+        setHasLoaded((current) => (current ? false : current));
       });
   }, [activeProjectId, loreTypes]);
 
@@ -43,7 +43,8 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
     if (selectedTemplateId && templates.some((template) => template.id === selectedTemplateId)) {
       return;
     }
-    setSelectedTemplateId(templates[0]?.id ?? null);
+    const nextSelectedTemplateId = templates[0]?.id ?? null;
+    setSelectedTemplateId((current) => (current === nextSelectedTemplateId ? current : nextSelectedTemplateId));
   }, [selectedTemplateId, templates]);
 
   const selectedTemplate = useMemo(

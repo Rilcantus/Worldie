@@ -17,22 +17,22 @@ export function useLoreTypes(activeProjectId: string | null) {
   useEffect(() => {
     if (!activeProjectId) {
       loadRequestId.current += 1;
-      setLoreTypes([]);
-      setHasLoaded(false);
+      setLoreTypes((current) => (current.length === 0 ? current : []));
+      setHasLoaded((current) => (current ? false : current));
       return;
     }
-    setHasLoaded(false);
+    setHasLoaded((current) => (current ? false : current));
     const requestId = ++loadRequestId.current;
     void listProjectLoreTypes(activeProjectId)
       .then((loaded) => {
         if (requestId !== loadRequestId.current) return;
         setLoreTypes(loaded);
-        setHasLoaded(true);
+        setHasLoaded((current) => (current ? current : true));
       })
       .catch(() => {
         if (requestId !== loadRequestId.current) return;
-        setLoreTypes([]);
-        setHasLoaded(false);
+        setLoreTypes((current) => (current.length === 0 ? current : []));
+        setHasLoaded((current) => (current ? false : current));
       });
   }, [activeProjectId]);
 
@@ -43,7 +43,8 @@ export function useLoreTypes(activeProjectId: string | null) {
 
   useEffect(() => {
     if (selectedLoreTypeId && sortedLoreTypes.some((type) => type.id === selectedLoreTypeId)) return;
-    setSelectedLoreTypeId(getDefaultLoreTypeId(sortedLoreTypes));
+    const nextSelectedLoreTypeId = getDefaultLoreTypeId(sortedLoreTypes);
+    setSelectedLoreTypeId((current) => (current === nextSelectedLoreTypeId ? current : nextSelectedLoreTypeId));
   }, [selectedLoreTypeId, sortedLoreTypes]);
 
   const selectedLoreType = useMemo(
