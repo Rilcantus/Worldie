@@ -109,6 +109,13 @@ export default function App() {
     [panelLayout.startResize],
   );
 
+  const handleStartSidebarResize = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      panelLayout.startResize("sidebar", event.clientX);
+    },
+    [panelLayout.startResize],
+  );
+
   const handleStartRightPanelResize = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       panelLayout.startResize("right", event.clientX);
@@ -212,9 +219,7 @@ export default function App() {
         {!panelLayout.isSidebarCollapsed ? (
           <div
             className="resizer resizer-vertical"
-            onMouseDown={(event) => {
-              panelLayout.startResize("sidebar", event.clientX);
-            }}
+            onMouseDown={handleStartSidebarResize}
           />
         ) : null}
 
