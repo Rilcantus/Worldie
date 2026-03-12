@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { LorePage, TimelineEvent } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 
@@ -71,27 +71,56 @@ export function TimelineView({
   onLinkedPageChange,
   onDescriptionChange,
 }: TimelineViewProps) {
+  const [timelineSearch, setTimelineSearch] = useState("");
+  const [timelineTypeFilter, setTimelineTypeFilter] = useState("all");
+  const [timelineLinkedFilter, setTimelineLinkedFilter] = useState("all");
   const titleInputId = "timeline-title";
   const dateInputId = "timeline-date";
   const typeInputId = "timeline-type";
   const linkedPageInputId = "timeline-linked-page";
   const descriptionInputId = "timeline-description";
+  const timelineSearchInputId = "timeline-search";
+  const timelineTypeFilterId = "timeline-type-filter";
+  const timelineLinkedFilterId = "timeline-linked-filter";
 
-  const orderedEvents = useMemo(() => sortTimelineEvents(timelineEvents), [timelineEvents]);
+  const filteredTimelineEvents = useMemo(() => {
+    const query = timelineSearch.trim().toLowerCase();
+    return timelineEvents.filter((event) => {
+      const linkedTitle = lorePages.find((page) => page.id === event.linkedPageId)?.title ?? "";
+      const matchesQuery =
+        !query ||
+        event.title.toLowerCase().includes(query) ||
+        (event.eventDate ?? "").toLowerCase().includes(query) ||
+        (event.eventType ?? "").toLowerCase().includes(query) ||
+        (event.description ?? "").toLowerCase().includes(query) ||
+        linkedTitle.toLowerCase().includes(query);
+      const matchesType = timelineTypeFilter === "all" || (event.eventType || "event") === timelineTypeFilter;
+      const matchesLinked =
+        timelineLinkedFilter === "all" ||
+        (timelineLinkedFilter === "unlinked" ? !event.linkedPageId : event.linkedPageId === timelineLinkedFilter);
+      return matchesQuery && matchesType && matchesLinked;
+    });
+  }, [lorePages, timelineEvents, timelineLinkedFilter, timelineSearch, timelineTypeFilter]);
+
+  const orderedEvents = useMemo(() => sortTimelineEvents(filteredTimelineEvents), [filteredTimelineEvents]);
   const activeLinkedPage = lorePages.find((page) => page.id === timelineLinkedPageId) ?? null;
+  const allTimelineTypes = useMemo(
+    () => [...new Set(timelineEvents.map((event) => event.eventType || "event"))].sort((a, b) => a.localeCompare(b)),
+    [timelineEvents],
+  );
 
   const timelineTypeCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const event of timelineEvents) {
+    for (const event of filteredTimelineEvents) {
       const key = event.eventType || "untyped";
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return [...counts.entries()].sort((left, right) => right[1] - left[1]).slice(0, 4);
-  }, [timelineEvents]);
+  }, [filteredTimelineEvents]);
 
   const linkedEventCount = useMemo(
-    () => timelineEvents.filter((event) => Boolean(event.linkedPageId)).length,
-    [timelineEvents],
+    () => filteredTimelineEvents.filter((event) => Boolean(event.linkedPageId)).length,
+    [filteredTimelineEvents],
   );
 
   const timelineSpan = orderedEvents.filter((event) => event.eventDate);
@@ -128,9 +157,11 @@ export function TimelineView({
               </div>
             </div>
             <div className="doc-list-body">
-              {timelineEvents.length === 0 ? (
+              {orderedEvents.length === 0 ? (
                 <div className="doc-empty">
-                  No timeline events yet. Add the first milestone for this world.
+                  {timelineEvents.length === 0
+                    ? "No timeline events yet. Add the first milestone for this world."
+                    : "No timeline events match the current filters."}
                 </div>
               ) : (
                 orderedEvents.map((item) => (
@@ -221,6 +252,69 @@ export function TimelineView({
           </button>
         </div>
 
+        <div className="structure-filter-bar">
+          <div className="structure-filter-field structure-filter-field-wide">
+            <label className="lore-label" htmlFor={timelineSearchInputId}>
+              Search
+            </label>
+            <input
+              id={timelineSearchInputId}
+              className="lore-input"
+              value={timelineSearch}
+              onChange={(event) => setTimelineSearch(event.target.value)}
+              placeholder="Filter by title, date, type, description, or linked lore"
+            />
+          </div>
+          <div className="structure-filter-field">
+            <label className="lore-label" htmlFor={timelineTypeFilterId}>
+              Type
+            </label>
+            <select
+              id={timelineTypeFilterId}
+              className="lore-input"
+              value={timelineTypeFilter}
+              onChange={(event) => setTimelineTypeFilter(event.target.value)}
+            >
+              <option value="all">All types</option>
+              {allTimelineTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="structure-filter-field">
+            <label className="lore-label" htmlFor={timelineLinkedFilterId}>
+              Linked lore
+            </label>
+            <select
+              id={timelineLinkedFilterId}
+              className="lore-input"
+              value={timelineLinkedFilter}
+              onChange={(event) => setTimelineLinkedFilter(event.target.value)}
+            >
+              <option value="all">All events</option>
+              <option value="unlinked">Unlinked only</option>
+              {lorePages.map((page) => (
+                <option key={page.id} value={page.id}>
+                  {page.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className="tb-btn"
+            type="button"
+            onClick={() => {
+              setTimelineSearch("");
+              setTimelineTypeFilter("all");
+              setTimelineLinkedFilter("all");
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
+
         <input
           id={titleInputId}
           className="doc-title-input"
@@ -239,9 +333,9 @@ export function TimelineView({
         <div className="structure-summary-grid">
           <div className="structure-card">
             <div className="structure-card-label">Event Count</div>
-            <div className="structure-card-value">{timelineEvents.length}</div>
+            <div className="structure-card-value">{filteredTimelineEvents.length}</div>
             <div className="structure-card-meta">
-              Milestones currently tracked in {activeWorld?.name ?? "this world"}
+              Matching milestones in {activeWorld?.name ?? "this world"}
             </div>
           </div>
           <div className="structure-card">

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { LorePage, Relationship } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 
@@ -65,43 +65,83 @@ export function RelationshipsView({
   onTypeChange,
   onNotesChange,
 }: RelationshipsViewProps) {
+  const [relationshipSearch, setRelationshipSearch] = useState("");
+  const [relationshipTypeFilter, setRelationshipTypeFilter] = useState("all");
+  const [relationshipPageFilter, setRelationshipPageFilter] = useState("all");
   const sourceInputId = "relationship-source";
   const typeInputId = "relationship-type";
   const targetInputId = "relationship-target";
   const notesInputId = "relationship-notes";
+  const relationshipSearchInputId = "relationship-search";
+  const relationshipTypeFilterId = "relationship-type-filter";
+  const relationshipPageFilterId = "relationship-page-filter";
+
+  const loreTitleById = useMemo(
+    () => new Map(lorePages.map((page) => [page.id, page.title])),
+    [lorePages],
+  );
+
+  const filteredRelationships = useMemo(() => {
+    const query = relationshipSearch.trim().toLowerCase();
+    return relationships.filter((relationship) => {
+      const sourceTitle = loreTitleById.get(relationship.sourcePageId) ?? "Unknown";
+      const targetTitle = loreTitleById.get(relationship.targetPageId) ?? "Unknown";
+      const matchesQuery =
+        !query ||
+        sourceTitle.toLowerCase().includes(query) ||
+        targetTitle.toLowerCase().includes(query) ||
+        relationship.relationType.toLowerCase().includes(query) ||
+        (relationship.notes ?? "").toLowerCase().includes(query);
+      const matchesType =
+        relationshipTypeFilter === "all" || relationship.relationType === relationshipTypeFilter;
+      const matchesPage =
+        relationshipPageFilter === "all" ||
+        relationship.sourcePageId === relationshipPageFilter ||
+        relationship.targetPageId === relationshipPageFilter;
+      return matchesQuery && matchesType && matchesPage;
+    });
+  }, [loreTitleById, relationshipPageFilter, relationshipSearch, relationshipTypeFilter, relationships]);
 
   const relationshipPages = useMemo(
     () =>
       lorePages.filter((page) =>
-        relationships.some(
+        filteredRelationships.some(
           (relationship) =>
             relationship.sourcePageId === page.id || relationship.targetPageId === page.id,
         ),
       ),
-    [lorePages, relationships],
+    [filteredRelationships, lorePages],
   );
 
   const relationshipTypeCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const relationship of relationships) {
+    for (const relationship of filteredRelationships) {
       counts.set(relationship.relationType, (counts.get(relationship.relationType) ?? 0) + 1);
     }
     return [...counts.entries()].sort((left, right) => right[1] - left[1]).slice(0, 4);
-  }, [relationships]);
+  }, [filteredRelationships]);
+
+  const allRelationshipTypes = useMemo(
+    () =>
+      [...new Set(relationships.map((relationship) => relationship.relationType).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [relationships],
+  );
 
   const keyPages = useMemo(
     () =>
       relationshipPages
         .map((page) => ({
           page,
-          count: relationships.filter(
+          count: filteredRelationships.filter(
             (relationship) =>
               relationship.sourcePageId === page.id || relationship.targetPageId === page.id,
           ).length,
         }))
         .sort((left, right) => right.count - left.count)
         .slice(0, 5),
-    [relationshipPages, relationships],
+    [filteredRelationships, relationshipPages],
   );
 
   const networkNodes = useMemo(() => {
@@ -114,7 +154,7 @@ export function RelationshipsView({
     const radius = relationshipPages.length <= 1 ? 0 : 32;
 
     return relationshipPages.slice(0, 10).map((page, index, pages) => {
-      const degree = relationships.filter(
+      const degree = filteredRelationships.filter(
         (relationship) =>
           relationship.sourcePageId === page.id || relationship.targetPageId === page.id,
       ).length;
@@ -130,11 +170,11 @@ export function RelationshipsView({
         degree,
       };
     });
-  }, [relationshipPages, relationships]);
+  }, [filteredRelationships, relationshipPages]);
 
   const networkEdges = useMemo(
     () =>
-      relationships
+      filteredRelationships
         .map((relationship) => {
           const source = networkNodes.find((node) => node.id === relationship.sourcePageId);
           const target = networkNodes.find((node) => node.id === relationship.targetPageId);
@@ -144,7 +184,7 @@ export function RelationshipsView({
           return { relationship, source, target };
         })
         .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
-    [networkNodes, relationships],
+    [filteredRelationships, networkNodes],
   );
 
   const activeRelationship =
@@ -186,14 +226,14 @@ export function RelationshipsView({
               </div>
             </div>
             <div className="doc-list-body">
-              {relationships.length === 0 ? (
+              {filteredRelationships.length === 0 ? (
                 <div className="doc-empty">
-                  {lorePages.length === 0
+                  {relationships.length === 0
                     ? "Create lore pages first, then connect them here."
-                    : "No relationships yet."}
+                    : "No relationships match the current filters."}
                 </div>
               ) : (
-                relationships.map((relationship) => (
+                filteredRelationships.map((relationship) => (
                   <div
                     key={relationship.id}
                     className={`doc-item ${relationship.id === activeRelationshipId ? "active" : ""}`}
@@ -281,6 +321,68 @@ export function RelationshipsView({
           </button>
         </div>
 
+        <div className="structure-filter-bar">
+          <div className="structure-filter-field structure-filter-field-wide">
+            <label className="lore-label" htmlFor={relationshipSearchInputId}>
+              Search
+            </label>
+            <input
+              id={relationshipSearchInputId}
+              className="lore-input"
+              value={relationshipSearch}
+              onChange={(event) => setRelationshipSearch(event.target.value)}
+              placeholder="Filter by page, type, or notes"
+            />
+          </div>
+          <div className="structure-filter-field">
+            <label className="lore-label" htmlFor={relationshipTypeFilterId}>
+              Type
+            </label>
+            <select
+              id={relationshipTypeFilterId}
+              className="lore-input"
+              value={relationshipTypeFilter}
+              onChange={(event) => setRelationshipTypeFilter(event.target.value)}
+            >
+              <option value="all">All types</option>
+              {allRelationshipTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="structure-filter-field">
+            <label className="lore-label" htmlFor={relationshipPageFilterId}>
+              Focus page
+            </label>
+            <select
+              id={relationshipPageFilterId}
+              className="lore-input"
+              value={relationshipPageFilter}
+              onChange={(event) => setRelationshipPageFilter(event.target.value)}
+            >
+              <option value="all">All pages</option>
+              {lorePages.map((page) => (
+                <option key={page.id} value={page.id}>
+                  {page.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className="tb-btn"
+            type="button"
+            onClick={() => {
+              setRelationshipSearch("");
+              setRelationshipTypeFilter("all");
+              setRelationshipPageFilter("all");
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
+
         <div className="doc-title-input" style={{ display: "flex", alignItems: "center" }}>
           Relationship Network
         </div>
@@ -301,9 +403,9 @@ export function RelationshipsView({
           </div>
           <div className="structure-card">
             <div className="structure-card-label">Relationship Count</div>
-            <div className="structure-card-value">{relationships.length}</div>
+            <div className="structure-card-value">{filteredRelationships.length}</div>
             <div className="structure-card-meta">
-              Tracked links in {activeWorld?.name ?? "this world"}
+              Matching links in {activeWorld?.name ?? "this world"}
             </div>
           </div>
           <div className="structure-card">
@@ -368,7 +470,7 @@ export function RelationshipsView({
                       left: `${node.x}%`,
                       top: `${node.y}%`,
                     }}
-                    onClick={() => onSourceChange(node.id)}
+                    onClick={() => setRelationshipPageFilter(node.id)}
                   >
                     <span className="relationship-map-node-title">{node.title}</span>
                     <span className="relationship-map-node-meta">{node.degree} links</span>
@@ -413,10 +515,15 @@ export function RelationshipsView({
             ) : (
               <div className="structure-list">
                 {keyPages.map(({ page, count }) => (
-                  <div key={page.id} className="structure-list-item">
+                  <button
+                    key={page.id}
+                    className="structure-list-item structure-list-item-button"
+                    type="button"
+                    onClick={() => setRelationshipPageFilter(page.id)}
+                  >
                     <span>{page.title}</span>
                     <span>{count} links</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

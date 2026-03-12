@@ -1389,6 +1389,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
     min-width: 0;
     flex: 1;
   }
+
+  .structure-filter-bar {
+    grid-template-columns: 1fr;
+  }
 }
 
 .tab-launcher-grid {
@@ -1558,6 +1562,19 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   gap: 14px;
   margin-bottom: 18px;
 }
+.structure-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(180px, 0.85fr)) auto;
+  gap: 12px;
+  margin-bottom: 18px;
+  align-items: end;
+}
+.structure-filter-field {
+  min-width: 0;
+}
+.structure-filter-field-wide {
+  min-width: 0;
+}
 .structure-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1607,6 +1624,16 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   border-radius: 10px;
   background: rgba(11, 9, 20, 0.45);
   color: var(--text-secondary);
+}
+.structure-list-item-button {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.structure-list-item-button:hover {
+  border-color: rgba(125, 92, 255, 0.34);
+  background: rgba(27, 22, 42, 0.82);
+  color: var(--text-primary);
 }
 .structure-list-item span:last-child {
   color: var(--text-primary);
