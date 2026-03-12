@@ -31,6 +31,36 @@ function isWorkbenchOnlyTabState(tabs: TabItem[]) {
   );
 }
 
+function removeTabWithFallback(prev: TabItem[], tabId: string) {
+  const next: TabItem[] = [];
+  let closingIndex = -1;
+
+  for (const tab of prev) {
+    if (tab.id === tabId) {
+      closingIndex = next.length;
+      continue;
+    }
+    next.push(tab);
+  }
+
+  if (closingIndex === -1) {
+    return {
+      closingIndex,
+      nextTabs: prev,
+      normalizedNextTabs: prev,
+      removed: false,
+    };
+  }
+
+  const normalizedNextTabs = next.length > 0 ? next : [WORKBENCH_TAB];
+  return {
+    closingIndex,
+    nextTabs: next,
+    normalizedNextTabs,
+    removed: true,
+  };
+}
+
 export function useTabs({
   activeProjectId,
   activeWorldId,
@@ -434,35 +464,31 @@ export function useTabs({
   const handleTabClose = useCallback((tab: TabItem) => {
     clearPendingTabRefs(tab.id);
     setTabs((prev) => {
-      const closingIndex = prev.findIndex((item) => item.id === tab.id);
-      const next = prev.filter((item) => item.id !== tab.id);
-      const normalizedNext = next.length > 0 ? next : [WORKBENCH_TAB];
+      const { closingIndex, normalizedNextTabs } = removeTabWithFallback(prev, tab.id);
       if (tab.id === activeTabId) {
         const fallback =
-          normalizedNext[Math.max(0, closingIndex - 1)] ??
-          normalizedNext[closingIndex] ??
-          normalizedNext[normalizedNext.length - 1];
+          normalizedNextTabs[Math.max(0, closingIndex - 1)] ??
+          normalizedNextTabs[closingIndex] ??
+          normalizedNextTabs[normalizedNextTabs.length - 1];
         setActiveTabId(fallback?.id ?? "workbench");
       }
-      return normalizedNext;
+      return normalizedNextTabs;
     });
   }, [activeTabId, clearPendingTabRefs]);
 
   const removeTabById = useCallback((tabId: string) => {
     clearPendingTabRefs(tabId);
     setTabs((prev) => {
-      const closingIndex = prev.findIndex((item) => item.id === tabId);
-      if (closingIndex === -1) return prev;
-      const next = prev.filter((tab) => tab.id !== tabId);
-      const normalizedNext = next.length > 0 ? next : [WORKBENCH_TAB];
+      const { closingIndex, normalizedNextTabs, removed } = removeTabWithFallback(prev, tabId);
+      if (!removed) return prev;
       if (tabId === activeTabId) {
         const fallback =
-          normalizedNext[Math.max(0, closingIndex - 1)] ??
-          normalizedNext[closingIndex] ??
-          normalizedNext[normalizedNext.length - 1];
+          normalizedNextTabs[Math.max(0, closingIndex - 1)] ??
+          normalizedNextTabs[closingIndex] ??
+          normalizedNextTabs[normalizedNextTabs.length - 1];
         setActiveTabId(fallback?.id ?? "workbench");
       }
-      return normalizedNext;
+      return normalizedNextTabs;
     });
   }, [activeTabId, clearPendingTabRefs]);
   const resetTabs = useCallback(() => {
