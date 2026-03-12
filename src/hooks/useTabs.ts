@@ -97,6 +97,35 @@ function upsertTab(prev: TabItem[], tab: TabItem, activeTabId: string, shouldRep
   return changed ? next : prev;
 }
 
+function pruneTabsForWorlds(prev: TabItem[], activeTabId: string, worldIdsSet: Set<string>) {
+  const next: TabItem[] = [];
+  let changed = false;
+  let activeTabStillPresent = false;
+
+  for (const tab of prev) {
+    const keep = !tab.worldId || worldIdsSet.has(tab.worldId);
+    if (!keep) {
+      changed = true;
+      continue;
+    }
+    if (tab.id === activeTabId) {
+      activeTabStillPresent = true;
+    }
+    next.push(tab);
+  }
+
+  const normalizedNextTabs = next.length > 0 ? next : [WORKBENCH_TAB];
+  if (normalizedNextTabs.length !== prev.length) {
+    changed = true;
+  }
+
+  return {
+    activeTabStillPresent,
+    nextTabs: changed ? normalizedNextTabs : prev,
+    changed,
+  };
+}
+
 export function useTabs({
   activeProjectId,
   activeWorldId,
@@ -170,19 +199,12 @@ export function useTabs({
   useEffect(() => {
     if (!activeProjectId || tabsProjectId !== activeProjectId || worldIds.length === 0) return;
     setTabs((prev) => {
-      const next = prev.filter((tab) => !tab.worldId || worldIdsSet.has(tab.worldId));
-      const nextTabs = next.length > 0 ? next : [WORKBENCH_TAB];
-      if (!next.some((tab) => tab.id === activeTabId)) {
+      const { activeTabStillPresent, nextTabs, changed } = pruneTabsForWorlds(prev, activeTabId, worldIdsSet);
+      if (!activeTabStillPresent) {
         pendingTabOpenId.current = null;
         pendingWorldScopedTabId.current = null;
       }
-      if (
-        nextTabs.length === prev.length &&
-        nextTabs.every((tab, index) => tab === prev[index])
-      ) {
-        return prev;
-      }
-      return nextTabs;
+      return changed ? nextTabs : prev;
     });
   }, [activeProjectId, activeTabId, tabsProjectId, worldIds, worldIdsSet]);
 
