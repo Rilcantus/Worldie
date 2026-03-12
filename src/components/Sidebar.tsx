@@ -364,11 +364,12 @@ export function Sidebar({
                 <button
                   className="world-delete"
                   type="button"
+                  disabled={worlds.length <= 1}
                   onClick={(event) => {
                     event.stopPropagation();
                     onRemoveWorld(world.id);
                   }}
-                  title="Delete world"
+                  title={worlds.length <= 1 ? "Projects need at least one world" : "Delete world"}
                 >
                   {"\u00D7"}
                 </button>

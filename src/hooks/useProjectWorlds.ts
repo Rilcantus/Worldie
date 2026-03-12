@@ -435,6 +435,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   };
 
   const removeWorld = async (worldId: string) => {
+    if (worlds.length <= 1) {
+      showToast("A project needs at least one world.");
+      return;
+    }
     const confirmDelete = await confirmAction("Delete this world and all its data?");
     if (!confirmDelete) return;
     if (!activeProjectId) return;
