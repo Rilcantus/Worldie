@@ -38,14 +38,17 @@ export function useTabs({
 }: UseTabsArgs) {
   const [tabs, setTabs] = useState<TabItem[]>([WORKBENCH_TAB]);
   const [activeTabId, setActiveTabId] = useState("workbench");
+  const [tabsProjectId, setTabsProjectId] = useState<string | null>(null);
   const pendingTabOpenId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!activeProjectId) {
       setTabs([WORKBENCH_TAB]);
       setActiveTabId("workbench");
+      setTabsProjectId(null);
       return;
     }
+    setTabsProjectId(null);
     const next = loadProjectTabs(activeProjectId);
     if (next?.tabs?.length) {
       setTabs(next.tabs);
@@ -54,12 +57,13 @@ export function useTabs({
       setTabs([WORKBENCH_TAB]);
       setActiveTabId("workbench");
     }
+    setTabsProjectId(activeProjectId);
   }, [activeProjectId]);
 
   useEffect(() => {
-    if (!activeProjectId) return;
+    if (!activeProjectId || tabsProjectId !== activeProjectId) return;
     saveProjectTabs(activeProjectId, tabs, activeTabId);
-  }, [tabs, activeTabId, activeProjectId]);
+  }, [tabs, activeTabId, activeProjectId, tabsProjectId]);
 
   useEffect(() => {
     if (!tabs.some((tab) => tab.id === activeTabId)) {
@@ -68,7 +72,7 @@ export function useTabs({
   }, [tabs, activeTabId]);
 
   useEffect(() => {
-    if (!activeProjectId || worldIds.length === 0) return;
+    if (!activeProjectId || tabsProjectId !== activeProjectId || worldIds.length === 0) return;
     setTabs((prev) => {
       const next = prev.filter((tab) => !tab.worldId || worldIds.includes(tab.worldId));
       if (!next.some((tab) => tab.id === activeTabId)) {
@@ -76,7 +80,7 @@ export function useTabs({
       }
       return next.length > 0 ? next : [WORKBENCH_TAB];
     });
-  }, [activeProjectId, activeTabId, worldIds]);
+  }, [activeProjectId, activeTabId, tabsProjectId, worldIds]);
 
   useEffect(() => {
     const pendingId = pendingTabOpenId.current;
@@ -121,7 +125,7 @@ export function useTabs({
   const activeNav: TabKind = activeTab?.kind ?? "new";
 
   useEffect(() => {
-    if (!activeTab) return;
+    if (!activeTab || tabsProjectId !== activeProjectId) return;
     if (activeTab.kind === "editor" && activeTab.refId) {
       if (activeTab.worldId && activeTab.worldId !== activeWorldId) {
         pendingTabOpenId.current = activeTab.id;
@@ -147,6 +151,7 @@ export function useTabs({
     activeDocumentId,
     activeLoreId,
     activeTab,
+    activeProjectId,
     activeWorldId,
     allLorePages,
     documents,
@@ -154,6 +159,7 @@ export function useTabs({
     onSelectLorePage,
     resolveLoreTypeId,
     setActiveWorldId,
+    tabsProjectId,
   ]);
 
   const displayTabs = useMemo(() => {
