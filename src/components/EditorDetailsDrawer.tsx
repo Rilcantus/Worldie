@@ -141,6 +141,8 @@ export function EditorDetailsDrawer({
               <span>Ctrl/Cmd+Alt+N new document</span>
               <span>Ctrl/Cmd+Alt+D duplicate document</span>
               <span>Ctrl/Cmd+Alt+R rename document</span>
+              <span>Ctrl/Cmd+Enter duplicate line/block</span>
+              <span>Alt+Shift+Up or Down move line/block</span>
               <span>Ctrl/Cmd+Shift+[ or ] switch docs</span>
             </div>
           </div>

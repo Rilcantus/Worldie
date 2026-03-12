@@ -21,6 +21,7 @@ import {
   buildEditorDisplayRepresentation,
   clearCurrentLinePrefix,
   continueBlockPrefix,
+  duplicateSelectedLineBlock,
   countCharacters,
   countWords,
   displaySelectionToSource,
@@ -34,6 +35,7 @@ import {
   getSlashCommandMatch,
   normalizeEditorText,
   normalizePastedText,
+  moveSelectedLineBlock,
   renderPreviewContent,
   replaceRange,
   serializeEditorDom,
@@ -702,6 +704,11 @@ export function EditorView({
         insertLoreLink();
         return;
       }
+      if (key === "enter") {
+        event.preventDefault();
+        applyEditorUpdate((content, currentSelection) => duplicateSelectedLineBlock(content, currentSelection));
+        return;
+      }
     }
 
     if ((event.ctrlKey || event.metaKey) && event.altKey) {
@@ -790,6 +797,25 @@ export function EditorView({
       if (normalizedKey === "d" && !isFocusMode) {
         event.preventDefault();
         setIsDetailsOpen((current) => !current);
+        return;
+      }
+    }
+
+    if (event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey) {
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        applyEditorUpdate((content, currentSelection) => moveSelectedLineBlock(content, currentSelection, -1) ?? {
+          text: content,
+          selection: currentSelection,
+        });
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        applyEditorUpdate((content, currentSelection) => moveSelectedLineBlock(content, currentSelection, 1) ?? {
+          text: content,
+          selection: currentSelection,
+        });
         return;
       }
     }

@@ -291,6 +291,15 @@ export function replaceRange(text: string, start: number, end: number, replaceme
   return text.slice(0, start) + replacement + text.slice(end);
 }
 
+function getSelectedLineBlockRange(text: string, selection: SelectionOffsets) {
+  const start = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
+  const endSearchFrom = Math.max(selection.end - 1, start);
+  const endIndex = text.indexOf("\n", endSearchFrom);
+  const end = endIndex === -1 ? text.length : endIndex + 1;
+
+  return { start, end };
+}
+
 function stripKnownLinePrefix(line: string) {
   return line
     .replace(/^>\s*Note:\s*/i, "")
@@ -404,6 +413,58 @@ export function clearCurrentLinePrefix(text: string, selection: SelectionOffsets
     lineStart,
     contentStart: lineStart + currentPrefix.length,
     prefix: currentPrefix,
+  };
+}
+
+export function duplicateSelectedLineBlock(text: string, selection: SelectionOffsets) {
+  const block = getSelectedLineBlockRange(text, selection);
+  const blockText = text.slice(block.start, block.end);
+  const insertion = block.end === text.length && !blockText.endsWith("\n") ? `\n${blockText}` : blockText;
+  const nextText = replaceRange(text, block.end, block.end, insertion);
+  const offset = insertion.length;
+
+  return {
+    text: nextText,
+    selection: {
+      start: selection.start + offset,
+      end: selection.end + offset,
+    },
+  };
+}
+
+export function moveSelectedLineBlock(text: string, selection: SelectionOffsets, direction: -1 | 1) {
+  const block = getSelectedLineBlockRange(text, selection);
+  const currentBlock = text.slice(block.start, block.end);
+
+  if (direction < 0) {
+    if (block.start === 0) return null;
+    const previousEnd = block.start;
+    const previousStart = text.lastIndexOf("\n", Math.max(0, previousEnd - 2)) + 1;
+    const previousBlock = text.slice(previousStart, previousEnd);
+    const nextText = text.slice(0, previousStart) + currentBlock + previousBlock + text.slice(block.end);
+    const offset = -previousBlock.length;
+    return {
+      text: nextText,
+      selection: {
+        start: selection.start + offset,
+        end: selection.end + offset,
+      },
+    };
+  }
+
+  if (block.end >= text.length) return null;
+  const nextStart = block.end;
+  const nextEndIndex = text.indexOf("\n", nextStart);
+  const nextEnd = nextEndIndex === -1 ? text.length : nextEndIndex + 1;
+  const nextBlock = text.slice(nextStart, nextEnd);
+  const nextText = text.slice(0, block.start) + nextBlock + currentBlock + text.slice(nextEnd);
+  const offset = nextBlock.length;
+  return {
+    text: nextText,
+    selection: {
+      start: selection.start + offset,
+      end: selection.end + offset,
+    },
   };
 }
 
