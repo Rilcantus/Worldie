@@ -22,6 +22,8 @@ export function useStatusBarModel({
   saveState,
   saveTimestamp,
 }: UseStatusBarModelArgs) {
+  const activeWorldName = activeWorld?.name ?? "No world selected";
+
   return useMemo(() => {
     if (!hasActiveProject) {
       return {
@@ -62,11 +64,11 @@ export function useStatusBarModel({
 
     return {
       projectTitle,
-      worldName: activeWorld?.name ?? "No world selected",
+      worldName: activeWorldName,
       sectionLabel,
       detailLabel,
       saveState,
       saveTimestamp,
     };
-  }, [hasActiveProject, activeNav, projectTitle, activeWorld, documentTitle, loreTitle, saveState, saveTimestamp]);
+  }, [hasActiveProject, activeNav, projectTitle, activeWorldName, documentTitle, loreTitle, saveState, saveTimestamp]);
 }

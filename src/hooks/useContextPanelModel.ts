@@ -61,6 +61,9 @@ export function useContextPanelModel({
   recentDocuments,
   recentLorePages,
 }: UseContextPanelModelArgs) {
+  const activeWorldName = activeWorld?.name ?? "No world selected";
+  const openTabsCount = tabs.length;
+
   return useMemo(() => {
     const activeRelationship =
       relationships.find((relationship) => relationship.id === activeRelationshipId) ?? null;
@@ -105,9 +108,9 @@ export function useContextPanelModel({
                 ? "Timeline Event"
                 : activeNav === "templates"
                   ? "Templates"
-                  : activeNav === "ltypes"
-                    ? "Lore Types"
-                    : "Launcher";
+          : activeNav === "ltypes"
+            ? "Lore Types"
+            : "Launcher";
 
     const activeWordCount =
       activeNav === "editor"
@@ -174,10 +177,10 @@ export function useContextPanelModel({
             : "Create a relationship to see it summarized here."
           : activeNav === "templates"
             ? "Templates define the starter traits for new lore items."
-            : activeNav === "ltypes"
+          : activeNav === "ltypes"
               ? "Lore types drive sidebar navigation, filtering, and template assignment."
-              : activeWorld?.name
-                ? `${activeWorld.name} is currently active.`
+              : activeWorldName !== "No world selected"
+                ? `${activeWorldName} is currently active.`
                 : "No active world selected.";
 
     return {
@@ -187,15 +190,15 @@ export function useContextPanelModel({
       activePageType,
       activeWordCount,
       projectTotalWordCount: totalWordCount,
-      openTabsCount: tabs.length,
+      openTabsCount,
       linkedPages,
       tags,
       summary,
-      activeWorldName: activeWorld?.name ?? "No world selected",
+      activeWorldName,
     };
   }, [
     activeNav,
-    activeWorld,
+    activeWorldName,
     projectTitle,
     activeLoreTypeId,
     loreTypes,
@@ -215,7 +218,7 @@ export function useContextPanelModel({
     timelineLinkedPageId,
     timelineDescription,
     totalWordCount,
-    tabs,
+    openTabsCount,
     searchQuery,
     searchResults,
     recentDocuments,
