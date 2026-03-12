@@ -30,6 +30,7 @@ type TimelineViewProps = {
   onTypeChange: (value: string) => void;
   onLinkedPageChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
+  onOpenLore: (page: LorePage) => void;
 };
 
 const sortTimelineEvents = (events: TimelineEvent[]) =>
@@ -81,10 +82,12 @@ export function TimelineView({
   onTypeChange,
   onLinkedPageChange,
   onDescriptionChange,
+  onOpenLore,
 }: TimelineViewProps) {
   const [timelineSearch, setTimelineSearch] = useState("");
   const [timelineTypeFilter, setTimelineTypeFilter] = useState("all");
   const [timelineLinkedFilter, setTimelineLinkedFilter] = useState("all");
+  const [focusedTrackType, setFocusedTrackType] = useState<string | null>(null);
   const titleInputId = "timeline-title";
   const dateInputId = "timeline-date";
   const typeInputId = "timeline-type";
@@ -148,6 +151,10 @@ export function TimelineView({
     }
     return [...groups.entries()];
   }, [orderedEvents]);
+  const focusedTrackEvents = useMemo(() => {
+    if (!focusedTrackType) return [];
+    return groupedTimelineEvents.find(([label]) => label === focusedTrackType)?.[1] ?? [];
+  }, [focusedTrackType, groupedTimelineEvents]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -387,6 +394,7 @@ export function TimelineView({
               setTimelineSearch("");
               setTimelineTypeFilter("all");
               setTimelineLinkedFilter("all");
+              setFocusedTrackType(null);
             }}
           >
             Clear Filters
@@ -469,7 +477,15 @@ export function TimelineView({
                         <div className="timeline-rail-meta">
                           <span>{event.eventType || "General"}</span>
                           {linkedPage ? (
-                            <span className="timeline-link-chip">{linkedPage.title}</span>
+                            <span
+                              className="timeline-link-chip"
+                              onClick={(clickEvent) => {
+                                clickEvent.stopPropagation();
+                                onOpenLore(linkedPage);
+                              }}
+                            >
+                              {linkedPage.title}
+                            </span>
                           ) : null}
                         </div>
                       </div>
@@ -495,7 +511,10 @@ export function TimelineView({
                       timelineTypeFilter === label ? "active" : ""
                     }`}
                     type="button"
-                    onClick={() => setTimelineTypeFilter(label)}
+                    onClick={() => {
+                      setTimelineTypeFilter(label);
+                      setFocusedTrackType(label);
+                    }}
                   >
                     <span>{label}</span>
                     <span>{count}</span>
@@ -510,6 +529,13 @@ export function TimelineView({
               Shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+Alt+N new event, Ctrl/Cmd+Shift+[ or ] move
               through events, Ctrl/Cmd+Alt+Backspace delete selected.
             </div>
+            {focusedTrackType ? (
+              <div className="relationship-action-row">
+                <button className="tb-btn" type="button" onClick={() => setFocusedTrackType(null)}>
+                  Clear track focus
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -559,9 +585,14 @@ export function TimelineView({
                 <div key={label} className="timeline-track-group">
                   <div className="timeline-track-header">
                     <button
-                      className={`timeline-track-chip ${timelineTypeFilter === label ? "active" : ""}`}
+                      className={`timeline-track-chip ${
+                        timelineTypeFilter === label || focusedTrackType === label ? "active" : ""
+                      }`}
                       type="button"
-                      onClick={() => setTimelineTypeFilter(label)}
+                      onClick={() => {
+                        setTimelineTypeFilter(label);
+                        setFocusedTrackType((current) => (current === label ? null : label));
+                      }}
                     >
                       {label}
                     </button>
@@ -589,6 +620,48 @@ export function TimelineView({
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        <div className="lore-panel">
+          <div className="lore-panel-header">
+            <div className="linked-lore-label">Focused Track</div>
+          </div>
+          {!focusedTrackType ? (
+            <div className="rp-empty">Choose an event type or track chip to inspect a single track.</div>
+          ) : focusedTrackEvents.length === 0 ? (
+            <div className="rp-empty">{focusedTrackType} has no visible events in the current filters.</div>
+          ) : (
+            <>
+              <div className="advanced-json-note">
+                {focusedTrackType} track with {focusedTrackEvents.length} visible events.
+              </div>
+              <div className="timeline-track-list">
+                {focusedTrackEvents.slice(0, 6).map((event) => {
+                  const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                  return (
+                    <div key={`focus-${event.id}`} className="timeline-track-row">
+                      <button
+                        className={`timeline-track-item ${event.id === activeTimelineEventId ? "active" : ""}`}
+                        type="button"
+                        onClick={() => onSelectTimelineEvent(event)}
+                      >
+                        <span className="timeline-track-item-date">{event.eventDate || "Undated"}</span>
+                        <span className="timeline-track-item-title">{event.title}</span>
+                        <span className="timeline-track-item-meta">
+                          {linkedPage ? linkedPage.title : "No linked page"}
+                        </span>
+                      </button>
+                      {linkedPage ? (
+                        <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(linkedPage)}>
+                          Open
+                        </button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 
@@ -667,6 +740,13 @@ export function TimelineView({
                 <span>{activeLinkedPage?.title ?? "None"}</span>
               </div>
             </div>
+            {activeLinkedPage ? (
+              <div className="relationship-action-row">
+                <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(activeLinkedPage)}>
+                  Open linked lore page
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

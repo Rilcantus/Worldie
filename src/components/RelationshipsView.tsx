@@ -28,6 +28,7 @@ type RelationshipsViewProps = {
   onTargetChange: (value: string) => void;
   onTypeChange: (value: string) => void;
   onNotesChange: (value: string) => void;
+  onOpenLore: (page: LorePage) => void;
 };
 
 const relationLabel = (relationship: Relationship, lorePages: LorePage[]) => {
@@ -75,6 +76,7 @@ export function RelationshipsView({
   onTargetChange,
   onTypeChange,
   onNotesChange,
+  onOpenLore,
 }: RelationshipsViewProps) {
   const [relationshipSearch, setRelationshipSearch] = useState("");
   const [relationshipTypeFilter, setRelationshipTypeFilter] = useState("all");
@@ -630,17 +632,23 @@ export function RelationshipsView({
             ) : (
               <div className="structure-list">
                 {focusedConnections.map(({ relationship, counterpart }) => (
-                  <button
-                    key={relationship.id}
-                    className={`structure-list-item structure-list-item-button ${
-                      relationship.id === activeRelationshipId ? "active" : ""
-                    }`}
-                    type="button"
-                    onClick={() => onSelectRelationship(relationship)}
-                  >
-                    <span>{counterpart?.title ?? "Unknown page"}</span>
-                    <span>{relationship.relationType}</span>
-                  </button>
+                  <div key={relationship.id} className="relationship-list-row">
+                    <button
+                      className={`structure-list-item structure-list-item-button ${
+                        relationship.id === activeRelationshipId ? "active" : ""
+                      }`}
+                      type="button"
+                      onClick={() => onSelectRelationship(relationship)}
+                    >
+                      <span>{counterpart?.title ?? "Unknown page"}</span>
+                      <span>{relationship.relationType}</span>
+                    </button>
+                    {counterpart ? (
+                      <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(counterpart)}>
+                        Open
+                      </button>
+                    ) : null}
+                  </div>
                 ))}
               </div>
             )}
@@ -667,6 +675,18 @@ export function RelationshipsView({
                 Focused on {focusedPage.title}. Use the page filter, node buttons, or key-page buttons to pivot the graph.
               </div>
             ) : null}
+            {focusedPage ? (
+              <div className="relationship-action-row">
+                <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(focusedPage)}>
+                  Open focused page
+                </button>
+                {relationshipPageFilter !== "all" ? (
+                  <button className="tb-btn" type="button" onClick={() => setRelationshipPageFilter("all")}>
+                    Show full network
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -682,15 +702,21 @@ export function RelationshipsView({
             ) : (
               <div className="structure-list">
                 {keyPages.map(({ page, count }) => (
-                  <button
-                    key={page.id}
-                    className="structure-list-item structure-list-item-button"
-                    type="button"
-                    onClick={() => setRelationshipPageFilter(page.id)}
-                  >
-                    <span>{page.title}</span>
-                    <span>{count} links</span>
-                  </button>
+                  <div key={page.id} className="relationship-list-row">
+                    <button
+                      className={`structure-list-item structure-list-item-button ${
+                        relationshipPageFilter === page.id ? "active" : ""
+                      }`}
+                      type="button"
+                      onClick={() => setRelationshipPageFilter(page.id)}
+                    >
+                      <span>{page.title}</span>
+                      <span>{count} links</span>
+                    </button>
+                    <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(page)}>
+                      Open
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -777,6 +803,18 @@ export function RelationshipsView({
                 <span>Target</span>
                 <span>{activeTarget?.title ?? "Not set"}</span>
               </div>
+            </div>
+            <div className="relationship-action-row">
+              {activeSource ? (
+                <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(activeSource)}>
+                  Open source
+                </button>
+              ) : null}
+              {activeTarget ? (
+                <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(activeTarget)}>
+                  Open target
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}

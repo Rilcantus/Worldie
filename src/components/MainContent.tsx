@@ -364,6 +364,7 @@ export function MainContent(props: MainContentProps) {
               onTargetChange={props.onRelationshipTargetChange}
               onTypeChange={props.onRelationshipTypeChange}
               onNotesChange={props.onRelationshipNotesChange}
+              onOpenLore={props.onOpenLore}
             />
           ) : null}
 
@@ -396,6 +397,7 @@ export function MainContent(props: MainContentProps) {
               onTypeChange={props.onTimelineTypeChange}
               onLinkedPageChange={props.onTimelineLinkedPageChange}
               onDescriptionChange={props.onTimelineDescriptionChange}
+              onOpenLore={props.onOpenLore}
             />
           ) : null}
 
