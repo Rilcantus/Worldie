@@ -8,6 +8,7 @@ type UseStatusBarModelArgs = {
   documentTitle: string;
   loreTitle: string;
   saveState: "idle" | "dirty" | "saving" | "saved" | "error";
+  saveTimestamp: number | null;
 };
 
 export function useStatusBarModel({
@@ -17,6 +18,7 @@ export function useStatusBarModel({
   documentTitle,
   loreTitle,
   saveState,
+  saveTimestamp,
 }: UseStatusBarModelArgs) {
   return useMemo(() => {
     const sectionLabel =
@@ -51,6 +53,7 @@ export function useStatusBarModel({
       sectionLabel,
       detailLabel,
       saveState,
+      saveTimestamp,
     };
-  }, [activeNav, projectTitle, activeWorld, documentTitle, loreTitle, saveState]);
+  }, [activeNav, projectTitle, activeWorld, documentTitle, loreTitle, saveState, saveTimestamp]);
 }

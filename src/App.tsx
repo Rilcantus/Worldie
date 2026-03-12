@@ -143,6 +143,7 @@ export default function App() {
           documentContent={content.documentContent}
           documentFolderPath={content.documentFolderPath}
           documentSaveState={content.documentSaveState}
+          documentSaveTimestamp={content.documentLastSavedAt}
           lorePages={content.lorePages}
           activeLoreId={content.activeLoreId}
           activeLoreTypeId={content.activeLoreTypeId}
@@ -282,6 +283,7 @@ export default function App() {
         detailLabel={statusBarModel.detailLabel}
         projectFileLabel={projectWorlds.activeProject?.filepath ?? ""}
         saveState={statusBarModel.saveState}
+        saveTimestamp={statusBarModel.saveTimestamp}
       />
 
       <AppOverlays

@@ -9,6 +9,7 @@ type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 type EditorToolbarProps = {
   editorFormattingState: EditorFormattingState;
   saveState: SaveState;
+  saveTimestamp: number | null;
   onSave: () => void;
   onApplyRichFormat: (command: "bold" | "italic" | "underline") => void;
   onApplyLinePrefix: (prefix: string) => void;
@@ -44,6 +45,7 @@ type EditorToolbarProps = {
 export function EditorToolbar({
   editorFormattingState,
   saveState,
+  saveTimestamp,
   onSave,
   onApplyRichFormat,
   onApplyLinePrefix,
@@ -80,6 +82,13 @@ export function EditorToolbar({
     onCloseDocumentMenu();
   };
 
+  const formattedTimestamp = saveTimestamp
+    ? new Intl.DateTimeFormat(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(new Date(saveTimestamp))
+    : null;
+
   const saveLabel =
     saveState === "saving"
       ? "Saving..."
@@ -87,12 +96,27 @@ export function EditorToolbar({
         ? "Save"
         : saveState === "error"
           ? "Retry Save"
-          : "Saved";
+          : formattedTimestamp
+            ? `Saved ${formattedTimestamp}`
+            : "Saved";
+  const saveTitle =
+    saveState === "dirty" && formattedTimestamp
+      ? `Unsaved changes. Last saved ${formattedTimestamp}.`
+      : saveState === "error" && formattedTimestamp
+        ? `Save failed. Last successful save ${formattedTimestamp}.`
+        : saveState === "saved" && formattedTimestamp
+          ? `Last saved ${formattedTimestamp}.`
+          : undefined;
 
   return (
     <div className="editor-toolbar editor-toolbar-sticky">
       <div className="editor-toolbar-main">
-        <button className={`tb-btn tb-save save-state-${saveState}`} type="button" onClick={onSave}>
+        <button
+          className={`tb-btn tb-save save-state-${saveState}`}
+          type="button"
+          onClick={onSave}
+          title={saveTitle}
+        >
           {saveLabel}
         </button>
         <button

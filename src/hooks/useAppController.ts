@@ -178,6 +178,16 @@ export function useAppController() {
             : tabs.activeNav === "timeline"
               ? worldStructures.timelineSaveState
               : "saved",
+    saveTimestamp:
+      tabs.activeNav === "editor"
+        ? content.documentLastSavedAt
+        : tabs.activeNav === "lore"
+          ? content.loreLastSavedAt
+          : tabs.activeNav === "rels"
+            ? worldStructures.relationshipLastSavedAt
+            : tabs.activeNav === "timeline"
+              ? worldStructures.timelineLastSavedAt
+              : null,
   });
 
   const confirmProjectSwitch = async () => {

@@ -5,6 +5,7 @@ type AppStatusBarProps = {
   detailLabel: string;
   projectFileLabel: string;
   saveState: "idle" | "dirty" | "saving" | "saved" | "error";
+  saveTimestamp: number | null;
 };
 
 export function AppStatusBar({
@@ -14,18 +15,31 @@ export function AppStatusBar({
   detailLabel,
   projectFileLabel,
   saveState,
+  saveTimestamp,
 }: AppStatusBarProps) {
   const fileLabel = projectFileLabel
     ? projectFileLabel.split("\\").join("/").split("/").pop()
     : "No file open";
+  const formattedTimestamp = saveTimestamp
+    ? new Intl.DateTimeFormat(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(new Date(saveTimestamp))
+    : null;
   const saveLabel =
     saveState === "saving"
       ? "Saving"
       : saveState === "dirty"
-        ? "Unsaved"
+        ? formattedTimestamp
+          ? `Unsaved · last saved ${formattedTimestamp}`
+          : "Unsaved"
         : saveState === "error"
-          ? "Save failed"
-          : "Saved";
+          ? formattedTimestamp
+            ? `Save failed · last saved ${formattedTimestamp}`
+            : "Save failed"
+          : formattedTimestamp
+            ? `Saved ${formattedTimestamp}`
+            : "Saved";
   const saveClass = `sb-item sb-save-state sb-save-${saveState}`;
   return (
     <div className="status-bar">

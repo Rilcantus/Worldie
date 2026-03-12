@@ -40,6 +40,7 @@ type MainContentProps = {
   documentContent: string;
   documentFolderPath: string;
   documentSaveState: "idle" | "dirty" | "saving" | "saved" | "error";
+  documentSaveTimestamp: number | null;
   lorePages: LorePage[];
   activeLoreId: string | null;
   activeLoreTypeId: string | null;
@@ -225,6 +226,7 @@ export function MainContent(props: MainContentProps) {
               documentContent={props.documentContent}
               documentFolderPath={props.documentFolderPath}
               documentSaveState={props.documentSaveState}
+              documentSaveTimestamp={props.documentSaveTimestamp}
               activeWorld={props.activeWorld}
               onCollapseDocList={props.onCollapseDocList}
               onCollapseSidebar={props.onCollapseSidebar}

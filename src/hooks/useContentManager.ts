@@ -105,6 +105,7 @@ export function useContentManager({
   const [documentContent, setDocumentContent] = useState("");
   const [documentFolderPath, setDocumentFolderPath] = useState("");
   const [documentSaveState, setDocumentSaveState] = useState<SaveState>("idle");
+  const [documentLastSavedAt, setDocumentLastSavedAt] = useState<number | null>(null);
 
   const [lorePages, setLorePages] = useState<LorePage[]>([]);
   const [allLorePages, setAllLorePages] = useState<LorePage[]>([]);
@@ -115,6 +116,17 @@ export function useContentManager({
   const [lorePageTypeId, setLorePageTypeId] = useState<string | null>(defaultLoreTypeId);
   const [activeLoreTypeId, setActiveLoreTypeId] = useState<string | null>(defaultLoreTypeId);
   const [loreSaveState, setLoreSaveState] = useState<SaveState>("idle");
+  const [loreLastSavedAt, setLoreLastSavedAt] = useState<number | null>(null);
+
+  const markDocumentSaved = () => {
+    setDocumentSaveState("saved");
+    setDocumentLastSavedAt(Date.now());
+  };
+
+  const markLoreSaved = () => {
+    setLoreSaveState("saved");
+    setLoreLastSavedAt(Date.now());
+  };
 
   const resolveLoreTypeId = (page: LorePage) => {
     const parsed = parseLoreItemFields(page.fieldsJson);
@@ -194,6 +206,7 @@ export function useContentManager({
       setDocumentContent("");
       setDocumentFolderPath("");
       setDocumentSaveState("idle");
+      setDocumentLastSavedAt(null);
       return;
     }
     const loadDocs = async () => {
@@ -211,7 +224,7 @@ export function useContentManager({
       setDocumentTitle(first?.title ?? "");
       setDocumentContent(first?.contentJson ?? "");
       setDocumentFolderPath(first?.folderPath ?? "");
-      setDocumentSaveState("saved");
+      markDocumentSaved();
       setWorlds((prev) =>
         prev.map((world) =>
           world.id === activeWorldId ? { ...world, editorCount: docs.length } : world,
@@ -246,7 +259,7 @@ export function useContentManager({
         folderPath: documentFolderPath,
       })
         .then(() => {
-          setDocumentSaveState("saved");
+          markDocumentSaved();
         })
         .catch((error) => {
           setDocumentSaveState("error");
@@ -266,6 +279,7 @@ export function useContentManager({
       setLoreTags("");
       setLoreFields("");
       setLoreSaveState("idle");
+      setLoreLastSavedAt(null);
       return;
     }
     const loadLore = async () => {
@@ -307,7 +321,7 @@ export function useContentManager({
       setLoreTags(first?.tagsJson ?? "");
       setLoreFields(first?.fieldsJson ?? "");
       setLorePageTypeId(firstTypeId);
-      setLoreSaveState("saved");
+      markLoreSaved();
 
       const counts = Object.fromEntries(
         orderedLoreTypes.map((type) => [type.id, allPages.filter((page) => resolveLoreTypeId(page) === type.id).length]),
@@ -384,7 +398,7 @@ export function useContentManager({
         fieldsJson: nextFieldsJson,
       })
         .then(() => {
-          setLoreSaveState("saved");
+          markLoreSaved();
         })
         .catch((error) => {
           setLoreSaveState("error");
@@ -399,7 +413,7 @@ export function useContentManager({
     setDocumentTitle(doc.title);
     setDocumentContent(doc.contentJson ?? "");
     setDocumentFolderPath(doc.folderPath ?? "");
-    setDocumentSaveState("saved");
+    markDocumentSaved();
   };
 
   const addDocument = async () => {
@@ -418,7 +432,7 @@ export function useContentManager({
     setDocumentTitle(created.title);
     setDocumentContent(created.contentJson ?? "");
     setDocumentFolderPath(created.folderPath ?? "");
-    setDocumentSaveState("saved");
+    markDocumentSaved();
     setWorlds((prev) =>
       prev.map((world) =>
         world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
@@ -436,7 +450,7 @@ export function useContentManager({
         contentJson: documentContent,
         folderPath: documentFolderPath,
       });
-      setDocumentSaveState("saved");
+      markDocumentSaved();
     } catch (error) {
       setDocumentSaveState("error");
       showToast(error instanceof Error ? error.message : "Worldie could not save the document.");
@@ -470,7 +484,7 @@ export function useContentManager({
     setDocumentTitle(duplicated.title);
     setDocumentContent(duplicated.contentJson ?? "");
     setDocumentFolderPath(duplicated.folderPath ?? "");
-    setDocumentSaveState("saved");
+    markDocumentSaved();
     setWorlds((prev) =>
       prev.map((world) =>
         world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
@@ -498,7 +512,12 @@ export function useContentManager({
       setDocumentTitle(next?.title ?? "");
       setDocumentContent(next?.contentJson ?? "");
       setDocumentFolderPath(next?.folderPath ?? "");
-      setDocumentSaveState(next ? "saved" : "idle");
+      if (next) {
+        markDocumentSaved();
+      } else {
+        setDocumentSaveState("idle");
+        setDocumentLastSavedAt(null);
+      }
     }
     if (activeWorldId) {
       setWorlds((prev) =>
@@ -538,7 +557,7 @@ export function useContentManager({
     setLoreFields(normalizedFields);
     setLorePageTypeId(loreTypeId);
     setActiveLoreTypeId(loreTypeId);
-    setLoreSaveState("saved");
+    markLoreSaved();
   };
 
   const createLoreItem = async ({ title, loreTypeId, template, tags }: CreateLoreItemArgs) => {
@@ -572,7 +591,7 @@ export function useContentManager({
     setLorePages(nextPages);
     setActiveLoreTypeId(loreType.id);
     selectLorePage(createdItem);
-    setLoreSaveState("saved");
+    markLoreSaved();
     setWorlds((prev) =>
       prev.map((world) =>
         world.id === activeWorldId
@@ -606,7 +625,7 @@ export function useContentManager({
         tagsJson: loreTags,
         fieldsJson: nextFieldsJson,
       });
-      setLoreSaveState("saved");
+      markLoreSaved();
     } catch (error) {
       setLoreSaveState("error");
       showToast(error instanceof Error ? error.message : "Worldie could not save the lore item.");
@@ -635,7 +654,12 @@ export function useContentManager({
       setLoreTags(next?.tagsJson ?? "");
       setLoreFields(next?.fieldsJson ?? "");
       setLorePageTypeId(next ? resolveLoreTypeId(next) : defaultLoreTypeId);
-      setLoreSaveState(next ? "saved" : "idle");
+      if (next) {
+        markLoreSaved();
+      } else {
+        setLoreSaveState("idle");
+        setLoreLastSavedAt(null);
+      }
     }
     if (activeWorldId) {
       const counts = Object.fromEntries(
@@ -735,6 +759,7 @@ export function useContentManager({
     activeDocument,
     activeDocumentId,
     documentSaveState,
+    documentLastSavedAt,
     documentTitle,
     documentContent,
     documentFolderPath,
@@ -743,6 +768,7 @@ export function useContentManager({
     activeLore,
     activeLoreId,
     loreSaveState,
+    loreLastSavedAt,
     activeLoreFields,
     loreTitle,
     loreTags,

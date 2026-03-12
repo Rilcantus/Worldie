@@ -58,6 +58,7 @@ type EditorViewProps = {
   documentContent: string;
   documentFolderPath: string;
   documentSaveState: "idle" | "dirty" | "saving" | "saved" | "error";
+  documentSaveTimestamp: number | null;
   activeWorld?: WorldUI;
   onCollapseDocList: () => void;
   onCollapseSidebar: () => void;
@@ -99,6 +100,7 @@ export function EditorView({
   documentContent,
   documentFolderPath,
   documentSaveState,
+  documentSaveTimestamp,
   activeWorld,
   onCollapseDocList,
   onCollapseSidebar,
@@ -891,6 +893,7 @@ export function EditorView({
         <EditorToolbar
           editorFormattingState={editorFormattingState}
           saveState={documentSaveState}
+          saveTimestamp={documentSaveTimestamp}
           onSave={onSave}
           onApplyRichFormat={applyRichFormat}
           onApplyLinePrefix={applyLinePrefix}
