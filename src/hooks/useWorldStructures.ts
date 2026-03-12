@@ -57,11 +57,6 @@ export function useWorldStructures({
     setTimelineSaveState("saved");
     setTimelineLastSavedAt(Date.now());
   };
-  const starterRelationshipKey = useMemo(
-    () => allLorePages.slice(0, 2).map((page) => page.id).join(":"),
-    [allLorePages],
-  );
-  const starterTimelinePageId = allLorePages[0]?.id ?? "";
   const activeRelationship = useMemo(
     () => relationships.find((item) => item.id === activeRelationshipId) ?? null,
     [activeRelationshipId, relationships],
@@ -127,17 +122,8 @@ export function useWorldStructures({
     }
     const requestId = ++loadRequestId.current;
 
-    void listRelationships(activeProjectId, activeWorldId).then(async (items) => {
-      let nextItems = items;
-      if (items.length === 0 && allLorePages.length >= 2) {
-        const starter = await createRelationship(activeProjectId, activeWorldId, {
-          sourcePageId: allLorePages[0].id,
-          targetPageId: allLorePages[1].id,
-          relationType: "knows",
-          notes: "Starter connection to demonstrate relationship mapping.",
-        });
-        nextItems = [starter];
-      }
+    void listRelationships(activeProjectId, activeWorldId).then((items) => {
+      const nextItems = items;
       if (requestId !== loadRequestId.current) return;
       setRelationships(nextItems);
       const first = nextItems[0] ?? null;
@@ -151,18 +137,8 @@ export function useWorldStructures({
       showToast(error instanceof Error ? error.message : "Worldie could not load relationships for this world.");
     });
 
-    void listTimelineEvents(activeProjectId, activeWorldId).then(async (items) => {
-      let nextItems = items;
-      if (items.length === 0) {
-        const starter = await createTimelineEvent(activeProjectId, activeWorldId, {
-          title: "Founding Event",
-          eventDate: "Year 1",
-          eventType: "history",
-          linkedPageId: starterTimelinePageId,
-          description: "A starter milestone to anchor this world's timeline.",
-        });
-        nextItems = [starter];
-      }
+    void listTimelineEvents(activeProjectId, activeWorldId).then((items) => {
+      const nextItems = items;
       if (requestId !== loadRequestId.current) return;
       setTimelineEvents(nextItems);
       const first = nextItems[0] ?? null;
@@ -176,7 +152,7 @@ export function useWorldStructures({
     }).catch((error) => {
       showToast(error instanceof Error ? error.message : "Worldie could not load timeline events for this world.");
     });
-  }, [activeProjectId, activeWorldId, starterRelationshipKey, starterTimelinePageId]);
+  }, [activeProjectId, activeWorldId]);
 
   const selectRelationship = (relationship: Relationship) => {
     setActiveRelationshipId(relationship.id);

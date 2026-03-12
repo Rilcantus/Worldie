@@ -56,49 +56,6 @@ export function useContentManager({
   const docsLoadRequestId = useRef(0);
   const loreLoadRequestId = useRef(0);
 
-  const createStarterDocument = async (worldId: string) => {
-    if (!activeProjectId) return null;
-    const created = await createDocument(activeProjectId, worldId, "Welcome Note");
-    await updateDocument(activeProjectId, created.id, {
-      title: "Welcome Note",
-      contentJson:
-        "Use this document for chapter drafts, scene notes, or loose ideas.\n\nStart with a rough scene, then link out to lore pages as the world takes shape.",
-      folderPath: "Notes",
-    });
-    return {
-      ...created,
-      title: "Welcome Note",
-      contentJson:
-        "Use this document for chapter drafts, scene notes, or loose ideas.\n\nStart with a rough scene, then link out to lore pages as the world takes shape.",
-      folderPath: "Notes",
-    } satisfies Document;
-  };
-
-  const createStarterLorePage = async (worldId: string, loreTypeName: string, title: string, traits: Array<{ name: string; value: string }>, tagsJson: string) => {
-    if (!activeProjectId) return null;
-    const loreType = getLoreTypeByName(orderedLoreTypes, loreTypeName) ?? orderedLoreTypes[0] ?? null;
-    const created = await createLorePage(activeProjectId, worldId, title, loreType?.name ?? loreTypeName);
-    const fieldsJson = stringifyLoreItemFields({
-      loreTypeId: loreType?.id ?? null,
-      templateId: null,
-      traits: traits.map((trait) => ({ id: crypto.randomUUID(), name: trait.name, value: trait.value })),
-      details: "",
-    });
-    await updateLorePage(activeProjectId, created.id, {
-      title,
-      type: loreType?.name ?? loreTypeName,
-      tagsJson,
-      fieldsJson,
-    });
-    return {
-      ...created,
-      title,
-      type: loreType?.name ?? loreTypeName,
-      tagsJson,
-      fieldsJson,
-    } satisfies LorePage;
-  };
-
   const [documents, setDocuments] = useState<Document[]>([]);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const [documentTitle, setDocumentTitle] = useState("");
@@ -211,13 +168,8 @@ export function useContentManager({
     }
     const loadDocs = async () => {
       const requestId = ++docsLoadRequestId.current;
-      let docs = await listDocuments(activeProjectId, activeWorldId);
+      const docs = await listDocuments(activeProjectId, activeWorldId);
       if (requestId !== docsLoadRequestId.current) return;
-      if (docs.length === 0) {
-        const starter = await createStarterDocument(activeWorldId);
-        if (requestId !== docsLoadRequestId.current) return;
-        docs = starter ? [starter] : [];
-      }
       setDocuments(docs);
       const first = docs[0] ?? null;
       setActiveDocumentId(first?.id ?? null);
@@ -284,32 +236,8 @@ export function useContentManager({
     }
     const loadLore = async () => {
       const requestId = ++loreLoadRequestId.current;
-      let allPages = await listLorePages(activeProjectId, activeWorldId);
+      const allPages = await listLorePages(activeProjectId, activeWorldId);
       if (requestId !== loreLoadRequestId.current) return;
-      if (allPages.length === 0) {
-        const starterCharacter = await createStarterLorePage(
-          activeWorldId,
-          "Character",
-          "Starter Character",
-          [
-            { name: "Role", value: "protagonist" },
-            { name: "Status", value: "draft" },
-          ],
-          "starter, character",
-        );
-        const starterPlace = await createStarterLorePage(
-          activeWorldId,
-          "Place",
-          "Starter Place",
-          [
-            { name: "Region", value: "unknown" },
-            { name: "Status", value: "draft" },
-          ],
-          "starter, place",
-        );
-        if (requestId !== loreLoadRequestId.current) return;
-        allPages = [starterCharacter, starterPlace].filter(Boolean) as LorePage[];
-      }
       const currentTypeId = activeLoreTypeId ?? defaultLoreTypeId;
       const pages = allPages.filter((page) => resolveLoreTypeId(page) === currentTypeId);
       setAllLorePages(allPages);
