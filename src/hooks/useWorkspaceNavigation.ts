@@ -39,6 +39,29 @@ export function useWorkspaceNavigation({
   const pendingOpen = useRef<{ kind: "editor" | "loreRoot" | "loreCategory"; worldId: string; loreTypeId?: string } | null>(
     null,
   );
+  const documentsById = useMemo(() => new Map(documents.map((doc) => [doc.id, doc])), [documents]);
+  const lorePagesById = useMemo(() => new Map(allLorePages.map((page) => [page.id, page])), [allLorePages]);
+  const firstLorePageByWorld = useMemo(() => {
+    const map = new Map<string, LorePage>();
+    for (const page of allLorePages) {
+      if (!map.has(page.worldId)) {
+        map.set(page.worldId, page);
+      }
+    }
+    return map;
+  }, [allLorePages]);
+  const firstLorePageByWorldAndType = useMemo(() => {
+    const map = new Map<string, LorePage>();
+    for (const page of allLorePages) {
+      const loreTypeId = resolveLoreTypeId(page);
+      if (!loreTypeId) continue;
+      const key = `${page.worldId}:${loreTypeId}`;
+      if (!map.has(key)) {
+        map.set(key, page);
+      }
+    }
+    return map;
+  }, [allLorePages, resolveLoreTypeId]);
 
   useEffect(() => {
     if (!activeWorldId) {
@@ -62,13 +85,11 @@ export function useWorkspaceNavigation({
     pendingOpen.current = null;
     const nextPage =
       pending.kind === "loreRoot"
-        ? allLorePages.find((page) => page.worldId === activeWorldId) ?? null
-        : allLorePages.find(
-            (page) => page.worldId === activeWorldId && resolveLoreTypeId(page) === pending.loreTypeId,
-          ) ?? null;
+        ? firstLorePageByWorld.get(activeWorldId) ?? null
+        : firstLorePageByWorldAndType.get(`${activeWorldId}:${pending.loreTypeId}`) ?? null;
     if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
-  }, [activeWorldId, allLorePages, loreLoadedWorldId, openLoreCreateTab, openLoreTab, resolveLoreTypeId]);
+  }, [activeWorldId, firstLorePageByWorld, firstLorePageByWorldAndType, loreLoadedWorldId, openLoreCreateTab, openLoreTab]);
 
   const openEditorForWorld = useCallback((worldId: string) => {
     if (worldId !== activeWorldId) {
@@ -76,10 +97,10 @@ export function useWorkspaceNavigation({
       setActiveWorldId(worldId);
       return;
     }
-    const nextDoc = documents.find((doc) => doc.id === activeDocumentId) ?? documents[0];
+    const nextDoc = (activeDocumentId ? documentsById.get(activeDocumentId) : undefined) ?? documents[0];
     if (nextDoc) openDocumentTab(nextDoc);
     else openNewTab();
-  }, [activeDocumentId, activeWorldId, documents, openDocumentTab, openNewTab, setActiveWorldId]);
+  }, [activeDocumentId, activeWorldId, documents, documentsById, openDocumentTab, openNewTab, setActiveWorldId]);
 
   const openLoreRootForWorld = useCallback((worldId: string) => {
     setActiveLoreTypeId((current) => (current ? null : current));
@@ -89,15 +110,18 @@ export function useWorkspaceNavigation({
       return;
     }
     const nextPage =
-      allLorePages.find((page) => page.id === activeLoreId && page.worldId === worldId) ??
-      allLorePages.find((page) => page.worldId === worldId) ??
+      ((activeLoreId ? lorePagesById.get(activeLoreId) : null)?.worldId === worldId
+        ? lorePagesById.get(activeLoreId!)
+        : null) ??
+      firstLorePageByWorld.get(worldId) ??
       null;
     if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
   }, [
     activeLoreId,
     activeWorldId,
-    allLorePages,
+    firstLorePageByWorld,
+    lorePagesById,
     openLoreCreateTab,
     openLoreTab,
     setActiveLoreTypeId,
@@ -111,15 +135,14 @@ export function useWorkspaceNavigation({
       setActiveWorldId(worldId);
       return;
     }
-    const nextPage = allLorePages.find((page) => page.worldId === worldId && resolveLoreTypeId(page) === loreTypeId);
+    const nextPage = firstLorePageByWorldAndType.get(`${worldId}:${loreTypeId}`) ?? null;
     if (nextPage) openLoreTab(nextPage);
     else openLoreCreateTab();
   }, [
     activeWorldId,
-    allLorePages,
+    firstLorePageByWorldAndType,
     openLoreCreateTab,
     openLoreTab,
-    resolveLoreTypeId,
     setActiveLoreTypeId,
     setActiveWorldId,
   ]);
