@@ -120,6 +120,42 @@ export function useTabs({
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0] ?? null;
   const activeNav: TabKind = activeTab?.kind ?? "new";
 
+  useEffect(() => {
+    if (!activeTab) return;
+    if (activeTab.kind === "editor" && activeTab.refId) {
+      if (activeTab.worldId && activeTab.worldId !== activeWorldId) {
+        pendingTabOpenId.current = activeTab.id;
+        setActiveWorldId(activeTab.worldId);
+        return;
+      }
+      if (activeDocumentId === activeTab.refId) return;
+      const doc = documents.find((item) => item.id === activeTab.refId);
+      if (doc) onSelectDocument(doc);
+      return;
+    }
+    if (activeTab.kind === "lore" && activeTab.refId) {
+      if (activeTab.worldId && activeTab.worldId !== activeWorldId) {
+        pendingTabOpenId.current = activeTab.id;
+        setActiveWorldId(activeTab.worldId);
+        return;
+      }
+      if (activeLoreId === activeTab.refId) return;
+      const page = allLorePages.find((item) => item.id === activeTab.refId);
+      if (page) onSelectLorePage(page, resolveLoreTypeId(page));
+    }
+  }, [
+    activeDocumentId,
+    activeLoreId,
+    activeTab,
+    activeWorldId,
+    allLorePages,
+    documents,
+    onSelectDocument,
+    onSelectLorePage,
+    resolveLoreTypeId,
+    setActiveWorldId,
+  ]);
+
   const displayTabs = useMemo(() => {
     const priority: Record<TabKind, number> = {
       workbench: -1,
