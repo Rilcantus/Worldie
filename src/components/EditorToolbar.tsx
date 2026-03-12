@@ -1,4 +1,4 @@
-import { useEffect, useRef, type Ref } from "react";
+import { memo, useEffect, useRef, type Ref } from "react";
 import type { Document, LorePage } from "../lib/data";
 import type { EditorFormattingState } from "./editorCore";
 
@@ -43,7 +43,7 @@ type EditorToolbarProps = {
   onSetEditorMode: (mode: EditorPresentationMode) => void;
 };
 
-export function EditorToolbar({
+export const EditorToolbar = memo(function EditorToolbar({
   editorFormattingState,
   saveState,
   saveTimestamp,
@@ -422,4 +422,4 @@ export function EditorToolbar({
       </div>
     </div>
   );
-}
+});

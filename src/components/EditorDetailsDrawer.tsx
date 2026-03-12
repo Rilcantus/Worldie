@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { LorePage } from "../lib/data";
 
 type EditorDetailsDrawerProps = {
@@ -12,7 +13,7 @@ type EditorDetailsDrawerProps = {
   selectedWordCount: number;
 };
 
-export function EditorDetailsDrawer({
+export const EditorDetailsDrawer = memo(function EditorDetailsDrawer({
   documentFolderPath,
   onFolderPathChange,
   linkedLorePages,
@@ -150,4 +151,4 @@ export function EditorDetailsDrawer({
       </div>
     </div>
   );
-}
+});

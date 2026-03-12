@@ -1,4 +1,4 @@
-import type { Ref } from "react";
+import { memo, type Ref } from "react";
 
 type SlashCommandOption = {
   id: string;
@@ -15,7 +15,7 @@ type EditorSlashMenuProps = {
   onApplySlashCommand: (commandId: string) => void;
 };
 
-export function EditorSlashMenu({
+export const EditorSlashMenu = memo(function EditorSlashMenu({
   slashMenuRef,
   slashMenuPosition,
   filteredSlashCommands,
@@ -54,4 +54,4 @@ export function EditorSlashMenu({
       )}
     </div>
   );
-}
+});

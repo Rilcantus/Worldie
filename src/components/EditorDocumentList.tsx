@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Document } from "../lib/data";
 
 type DocumentFolderGroup = {
@@ -17,7 +18,7 @@ type EditorDocumentListProps = {
   onRemoveDocument: (docId: string) => void;
 };
 
-export function EditorDocumentList({
+export const EditorDocumentList = memo(function EditorDocumentList({
   isDocListCollapsed,
   docListWidth,
   activeDocumentId,
@@ -97,4 +98,4 @@ export function EditorDocumentList({
       ) : null}
     </div>
   );
-}
+});

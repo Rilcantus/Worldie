@@ -1,4 +1,4 @@
-import type { ClipboardEvent, KeyboardEvent, ReactNode, Ref } from "react";
+import { memo, type ClipboardEvent, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import type { LorePage } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 import { EditorDetailsDrawer } from "./EditorDetailsDrawer";
@@ -36,7 +36,7 @@ type EditorSurfaceProps = {
   selectedWordCount: number;
 };
 
-export function EditorSurface({
+export const EditorSurface = memo(function EditorSurface({
   titleInputRef,
   editorRef,
   documentTitle,
@@ -161,4 +161,4 @@ export function EditorSurface({
       ) : null}
     </div>
   );
-}
+});
