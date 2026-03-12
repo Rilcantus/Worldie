@@ -21,6 +21,16 @@ type UseTabsArgs = {
 
 const WORKBENCH_TAB: TabItem = { id: "workbench", kind: "workbench", label: "Workbench", icon: "W" };
 
+function isWorkbenchOnlyTabState(tabs: TabItem[]) {
+  return (
+    tabs.length === 1 &&
+    tabs[0].id === WORKBENCH_TAB.id &&
+    tabs[0].kind === WORKBENCH_TAB.kind &&
+    tabs[0].label === WORKBENCH_TAB.label &&
+    tabs[0].icon === WORKBENCH_TAB.icon
+  );
+}
+
 export function useTabs({
   activeProjectId,
   activeWorldId,
@@ -55,23 +65,24 @@ export function useTabs({
     if (!activeProjectId) {
       pendingTabOpenId.current = null;
       pendingWorldScopedTabId.current = null;
-      setTabs([WORKBENCH_TAB]);
-      setActiveTabId("workbench");
-      setTabsProjectId(null);
+      setTabs((current) => (isWorkbenchOnlyTabState(current) ? current : [WORKBENCH_TAB]));
+      setActiveTabId((current) => (current === "workbench" ? current : "workbench"));
+      setTabsProjectId((current) => (current === null ? current : null));
       return;
     }
     pendingTabOpenId.current = null;
     pendingWorldScopedTabId.current = null;
-    setTabsProjectId(null);
+    setTabsProjectId((current) => (current === null ? current : null));
     const next = loadProjectTabs(activeProjectId);
     if (next?.tabs?.length) {
       setTabs(next.tabs);
-      setActiveTabId(next.activeTabId ?? next.tabs[0].id);
+      const nextActiveTabId = next.activeTabId ?? next.tabs[0].id;
+      setActiveTabId((current) => (current === nextActiveTabId ? current : nextActiveTabId));
     } else {
-      setTabs([WORKBENCH_TAB]);
-      setActiveTabId("workbench");
+      setTabs((current) => (isWorkbenchOnlyTabState(current) ? current : [WORKBENCH_TAB]));
+      setActiveTabId((current) => (current === "workbench" ? current : "workbench"));
     }
-    setTabsProjectId(activeProjectId);
+    setTabsProjectId((current) => (current === activeProjectId ? current : activeProjectId));
   }, [activeProjectId]);
 
   useEffect(() => {
@@ -81,7 +92,8 @@ export function useTabs({
 
   useEffect(() => {
     if (!tabs.some((tab) => tab.id === activeTabId)) {
-      setActiveTabId(tabs[0]?.id ?? "workbench");
+      const fallbackTabId = tabs[0]?.id ?? "workbench";
+      setActiveTabId((current) => (current === fallbackTabId ? current : fallbackTabId));
     }
   }, [tabs, activeTabId]);
 
@@ -425,15 +437,7 @@ export function useTabs({
   };
   const resetTabs = () => {
     clearPendingTabRefs();
-    setTabs((current) =>
-      current.length === 1 &&
-      current[0].id === WORKBENCH_TAB.id &&
-      current[0].kind === WORKBENCH_TAB.kind &&
-      current[0].label === WORKBENCH_TAB.label &&
-      current[0].icon === WORKBENCH_TAB.icon
-        ? current
-        : [WORKBENCH_TAB],
-    );
+    setTabs((current) => (isWorkbenchOnlyTabState(current) ? current : [WORKBENCH_TAB]));
     setActiveTabId((current) => (current === "workbench" ? current : "workbench"));
   };
 
