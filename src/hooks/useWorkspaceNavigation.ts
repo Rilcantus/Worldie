@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import type { Document, LorePage } from "../lib/data";
 
 type UseWorkspaceNavigationArgs = {
@@ -11,8 +11,8 @@ type UseWorkspaceNavigationArgs = {
   lorePages: LorePage[];
   allLorePages: LorePage[];
   resolveLoreTypeId: (page: LorePage) => string | null;
-  setActiveWorldId: (worldId: string) => void;
-  setActiveLoreTypeId: (loreTypeId: string | null) => void;
+  setActiveWorldId: Dispatch<SetStateAction<string | null>>;
+  setActiveLoreTypeId: Dispatch<SetStateAction<string | null>>;
   openDocumentTab: (doc: Document) => void;
   openLoreTab: (page: LorePage) => void;
   openLoreCreateTab: () => void;
@@ -82,7 +82,7 @@ export function useWorkspaceNavigation({
   };
 
   const openLoreRootForWorld = (worldId: string) => {
-    setActiveLoreTypeId(null);
+    setActiveLoreTypeId((current) => (current ? null : current));
     if (worldId !== activeWorldId) {
       pendingOpen.current = { kind: "loreRoot", worldId };
       setActiveWorldId(worldId);
@@ -97,7 +97,7 @@ export function useWorkspaceNavigation({
   };
 
   const openLoreCategoryForWorld = (worldId: string, loreTypeId: string) => {
-    setActiveLoreTypeId(loreTypeId);
+    setActiveLoreTypeId((current) => (current === loreTypeId ? current : loreTypeId));
     if (worldId !== activeWorldId) {
       pendingOpen.current = { kind: "loreCategory", worldId, loreTypeId };
       setActiveWorldId(worldId);
