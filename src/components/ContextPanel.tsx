@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Document, LorePage } from "../lib/data";
 import type { SearchResult } from "../hooks/useSearch";
 
@@ -51,7 +52,7 @@ type ContextPanelProps = {
   onOpenLore: (page: LorePage) => void;
 };
 
-export function ContextPanel({
+export const ContextPanel = memo(function ContextPanel({
   isCollapsed,
   width,
   model,
@@ -213,4 +214,4 @@ export function ContextPanel({
       ) : null}
     </div>
   );
-}
+});

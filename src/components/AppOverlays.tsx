@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type { SearchResult } from "../hooks/useSearch";
 
 type ConfirmState = { message: string } | null;
@@ -23,7 +23,7 @@ type AppOverlaysProps = {
   onQuickOpenSelect: (result: SearchResult) => void;
 };
 
-export function AppOverlays({
+export const AppOverlays = memo(function AppOverlays({
   confirmState,
   toast,
   quickOpenState,
@@ -255,4 +255,4 @@ export function AppOverlays({
       ) : null}
     </>
   );
-}
+});

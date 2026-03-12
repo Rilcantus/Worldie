@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { TabItem } from "../types/ui";
 
 type TabBarProps = {
@@ -8,7 +9,7 @@ type TabBarProps = {
   onAdd: () => void;
 };
 
-export function TabBar({ tabs, activeTabId, onSelect, onClose, onAdd }: TabBarProps) {
+export const TabBar = memo(function TabBar({ tabs, activeTabId, onSelect, onClose, onAdd }: TabBarProps) {
   return (
     <div className="tab-bar" role="tablist" aria-label="Open pages">
       {tabs.map((tab) => {
@@ -47,4 +48,4 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onAdd }: TabBarPr
       </button>
     </div>
   );
-}
+});
