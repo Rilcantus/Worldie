@@ -43,6 +43,13 @@ const sortTimelineEvents = (events: TimelineEvent[]) =>
     return left.title.localeCompare(right.title);
   });
 
+const deriveEraLabel = (eventDate: string | null | undefined) => {
+  const normalized = (eventDate ?? "").trim();
+  if (!normalized) return "Undated";
+  const prefixMatch = normalized.match(/^([^,/-]{1,32})/);
+  return prefixMatch?.[1]?.trim() || "Undated";
+};
+
 const isEditableTarget = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) return false;
   const tagName = target.tagName;
@@ -88,6 +95,7 @@ export function TimelineView({
   const [timelineTypeFilter, setTimelineTypeFilter] = useState("all");
   const [timelineLinkedFilter, setTimelineLinkedFilter] = useState("all");
   const [focusedTrackType, setFocusedTrackType] = useState<string | null>(null);
+  const [focusedEra, setFocusedEra] = useState<string | null>(null);
   const titleInputId = "timeline-title";
   const dateInputId = "timeline-date";
   const typeInputId = "timeline-type";
@@ -151,10 +159,24 @@ export function TimelineView({
     }
     return [...groups.entries()];
   }, [orderedEvents]);
+  const groupedTimelineEras = useMemo(() => {
+    const groups = new Map<string, TimelineEvent[]>();
+    for (const event of orderedEvents) {
+      const key = deriveEraLabel(event.eventDate);
+      const existing = groups.get(key) ?? [];
+      existing.push(event);
+      groups.set(key, existing);
+    }
+    return [...groups.entries()];
+  }, [orderedEvents]);
   const focusedTrackEvents = useMemo(() => {
     if (!focusedTrackType) return [];
     return groupedTimelineEvents.find(([label]) => label === focusedTrackType)?.[1] ?? [];
   }, [focusedTrackType, groupedTimelineEvents]);
+  const focusedEraEvents = useMemo(() => {
+    if (!focusedEra) return [];
+    return groupedTimelineEras.find(([label]) => label === focusedEra)?.[1] ?? [];
+  }, [focusedEra, groupedTimelineEras]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -395,6 +417,7 @@ export function TimelineView({
               setTimelineTypeFilter("all");
               setTimelineLinkedFilter("all");
               setFocusedTrackType(null);
+              setFocusedEra(null);
             }}
           >
             Clear Filters
@@ -438,6 +461,13 @@ export function TimelineView({
             </div>
             <div className="structure-card-meta">
               Based on the current date labels entered in the timeline
+            </div>
+          </div>
+          <div className="structure-card">
+            <div className="structure-card-label">Era Groups</div>
+            <div className="structure-card-value">{groupedTimelineEras.length}</div>
+            <div className="structure-card-meta">
+              Date clusters inferred from your event labels and eras
             </div>
           </div>
         </div>
@@ -575,6 +605,57 @@ export function TimelineView({
 
         <div className="lore-panel">
           <div className="lore-panel-header">
+            <div className="linked-lore-label">Era Groups</div>
+          </div>
+          {groupedTimelineEras.length === 0 ? (
+            <div className="rp-empty">Era groupings will appear as your timeline gets dates.</div>
+          ) : (
+            <div className="timeline-track-groups">
+              {groupedTimelineEras.map(([label, events]) => (
+                <div key={label} className="timeline-track-group">
+                  <div className="timeline-track-header">
+                    <button
+                      className={`timeline-track-chip ${focusedEra === label ? "active" : ""}`}
+                      type="button"
+                      onClick={() => setFocusedEra((current) => (current === label ? null : label))}
+                    >
+                      {label}
+                    </button>
+                    <span className="timeline-track-count">{events.length} events</span>
+                  </div>
+                  <div className="timeline-track-list">
+                    {events.slice(0, 4).map((event) => {
+                      const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                      return (
+                        <div key={`${label}-${event.id}-era`} className="timeline-track-row">
+                          <button
+                            className={`timeline-track-item ${event.id === activeTimelineEventId ? "active" : ""}`}
+                            type="button"
+                            onClick={() => onSelectTimelineEvent(event)}
+                          >
+                            <span className="timeline-track-item-date">{event.eventDate || "Undated"}</span>
+                            <span className="timeline-track-item-title">{event.title}</span>
+                            <span className="timeline-track-item-meta">
+                              {linkedPage ? linkedPage.title : event.eventType || "General"}
+                            </span>
+                          </button>
+                          {linkedPage ? (
+                            <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(linkedPage)}>
+                              Open
+                            </button>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="lore-panel">
+          <div className="lore-panel-header">
             <div className="linked-lore-label">Type Tracks</div>
           </div>
           {groupedTimelineEvents.length === 0 ? (
@@ -660,6 +741,53 @@ export function TimelineView({
                     </div>
                   );
                 })}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="lore-panel">
+          <div className="lore-panel-header">
+            <div className="linked-lore-label">Focused Era</div>
+          </div>
+          {!focusedEra ? (
+            <div className="rp-empty">Choose an era chip to inspect one date cluster at a time.</div>
+          ) : focusedEraEvents.length === 0 ? (
+            <div className="rp-empty">{focusedEra} has no visible events in the current filters.</div>
+          ) : (
+            <>
+              <div className="advanced-json-note">
+                {focusedEra} contains {focusedEraEvents.length} visible events.
+              </div>
+              <div className="timeline-track-list">
+                {focusedEraEvents.slice(0, 6).map((event) => {
+                  const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                  return (
+                    <div key={`era-focus-${event.id}`} className="timeline-track-row">
+                      <button
+                        className={`timeline-track-item ${event.id === activeTimelineEventId ? "active" : ""}`}
+                        type="button"
+                        onClick={() => onSelectTimelineEvent(event)}
+                      >
+                        <span className="timeline-track-item-date">{event.eventDate || "Undated"}</span>
+                        <span className="timeline-track-item-title">{event.title}</span>
+                        <span className="timeline-track-item-meta">
+                          {event.eventType || linkedPage?.title || "General"}
+                        </span>
+                      </button>
+                      {linkedPage ? (
+                        <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(linkedPage)}>
+                          Open
+                        </button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="relationship-action-row">
+                <button className="tb-btn" type="button" onClick={() => setFocusedEra(null)}>
+                  Clear era focus
+                </button>
               </div>
             </>
           )}

@@ -81,6 +81,7 @@ export function RelationshipsView({
   const [relationshipSearch, setRelationshipSearch] = useState("");
   const [relationshipTypeFilter, setRelationshipTypeFilter] = useState("all");
   const [relationshipPageFilter, setRelationshipPageFilter] = useState("all");
+  const [graphScope, setGraphScope] = useState<"all" | "focused">("all");
   const sourceInputId = "relationship-source";
   const typeInputId = "relationship-type";
   const targetInputId = "relationship-target";
@@ -157,49 +158,6 @@ export function RelationshipsView({
     [filteredRelationships, relationshipPages],
   );
 
-  const networkNodes = useMemo(() => {
-    if (relationshipPages.length === 0) {
-      return [];
-    }
-
-    const centerX = 50;
-    const centerY = 50;
-    const radius = relationshipPages.length <= 1 ? 0 : 32;
-
-    return relationshipPages.slice(0, 10).map((page, index, pages) => {
-      const degree = filteredRelationships.filter(
-        (relationship) =>
-          relationship.sourcePageId === page.id || relationship.targetPageId === page.id,
-      ).length;
-      const angle = pages.length === 1 ? 0 : (index / pages.length) * Math.PI * 2 - Math.PI / 2;
-      const x = pages.length === 1 ? centerX : centerX + Math.cos(angle) * radius;
-      const y = pages.length === 1 ? centerY : centerY + Math.sin(angle) * radius;
-
-      return {
-        id: page.id,
-        title: page.title,
-        x: clamp(x, 12, 88),
-        y: clamp(y, 16, 84),
-        degree,
-      };
-    });
-  }, [filteredRelationships, relationshipPages]);
-
-  const networkEdges = useMemo(
-    () =>
-      filteredRelationships
-        .map((relationship) => {
-          const source = networkNodes.find((node) => node.id === relationship.sourcePageId);
-          const target = networkNodes.find((node) => node.id === relationship.targetPageId);
-          if (!source || !target) {
-            return null;
-          }
-          return { relationship, source, target };
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
-    [filteredRelationships, networkNodes],
-  );
-
   const focusedPage = useMemo(() => {
     if (relationshipPageFilter !== "all") {
       return lorePages.find((page) => page.id === relationshipPageFilter) ?? null;
@@ -237,6 +195,70 @@ export function RelationshipsView({
     }
     return [...counts.entries()].sort((left, right) => right[1] - left[1]);
   }, [focusedConnections]);
+
+  const graphRelationships = useMemo(() => {
+    if (graphScope !== "focused" || !focusedPage) {
+      return filteredRelationships;
+    }
+    return filteredRelationships.filter(
+      (relationship) =>
+        relationship.sourcePageId === focusedPage.id || relationship.targetPageId === focusedPage.id,
+    );
+  }, [filteredRelationships, focusedPage, graphScope]);
+
+  const graphPages = useMemo(
+    () =>
+      lorePages.filter((page) =>
+        graphRelationships.some(
+          (relationship) =>
+            relationship.sourcePageId === page.id || relationship.targetPageId === page.id,
+        ),
+      ),
+    [graphRelationships, lorePages],
+  );
+
+  const networkNodes = useMemo(() => {
+    if (graphPages.length === 0) {
+      return [];
+    }
+
+    const centerX = 50;
+    const centerY = 50;
+    const radius = graphPages.length <= 1 ? 0 : graphScope === "focused" ? 24 : 32;
+
+    return graphPages.slice(0, 10).map((page, index, pages) => {
+      const degree = graphRelationships.filter(
+        (relationship) =>
+          relationship.sourcePageId === page.id || relationship.targetPageId === page.id,
+      ).length;
+      const angle = pages.length === 1 ? 0 : (index / pages.length) * Math.PI * 2 - Math.PI / 2;
+      const x = pages.length === 1 ? centerX : centerX + Math.cos(angle) * radius;
+      const y = pages.length === 1 ? centerY : centerY + Math.sin(angle) * radius;
+
+      return {
+        id: page.id,
+        title: page.title,
+        x: clamp(x, 12, 88),
+        y: clamp(y, 16, 84),
+        degree,
+      };
+    });
+  }, [graphPages, graphRelationships, graphScope]);
+
+  const networkEdges = useMemo(
+    () =>
+      graphRelationships
+        .map((relationship) => {
+          const source = networkNodes.find((node) => node.id === relationship.sourcePageId);
+          const target = networkNodes.find((node) => node.id === relationship.targetPageId);
+          if (!source || !target) {
+            return null;
+          }
+          return { relationship, source, target };
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
+    [graphRelationships, networkNodes],
+  );
 
   const activeRelationship =
     relationships.find((relationship) => relationship.id === activeRelationshipId) ?? null;
@@ -487,6 +509,7 @@ export function RelationshipsView({
               setRelationshipSearch("");
               setRelationshipTypeFilter("all");
               setRelationshipPageFilter("all");
+              setGraphScope("all");
             }}
           >
             Clear Filters
@@ -506,9 +529,9 @@ export function RelationshipsView({
         <div className="structure-summary-grid">
           <div className="structure-card">
             <div className="structure-card-label">Connected Pages</div>
-            <div className="structure-card-value">{relationshipPages.length}</div>
+            <div className="structure-card-value">{graphPages.length}</div>
             <div className="structure-card-meta">
-              Lore entries participating in the current network
+              Lore entries participating in the {graphScope === "focused" ? "focused" : "current"} network
             </div>
           </div>
           <div className="structure-card">
@@ -537,8 +560,25 @@ export function RelationshipsView({
           <div className="lore-panel">
             <div className="lore-panel-header">
               <div className="linked-lore-label">Network Preview</div>
+              <div className="relationship-action-row">
+                <button
+                  className={`timeline-track-chip ${graphScope === "all" ? "active" : ""}`}
+                  type="button"
+                  onClick={() => setGraphScope("all")}
+                >
+                  Full Network
+                </button>
+                <button
+                  className={`timeline-track-chip ${graphScope === "focused" ? "active" : ""}`}
+                  type="button"
+                  onClick={() => setGraphScope("focused")}
+                  disabled={!focusedPage}
+                >
+                  Focused Radius
+                </button>
+              </div>
             </div>
-            {relationshipPages.length === 0 ? (
+            {graphPages.length === 0 ? (
               <div className="rp-empty">
                 Create a few linked lore pages to start seeing the world&apos;s connection web.
               </div>
@@ -612,6 +652,9 @@ export function RelationshipsView({
             <div className="advanced-json-note">
               This is still a lightweight preview, not the final graph map. It gives you a
               faster read on the shape of the world while editing.
+            </div>
+            <div className="advanced-json-note">
+              Graph scope: {graphScope === "focused" && focusedPage ? `focused on ${focusedPage.title}` : "full visible network"}.
             </div>
             <div className="advanced-json-note">
               Shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+Alt+N new relationship, Ctrl/Cmd+Shift+[ or
