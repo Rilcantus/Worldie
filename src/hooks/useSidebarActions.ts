@@ -9,7 +9,7 @@ type UseSidebarActionsArgs = {
   setEditingWorldId: (value: string | null) => void;
   removeWorld: (worldId: string) => Promise<void>;
   setActiveWorldId: (worldId: string) => void;
-  openSpecialTab: (kind: "rels" | "timeline") => void;
+  openSpecialTab: (kind: "rels" | "timeline", worldId?: string | null) => void;
 };
 
 export function useSidebarActions({
@@ -35,11 +35,11 @@ export function useSidebarActions({
     removeWorld: (worldId: string) => void removeWorld(worldId),
     openRelationshipsForWorld: (worldId: string) => {
       setActiveWorldId(worldId);
-      openSpecialTab("rels");
+      openSpecialTab("rels", worldId);
     },
     openTimelineForWorld: (worldId: string) => {
       setActiveWorldId(worldId);
-      openSpecialTab("timeline");
+      openSpecialTab("timeline", worldId);
     },
   };
 }

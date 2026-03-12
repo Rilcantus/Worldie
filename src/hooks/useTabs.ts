@@ -128,6 +128,10 @@ export function useTabs({
 
   useEffect(() => {
     if (!activeTab || tabsProjectId !== activeProjectId) return;
+    if ((activeTab.kind === "rels" || activeTab.kind === "timeline") && activeTab.worldId && activeTab.worldId !== activeWorldId) {
+      setActiveWorldId(activeTab.worldId);
+      return;
+    }
     if (activeTab.kind === "editor" && activeTab.refId) {
       if (activeTab.worldId && activeTab.worldId !== activeWorldId) {
         pendingTabOpenId.current = activeTab.id;
@@ -196,8 +200,14 @@ export function useTabs({
 
   const openWorkbenchTab = () => openTab(WORKBENCH_TAB);
 
-  const openSpecialTab = (kind: "rels" | "timeline") =>
-    openTab({ id: kind, kind, label: kind === "rels" ? "Relationships" : "Timeline", icon: kind === "rels" ? "R" : "T" });
+  const openSpecialTab = (kind: "rels" | "timeline", worldId = activeWorldId) =>
+    openTab({
+      id: kind,
+      kind,
+      label: kind === "rels" ? "Relationships" : "Timeline",
+      icon: kind === "rels" ? "R" : "T",
+      worldId,
+    });
 
   const openTemplatesTab = () => openTab({ id: "templates", kind: "templates", label: "Templates", icon: "S" });
   const openLoreTypesTab = () => openTab({ id: "loretypes", kind: "ltypes", label: "Lore Types", icon: "Y" });
@@ -231,6 +241,10 @@ export function useTabs({
 
   const handleTabSelect = (tab: TabItem) => {
     setActiveTabId(tab.id);
+    if ((tab.kind === "rels" || tab.kind === "timeline") && tab.worldId && tab.worldId !== activeWorldId) {
+      setActiveWorldId(tab.worldId);
+      return;
+    }
     if (tab.kind === "editor" && tab.refId) {
       if (tab.worldId && tab.worldId !== activeWorldId) {
         pendingTabOpenId.current = tab.id;
