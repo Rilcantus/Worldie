@@ -62,7 +62,7 @@ export function LauncherView({
         </div>
       </div>
 
-      <input className="doc-title-input" value="New Tab" readOnly />
+      <h1 className="doc-title-input">New Tab</h1>
       <div className="doc-meta">
         <div className="meta-tag">
           <div className="meta-dot"></div> Choose what to open

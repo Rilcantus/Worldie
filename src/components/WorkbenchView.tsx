@@ -74,8 +74,10 @@ export function WorkbenchView({
       ) : null}
 
       <div className="editor-toolbar">
-        <div className="tb-btn active">W</div>
-        <div className="tb-btn">Workbench</div>
+        <span className="tb-btn active" aria-current="page">
+          W
+        </span>
+        <span className="tb-btn">Workbench</span>
         <div className="tb-sep"></div>
         <button className="tb-btn" type="button" onClick={onAddDocument}>
           New Document
@@ -85,7 +87,7 @@ export function WorkbenchView({
         </button>
       </div>
 
-      <input className="doc-title-input" value={projectTitle} readOnly />
+      <h1 className="doc-title-input">{projectTitle}</h1>
       <div className="doc-meta">
         <div className="meta-tag">
           <div className="meta-dot"></div> {activeWorld?.name ?? "No world selected"}

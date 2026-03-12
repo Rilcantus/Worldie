@@ -82,7 +82,7 @@ export function TemplatesView({
         </button>
       </div>
 
-      <input className="doc-title-input" value="Template Management" readOnly />
+      <h1 className="doc-title-input">Template Management</h1>
       <div className="doc-meta">
         <div className="meta-tag">
           <div className="meta-dot"></div> Templates are reusable blueprints

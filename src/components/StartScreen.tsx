@@ -62,7 +62,7 @@ export function StartScreen({
                   <span className="start-recent-title">{project.title}</span>
                   <span className="start-recent-path">
                     {getProjectFilename(project)}
-                    {getProjectPathDisplay(project) ? ` · ${getProjectPathDisplay(project)}` : ""}
+                    {getProjectPathDisplay(project) ? ` - ${getProjectPathDisplay(project)}` : ""}
                   </span>
                 </button>
               ))}

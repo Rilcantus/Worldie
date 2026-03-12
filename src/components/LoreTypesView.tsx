@@ -85,7 +85,7 @@ export function LoreTypesView({
         </button>
       </div>
 
-      <input className="doc-title-input" value="Lore Types" readOnly />
+      <h1 className="doc-title-input">Lore Types</h1>
       <div className="doc-meta">
         <div className="meta-tag">
           <div className="meta-dot"></div> User-defined categories drive navigation, templates, and lore items
