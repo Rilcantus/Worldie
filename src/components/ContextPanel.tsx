@@ -85,7 +85,7 @@ export function ContextPanel({
                       onClick={() => onSelectSearchResult(result)}
                     >
                       <div className="rp-result-title">{result.label}</div>
-                      <div className="rp-result-meta">{result.typeLabel} · {model.activeWorldName}</div>
+                      <div className="rp-result-meta">{result.typeLabel} - {model.activeWorldName}</div>
                       <div className="rp-result-snippet">{result.snippet}</div>
                     </button>
                   ))

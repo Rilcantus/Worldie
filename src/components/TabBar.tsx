@@ -10,38 +10,35 @@ type TabBarProps = {
 
 export function TabBar({ tabs, activeTabId, onSelect, onClose, onAdd }: TabBarProps) {
   return (
-    <div className="tab-bar">
+    <div className="tab-bar" role="tablist" aria-label="Open pages">
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
         return (
-          <button
-            key={tab.id}
-            className={`tab ${isActive ? "active" : ""}`}
-            type="button"
-            onClick={() => onSelect(tab)}
-          >
-            <span className="tab-icon">{tab.icon}</span>
-            {tab.label}
+          <div key={tab.id} className={`tab ${isActive ? "active" : ""}`} role="presentation">
+            <button
+              className="tab-select"
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => onSelect(tab)}
+            >
+              <span className="tab-icon">{tab.icon}</span>
+              {tab.label}
+            </button>
             {tab.kind !== "new" || tab.refId ? (
-              <span
+              <button
                 className="tab-close"
-                role="button"
-                tabIndex={0}
+                type="button"
+                aria-label={`Close ${tab.label}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onClose(tab);
                 }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.stopPropagation();
-                    onClose(tab);
-                  }
-                }}
               >
-                ✕
-              </span>
+                x
+              </button>
             ) : null}
-          </button>
+          </div>
         );
       })}
       <button className="tab tab-add" type="button" title="Open a new page" onClick={onAdd}>

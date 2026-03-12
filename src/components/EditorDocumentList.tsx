@@ -1,4 +1,3 @@
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { Document } from "../lib/data";
 
 type DocumentFolderGroup = {
@@ -67,15 +66,11 @@ export function EditorDocumentList({
                     <span className="doc-folder-count">{group.docs.length}</span>
                   </div>
                   {group.docs.map((doc) => (
-                    <div
+                    <button
                       key={doc.id}
                       className={`doc-item ${doc.id === activeDocumentId ? "active" : ""}`}
-                      role="button"
-                      tabIndex={0}
+                      type="button"
                       onClick={() => onOpenDocument(doc)}
-                      onKeyDown={(event: ReactKeyboardEvent<HTMLDivElement>) => {
-                        if (event.key === "Enter") onOpenDocument(doc);
-                      }}
                     >
                       <div className="doc-item-info">
                         <div className="doc-item-title">{doc.title}</div>
@@ -91,7 +86,7 @@ export function EditorDocumentList({
                       >
                         x
                       </button>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ))

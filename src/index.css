@@ -554,10 +554,34 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   border-color: var(--border);
   border-bottom-color: var(--bg-panel);
 }
+.tab-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.tab-select:focus-visible,
+.tab .tab-close:focus-visible {
+  outline: 1px solid var(--accent-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 .tab .tab-icon { font-size: 11px; }
 .tab .tab-close {
-  font-size: 11px; color: var(--text-faint);
-  transition: color 0.12s; margin-left: 2px;
+  font-size: 11px;
+  color: var(--text-faint);
+  transition: color 0.12s;
+  margin-left: 2px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
 }
 .tab .tab-close:hover { color: var(--text-secondary); }
 

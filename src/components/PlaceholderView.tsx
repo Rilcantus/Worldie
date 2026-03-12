@@ -17,6 +17,8 @@ export function PlaceholderView({
   onExpandSidebar,
   onExpandRightPanel,
 }: PlaceholderViewProps) {
+  const isRelationships = activeNav === "rels";
+
   return (
     <div className="editor-pane">
       {isSidebarCollapsed || isRightPanelCollapsed ? (
@@ -30,7 +32,7 @@ export function PlaceholderView({
                 onClick={onExpandSidebar}
                 title="Expand sidebar (Ctrl+1)"
               >
-                ▶
+                &rsaquo;
               </button>
             </div>
           ) : null}
@@ -42,7 +44,7 @@ export function PlaceholderView({
                 onClick={onExpandRightPanel}
                 title="Expand panel (Ctrl+3)"
               >
-                ◀
+                &lsaquo;
               </button>
               <span>Context</span>
             </div>
@@ -51,10 +53,13 @@ export function PlaceholderView({
       ) : null}
 
       <div className="editor-toolbar">
-        <div className="tb-btn active">{activeNav === "rels" ? "🕸" : "⏳"}</div>
-        <div className="tb-btn">{activeNav === "rels" ? "Relationships" : "Timeline"}</div>
+        <span className="tb-btn active" aria-current="page">
+          {isRelationships ? "R" : "T"}
+        </span>
+        <span className="tb-btn">{isRelationships ? "Relationships" : "Timeline"}</span>
       </div>
 
+      <h1 className="doc-title-input">{isRelationships ? "Relationships" : "Timeline"}</h1>
       <div className="doc-meta">
         <div className="meta-tag">
           <div className="meta-dot"></div> {activeWorld?.name ?? "World"}
@@ -62,16 +67,11 @@ export function PlaceholderView({
         <div className="meta-tag">Coming soon</div>
       </div>
 
-      <textarea
-        className="doc-editor"
-        value={
-          activeNav === "rels"
-            ? "Relationship map is in the next MVP slice."
-            : "Timeline builder is in the next MVP slice."
-        }
-        onChange={() => {}}
-        readOnly
-      />
+      <div className="doc-empty">
+        {isRelationships
+          ? "Relationship map is in the next MVP slice."
+          : "Timeline builder is in the next MVP slice."}
+      </div>
     </div>
   );
 }
