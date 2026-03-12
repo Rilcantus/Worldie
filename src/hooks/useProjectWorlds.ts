@@ -100,6 +100,22 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
     }
   };
 
+  const applyActiveProject = async (project: Project | null) => {
+    if (!project) {
+      setActiveProjectId(null);
+      setProjectTitle("No Project Open");
+      setProjectDraft("");
+      setWorlds([]);
+      setActiveWorldId(null);
+      return false;
+    }
+    setActiveProjectId(project.id);
+    setProjectTitle(project.title);
+    setProjectDraft(project.title);
+    await hydrateWorlds(project.id);
+    return true;
+  };
+
   const hydrateWorlds = async (projectId: string) => {
     const requestId = ++hydrateRequestId.current;
     const storedWorlds = await listWorlds(projectId);
@@ -142,19 +158,12 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       setProjects(loadedProjects);
       const project = loadedProjects[0];
       if (!project) {
-        setActiveProjectId(null);
-        setProjectTitle("No Project Open");
-        setProjectDraft("");
-        setWorlds([]);
-        setActiveWorldId(null);
+        await applyActiveProject(null);
         setProjectActionState(IDLE_PROJECT_ACTION_STATE);
         return;
       }
-      setActiveProjectId(project.id);
-      setProjectTitle(project.title);
-      setProjectDraft(project.title);
       try {
-        await hydrateWorlds(project.id);
+        await applyActiveProject(project);
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not load worlds for the active project.");
       }
@@ -227,11 +236,8 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       setProjects(nextProjects);
       const project = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!project) return false;
-      setActiveProjectId(project.id);
-      setProjectTitle(project.title);
-      setProjectDraft(project.title);
       try {
-        await hydrateWorlds(project.id);
+        await applyActiveProject(project);
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not load the new project.");
         return false;
@@ -252,11 +258,8 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       setProjects(nextProjects);
       const project = nextProjects[0];
       if (!project) return false;
-      setActiveProjectId(project.id);
-      setProjectTitle(project.title);
-      setProjectDraft(project.title);
       try {
-        await hydrateWorlds(project.id);
+        await applyActiveProject(project);
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not load the demo project.");
         return false;
@@ -279,11 +282,8 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       setProjects(nextProjects);
       const project = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!project) return false;
-      setActiveProjectId(project.id);
-      setProjectTitle(project.title);
-      setProjectDraft(project.title);
       try {
-        await hydrateWorlds(project.id);
+        await applyActiveProject(project);
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not load that project.");
         return false;
@@ -297,7 +297,7 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       const project = projects.find((item) => item.id === projectId);
       if (!project?.filepath) {
         try {
-          const switched = await switchProject(projectId);
+          const switched = await applyActiveProject(project ?? null);
           if (!switched) {
             showToast("Worldie could not switch to that recent project.");
             return false;
@@ -318,11 +318,8 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       setProjects(nextProjects);
       const reopened = nextProjects.find((item) => item.filepath === project.filepath) ?? nextProjects[0];
       if (!reopened) return false;
-      setActiveProjectId(reopened.id);
-      setProjectTitle(reopened.title);
-      setProjectDraft(reopened.title);
       try {
-        await hydrateWorlds(reopened.id);
+        await applyActiveProject(reopened);
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not load that recent project.");
         return false;
@@ -347,11 +344,8 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       setProjects(nextProjects);
       const savedProject = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!savedProject) return false;
-      setActiveProjectId(savedProject.id);
-      setProjectTitle(savedProject.title);
-      setProjectDraft(savedProject.title);
       try {
-        await hydrateWorlds(savedProject.id);
+        await applyActiveProject(savedProject);
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not load the saved project copy.");
         return false;
@@ -363,12 +357,7 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
   const switchProject = async (projectId: string) => {
     return runProjectAction("switching", "Switching project...", async () => {
       const project = projects.find((item) => item.id === projectId);
-      if (!project) return false;
-      setActiveProjectId(project.id);
-      setProjectTitle(project.title);
-      setProjectDraft(project.title);
-      await hydrateWorlds(project.id);
-      return true;
+      return applyActiveProject(project ?? null);
     });
   };
 
@@ -433,18 +422,11 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
     setProjects(nextProjects);
     const next = nextProjects[0];
     if (!next) {
-      setActiveProjectId(null);
-      setProjectTitle("No Projects");
-      setProjectDraft("");
-      setWorlds([]);
-      setActiveWorldId(null);
+      await applyActiveProject(null);
       return;
     }
-    setActiveProjectId(next.id);
-    setProjectTitle(next.title);
-    setProjectDraft(next.title);
     try {
-      await hydrateWorlds(next.id);
+      await applyActiveProject(next);
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Worldie could not load the next available project.");
     }
