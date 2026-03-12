@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { listProjectLoreTemplates, saveProjectLoreTemplates } from "../lib/data";
 import {
   type LoreTemplate,
@@ -10,20 +10,25 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
   const [templates, setTemplates] = useState<LoreTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const loadRequestId = useRef(0);
 
   useEffect(() => {
     if (!activeProjectId || loreTypes.length === 0) {
+      loadRequestId.current += 1;
       setTemplates([]);
       setHasLoaded(false);
       return;
     }
     setHasLoaded(false);
+    const requestId = ++loadRequestId.current;
     void listProjectLoreTemplates(activeProjectId, loreTypes)
       .then((loaded) => {
+        if (requestId !== loadRequestId.current) return;
         setTemplates(loaded);
         setHasLoaded(true);
       })
       .catch(() => {
+        if (requestId !== loadRequestId.current) return;
         setTemplates([]);
         setHasLoaded(false);
       });

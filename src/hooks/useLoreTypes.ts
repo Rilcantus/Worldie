@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { listProjectLoreTypes, saveProjectLoreTypes } from "../lib/data";
 import {
   getDefaultLoreTypeId,
@@ -12,20 +12,25 @@ export function useLoreTypes(activeProjectId: string | null) {
   const sortedLoreTypes = useMemo(() => sortLoreTypes(loreTypes), [loreTypes]);
   const [selectedLoreTypeId, setSelectedLoreTypeId] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const loadRequestId = useRef(0);
 
   useEffect(() => {
     if (!activeProjectId) {
+      loadRequestId.current += 1;
       setLoreTypes([]);
       setHasLoaded(false);
       return;
     }
     setHasLoaded(false);
+    const requestId = ++loadRequestId.current;
     void listProjectLoreTypes(activeProjectId)
       .then((loaded) => {
+        if (requestId !== loadRequestId.current) return;
         setLoreTypes(loaded);
         setHasLoaded(true);
       })
       .catch(() => {
+        if (requestId !== loadRequestId.current) return;
         setLoreTypes([]);
         setHasLoaded(false);
       });
