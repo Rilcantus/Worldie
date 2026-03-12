@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LorePage, TimelineEvent } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 
@@ -41,6 +41,17 @@ const sortTimelineEvents = (events: TimelineEvent[]) =>
     if (right.eventDate) return 1;
     return left.title.localeCompare(right.title);
   });
+
+const isEditableTarget = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName;
+  return (
+    target.isContentEditable ||
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    tagName === "SELECT"
+  );
+};
 
 export function TimelineView({
   isDocListCollapsed,
@@ -137,6 +148,63 @@ export function TimelineView({
     }
     return [...groups.entries()];
   }, [orderedEvents]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const modifier = event.ctrlKey || event.metaKey;
+      const editableTarget = isEditableTarget(event.target);
+
+      if (modifier && !event.altKey && !event.shiftKey && key === "s") {
+        event.preventDefault();
+        onSave();
+        return;
+      }
+
+      if (editableTarget) {
+        return;
+      }
+
+      if (modifier && event.altKey && !event.shiftKey && key === "n") {
+        event.preventDefault();
+        onAddTimelineEvent();
+        return;
+      }
+
+      if (modifier && event.altKey && !event.shiftKey && (key === "backspace" || key === "delete")) {
+        if (!activeTimelineEventId) {
+          return;
+        }
+        event.preventDefault();
+        onRemoveTimelineEvent(activeTimelineEventId);
+        return;
+      }
+
+      if (modifier && event.shiftKey && !event.altKey && (key === "[" || key === "]")) {
+        if (orderedEvents.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        const currentIndex = orderedEvents.findIndex((timelineEvent) => timelineEvent.id === activeTimelineEventId);
+        const safeIndex = currentIndex === -1 ? 0 : currentIndex;
+        const nextIndex =
+          key === "]"
+            ? (safeIndex + 1) % orderedEvents.length
+            : (safeIndex - 1 + orderedEvents.length) % orderedEvents.length;
+        onSelectTimelineEvent(orderedEvents[nextIndex]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    activeTimelineEventId,
+    onAddTimelineEvent,
+    onRemoveTimelineEvent,
+    onSave,
+    onSelectTimelineEvent,
+    orderedEvents,
+  ]);
 
   return (
     <>
@@ -437,6 +505,10 @@ export function TimelineView({
             )}
             <div className="advanced-json-note">
               This is still a compact narrative timeline, not the final multi-track visualization.
+            </div>
+            <div className="advanced-json-note">
+              Shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+Alt+N new event, Ctrl/Cmd+Shift+[ or ] move
+              through events, Ctrl/Cmd+Alt+Backspace delete selected.
             </div>
           </div>
         </div>

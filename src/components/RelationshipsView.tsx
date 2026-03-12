@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LorePage, Relationship } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 
@@ -37,6 +37,17 @@ const relationLabel = (relationship: Relationship, lorePages: LorePage[]) => {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const isEditableTarget = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName;
+  return (
+    target.isContentEditable ||
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    tagName === "SELECT"
+  );
+};
 
 export function RelationshipsView({
   isDocListCollapsed,
@@ -229,6 +240,65 @@ export function RelationshipsView({
     relationships.find((relationship) => relationship.id === activeRelationshipId) ?? null;
   const activeSource = lorePages.find((page) => page.id === relationshipSourceId) ?? null;
   const activeTarget = lorePages.find((page) => page.id === relationshipTargetId) ?? null;
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const modifier = event.ctrlKey || event.metaKey;
+      const editableTarget = isEditableTarget(event.target);
+
+      if (modifier && !event.altKey && !event.shiftKey && key === "s") {
+        event.preventDefault();
+        onSave();
+        return;
+      }
+
+      if (editableTarget) {
+        return;
+      }
+
+      if (modifier && event.altKey && !event.shiftKey && key === "n") {
+        event.preventDefault();
+        onAddRelationship();
+        return;
+      }
+
+      if (modifier && event.altKey && !event.shiftKey && (key === "backspace" || key === "delete")) {
+        if (!activeRelationshipId) {
+          return;
+        }
+        event.preventDefault();
+        onRemoveRelationship(activeRelationshipId);
+        return;
+      }
+
+      if (modifier && event.shiftKey && !event.altKey && (key === "[" || key === "]")) {
+        if (filteredRelationships.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        const currentIndex = filteredRelationships.findIndex(
+          (relationship) => relationship.id === activeRelationshipId,
+        );
+        const safeIndex = currentIndex === -1 ? 0 : currentIndex;
+        const nextIndex =
+          key === "]"
+            ? (safeIndex + 1) % filteredRelationships.length
+            : (safeIndex - 1 + filteredRelationships.length) % filteredRelationships.length;
+        onSelectRelationship(filteredRelationships[nextIndex]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    activeRelationshipId,
+    filteredRelationships,
+    onAddRelationship,
+    onRemoveRelationship,
+    onSave,
+    onSelectRelationship,
+  ]);
 
   return (
     <>
@@ -540,6 +610,10 @@ export function RelationshipsView({
             <div className="advanced-json-note">
               This is still a lightweight preview, not the final graph map. It gives you a
               faster read on the shape of the world while editing.
+            </div>
+            <div className="advanced-json-note">
+              Shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+Alt+N new relationship, Ctrl/Cmd+Shift+[ or
+              ] move through links, Ctrl/Cmd+Alt+Backspace delete selected.
             </div>
           </div>
         </div>
