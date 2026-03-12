@@ -42,6 +42,15 @@ export function useTabs({
   const pendingTabOpenId = useRef<string | null>(null);
   const pendingWorldScopedTabId = useRef<string | null>(null);
 
+  const clearPendingTabRefs = (tabId?: string) => {
+    if (!tabId || pendingTabOpenId.current === tabId) {
+      pendingTabOpenId.current = null;
+    }
+    if (!tabId || pendingWorldScopedTabId.current === tabId) {
+      pendingWorldScopedTabId.current = null;
+    }
+  };
+
   useEffect(() => {
     if (!activeProjectId) {
       pendingTabOpenId.current = null;
@@ -302,6 +311,7 @@ export function useTabs({
   };
 
   const handleTabClose = (tab: TabItem) => {
+    clearPendingTabRefs(tab.id);
     setTabs((prev) => {
       const closingIndex = prev.findIndex((item) => item.id === tab.id);
       const next = prev.filter((item) => item.id !== tab.id);
@@ -318,6 +328,7 @@ export function useTabs({
   };
 
   const removeTabById = (tabId: string) => {
+    clearPendingTabRefs(tabId);
     setTabs((prev) => {
       const closingIndex = prev.findIndex((item) => item.id === tabId);
       if (closingIndex === -1) return prev;
@@ -334,6 +345,7 @@ export function useTabs({
     });
   };
   const resetTabs = () => {
+    clearPendingTabRefs();
     setTabs([WORKBENCH_TAB]);
     setActiveTabId("workbench");
   };
