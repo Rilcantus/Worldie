@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   createDocument,
   createLorePage,
@@ -105,26 +105,28 @@ export function useContentManager({
     setLoreLastSavedAt((current) => (current === null ? current : null));
   };
 
-  const markDocumentSaved = () => {
+  const markDocumentSaved = useCallback(() => {
     setDocumentSaveState("saved");
     setDocumentLastSavedAt(Date.now());
-  };
+  }, []);
 
-  const markLoreSaved = () => {
+  const markLoreSaved = useCallback(() => {
     setLoreSaveState("saved");
     setLoreLastSavedAt(Date.now());
-  };
+  }, []);
 
-  const resolveLoreTypeId = (page: LorePage) => {
+  const resolveLoreTypeId = useCallback((page: LorePage) => {
     const parsed = parseLoreItemFields(page.fieldsJson);
     if (parsed.loreTypeId && orderedLoreTypes.some((type) => type.id === parsed.loreTypeId)) {
       return parsed.loreTypeId;
     }
     return getLoreTypeByName(orderedLoreTypes, page.type)?.id ?? defaultLoreTypeId;
-  };
+  }, [defaultLoreTypeId, orderedLoreTypes]);
 
-  const getLoreType = (loreTypeId: string | null | undefined) =>
-    orderedLoreTypes.find((type) => type.id === loreTypeId) ?? null;
+  const getLoreType = useCallback(
+    (loreTypeId: string | null | undefined) => orderedLoreTypes.find((type) => type.id === loreTypeId) ?? null,
+    [orderedLoreTypes],
+  );
 
   const activeLoreType = getLoreType(activeLoreTypeId);
   const selectedLorePageType = getLoreType(lorePageTypeId);
@@ -427,7 +429,7 @@ export function useContentManager({
     return () => window.clearTimeout(handle);
   }, [activeProjectId, activeLoreId, loreFields, lorePageTypeId, loreTags, loreTitle, selectedLorePageTypeName]);
 
-  const selectDocument = (doc: Document) => {
+  const selectDocument = useCallback((doc: Document) => {
     const nextContent = doc.contentJson ?? "";
     const nextFolderPath = doc.folderPath ?? "";
     const changed =
@@ -441,7 +443,7 @@ export function useContentManager({
     setDocumentFolderPath((current) => (current === nextFolderPath ? current : nextFolderPath));
     if (!changed) return;
     markDocumentSaved();
-  };
+  }, [activeDocumentId, documentContent, documentFolderPath, documentTitle, markDocumentSaved]);
 
   const addDocument = async () => {
     if (!activeProjectId || !activeWorldId) return null;
@@ -581,7 +583,7 @@ export function useContentManager({
     return true;
   };
 
-  const selectLorePage = (page: LorePage) => {
+  const selectLorePage = useCallback((page: LorePage) => {
     const loreTypeId = resolveLoreTypeId(page);
     const parsedFields = parseLoreItemFields(page.fieldsJson);
     const normalizedFields = stringifyLoreItemFields({
@@ -604,7 +606,16 @@ export function useContentManager({
     setActiveLoreTypeId((current) => (current === loreTypeId ? current : loreTypeId));
     if (!changed) return;
     markLoreSaved();
-  };
+  }, [
+    activeLoreId,
+    activeLoreTypeId,
+    loreFields,
+    lorePageTypeId,
+    loreTags,
+    loreTitle,
+    markLoreSaved,
+    resolveLoreTypeId,
+  ]);
 
   const createLoreItem = async ({ title, loreTypeId, template, tags }: CreateLoreItemArgs) => {
     if (!activeProjectId || !activeWorldId) return null;
