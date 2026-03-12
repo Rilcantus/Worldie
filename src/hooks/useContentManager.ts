@@ -209,24 +209,39 @@ export function useContentManager({
     }
     const loadDocs = async () => {
       const requestId = ++docsLoadRequestId.current;
-      const docs = await listDocuments(activeProjectId, activeWorldId);
-      if (requestId !== docsLoadRequestId.current) return;
-      setDocuments(docs);
-      const first = docs[0] ?? null;
-      setActiveDocumentId(first?.id ?? null);
-      setDocumentTitle(first?.title ?? "");
-      setDocumentContent(first?.contentJson ?? "");
-      setDocumentFolderPath(first?.folderPath ?? "");
-      markDocumentSaved();
-      setWorlds((prev) =>
-        prev.map((world) =>
-          world.id === activeWorldId ? { ...world, editorCount: docs.length } : world,
-        ),
-      );
+      try {
+        const docs = await listDocuments(activeProjectId, activeWorldId);
+        if (requestId !== docsLoadRequestId.current) return;
+        setDocuments(docs);
+        const first = docs[0] ?? null;
+        setActiveDocumentId(first?.id ?? null);
+        setDocumentTitle(first?.title ?? "");
+        setDocumentContent(first?.contentJson ?? "");
+        setDocumentFolderPath(first?.folderPath ?? "");
+        markDocumentSaved();
+        setWorlds((prev) =>
+          prev.map((world) =>
+            world.id === activeWorldId ? { ...world, editorCount: docs.length } : world,
+          ),
+        );
+      } catch (error) {
+        if (requestId !== docsLoadRequestId.current) return;
+        setDocuments([]);
+        setActiveDocumentId(null);
+        setDocumentTitle("");
+        setDocumentContent("");
+        setDocumentFolderPath("");
+        setDocumentSaveState("error");
+        setDocumentLastSavedAt(null);
+        setWorlds((prev) =>
+          prev.map((world) =>
+            world.id === activeWorldId ? { ...world, editorCount: 0 } : world,
+          ),
+        );
+        showToast(error instanceof Error ? error.message : "Worldie could not load documents for this world.");
+      }
     };
-    void loadDocs().catch((error) => {
-      showToast(error instanceof Error ? error.message : "Worldie could not load documents for this world.");
-    });
+    void loadDocs();
   }, [activeProjectId, activeWorldId, setWorlds]);
 
   useEffect(() => {
@@ -277,44 +292,72 @@ export function useContentManager({
     }
     const loadLore = async () => {
       const requestId = ++loreLoadRequestId.current;
-      const allPages = await listLorePages(activeProjectId, activeWorldId);
-      if (requestId !== loreLoadRequestId.current) return;
-      const currentTypeId = activeLoreTypeId ?? defaultLoreTypeId;
-      const pages = allPages.filter((page) => resolveLoreTypeId(page) === currentTypeId);
-      setAllLorePages(allPages);
-      setLorePages(pages);
-      const first = pages[0] ?? null;
-      const firstTypeId = first ? resolveLoreTypeId(first) : currentTypeId;
-      setActiveLoreId(first?.id ?? null);
-      setLoreTitle(first?.title ?? "");
-      setLoreTags(first?.tagsJson ?? "");
-      setLoreFields(first?.fieldsJson ?? "");
-      setLorePageTypeId(firstTypeId);
-      markLoreSaved();
+      try {
+        const allPages = await listLorePages(activeProjectId, activeWorldId);
+        if (requestId !== loreLoadRequestId.current) return;
+        const currentTypeId = activeLoreTypeId ?? defaultLoreTypeId;
+        const pages = allPages.filter((page) => resolveLoreTypeId(page) === currentTypeId);
+        setAllLorePages(allPages);
+        setLorePages(pages);
+        const first = pages[0] ?? null;
+        const firstTypeId = first ? resolveLoreTypeId(first) : currentTypeId;
+        setActiveLoreId(first?.id ?? null);
+        setLoreTitle(first?.title ?? "");
+        setLoreTags(first?.tagsJson ?? "");
+        setLoreFields(first?.fieldsJson ?? "");
+        setLorePageTypeId(firstTypeId);
+        markLoreSaved();
 
-      const counts = Object.fromEntries(
-        orderedLoreTypes.map((type) => [type.id, allPages.filter((page) => resolveLoreTypeId(page) === type.id).length]),
-      );
-      setWorlds((prev) =>
-        prev.map((world) =>
-          world.id === activeWorldId
-            ? {
-                ...world,
-                loreCount: allPages.length,
-                loreCategories: orderedLoreTypes.map((type) => ({
-                  id: type.id,
-                  label: type.name,
-                  count: counts[type.id] ?? 0,
-                  isSystem: type.isSystem,
-                })),
-              }
-            : world,
-        ),
-      );
+        const counts = Object.fromEntries(
+          orderedLoreTypes.map((type) => [type.id, allPages.filter((page) => resolveLoreTypeId(page) === type.id).length]),
+        );
+        setWorlds((prev) =>
+          prev.map((world) =>
+            world.id === activeWorldId
+              ? {
+                  ...world,
+                  loreCount: allPages.length,
+                  loreCategories: orderedLoreTypes.map((type) => ({
+                    id: type.id,
+                    label: type.name,
+                    count: counts[type.id] ?? 0,
+                    isSystem: type.isSystem,
+                  })),
+                }
+              : world,
+          ),
+        );
+      } catch (error) {
+        if (requestId !== loreLoadRequestId.current) return;
+        setLorePages([]);
+        setAllLorePages([]);
+        setActiveLoreId(null);
+        setLoreTitle("");
+        setLoreTags("");
+        setLoreFields("");
+        setLorePageTypeId(activeLoreTypeId ?? defaultLoreTypeId);
+        setLoreSaveState("error");
+        setLoreLastSavedAt(null);
+        setWorlds((prev) =>
+          prev.map((world) =>
+            world.id === activeWorldId
+              ? {
+                  ...world,
+                  loreCount: 0,
+                  loreCategories: orderedLoreTypes.map((type) => ({
+                    id: type.id,
+                    label: type.name,
+                    count: 0,
+                    isSystem: type.isSystem,
+                  })),
+                }
+              : world,
+          ),
+        );
+        showToast(error instanceof Error ? error.message : "Worldie could not load lore for this world.");
+      }
     };
-    void loadLore().catch((error) => {
-      showToast(error instanceof Error ? error.message : "Worldie could not load lore for this world.");
-    });
+    void loadLore();
   }, [activeProjectId, activeWorldId, activeLoreTypeId, defaultLoreTypeId, orderedLoreTypes, setWorlds]);
 
   useEffect(() => {

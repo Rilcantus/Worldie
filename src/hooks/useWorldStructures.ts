@@ -122,36 +122,62 @@ export function useWorldStructures({
     }
     const requestId = ++loadRequestId.current;
 
-    void listRelationships(activeProjectId, activeWorldId).then((items) => {
-      const nextItems = items;
-      if (requestId !== loadRequestId.current) return;
-      setRelationships(nextItems);
-      const first = nextItems[0] ?? null;
-      setActiveRelationshipId(first?.id ?? null);
-      setRelationshipSourceId(first?.sourcePageId ?? "");
-      setRelationshipTargetId(first?.targetPageId ?? "");
-      setRelationshipType(first?.relationType ?? "ally");
-      setRelationshipNotes(first?.notes ?? "");
-      markRelationshipSaved();
-    }).catch((error) => {
-      showToast(error instanceof Error ? error.message : "Worldie could not load relationships for this world.");
-    });
+    const loadRelationships = async () => {
+      try {
+        const nextItems = await listRelationships(activeProjectId, activeWorldId);
+        if (requestId !== loadRequestId.current) return;
+        setRelationships(nextItems);
+        const first = nextItems[0] ?? null;
+        setActiveRelationshipId(first?.id ?? null);
+        setRelationshipSourceId(first?.sourcePageId ?? "");
+        setRelationshipTargetId(first?.targetPageId ?? "");
+        setRelationshipType(first?.relationType ?? "ally");
+        setRelationshipNotes(first?.notes ?? "");
+        markRelationshipSaved();
+      } catch (error) {
+        if (requestId !== loadRequestId.current) return;
+        setRelationships([]);
+        setActiveRelationshipId(null);
+        setRelationshipSourceId("");
+        setRelationshipTargetId("");
+        setRelationshipType("ally");
+        setRelationshipNotes("");
+        setRelationshipSaveState("error");
+        setRelationshipLastSavedAt(null);
+        showToast(error instanceof Error ? error.message : "Worldie could not load relationships for this world.");
+      }
+    };
 
-    void listTimelineEvents(activeProjectId, activeWorldId).then((items) => {
-      const nextItems = items;
-      if (requestId !== loadRequestId.current) return;
-      setTimelineEvents(nextItems);
-      const first = nextItems[0] ?? null;
-      setActiveTimelineEventId(first?.id ?? null);
-      setTimelineTitle(first?.title ?? "");
-      setTimelineDate(first?.eventDate ?? "");
-      setTimelineType(first?.eventType ?? "event");
-      setTimelineLinkedPageId(first?.linkedPageId ?? "");
-      setTimelineDescription(first?.description ?? "");
-      markTimelineSaved();
-    }).catch((error) => {
-      showToast(error instanceof Error ? error.message : "Worldie could not load timeline events for this world.");
-    });
+    const loadTimeline = async () => {
+      try {
+        const nextItems = await listTimelineEvents(activeProjectId, activeWorldId);
+        if (requestId !== loadRequestId.current) return;
+        setTimelineEvents(nextItems);
+        const first = nextItems[0] ?? null;
+        setActiveTimelineEventId(first?.id ?? null);
+        setTimelineTitle(first?.title ?? "");
+        setTimelineDate(first?.eventDate ?? "");
+        setTimelineType(first?.eventType ?? "event");
+        setTimelineLinkedPageId(first?.linkedPageId ?? "");
+        setTimelineDescription(first?.description ?? "");
+        markTimelineSaved();
+      } catch (error) {
+        if (requestId !== loadRequestId.current) return;
+        setTimelineEvents([]);
+        setActiveTimelineEventId(null);
+        setTimelineTitle("");
+        setTimelineDate("");
+        setTimelineType("event");
+        setTimelineLinkedPageId("");
+        setTimelineDescription("");
+        setTimelineSaveState("error");
+        setTimelineLastSavedAt(null);
+        showToast(error instanceof Error ? error.message : "Worldie could not load timeline events for this world.");
+      }
+    };
+
+    void loadRelationships();
+    void loadTimeline();
   }, [activeProjectId, activeWorldId]);
 
   const selectRelationship = (relationship: Relationship) => {
