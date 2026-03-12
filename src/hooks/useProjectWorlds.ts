@@ -337,7 +337,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const project = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
+      const project =
+        nextProjects
+          .filter((item): item is Project & { filepath: string } => Boolean(item.filepath))
+          .find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!project) return false;
       try {
         await applyActiveProject(project);
@@ -383,7 +386,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const project = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
+      const project =
+        nextProjects
+          .filter((item): item is Project & { filepath: string } => Boolean(item.filepath))
+          .find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!project) return false;
       try {
         await applyActiveProject(project);
@@ -423,7 +429,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const reopened = nextProjects.find((item) => item.filepath === project.filepath) ?? nextProjects[0];
+      const reopened =
+        nextProjects
+          .filter((item): item is Project & { filepath: string } => Boolean(item.filepath))
+          .find((item) => item.filepath === project.filepath) ?? nextProjects[0];
       if (!reopened) return false;
       try {
         await applyActiveProject(reopened);
@@ -449,7 +458,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const savedProject = nextProjects.find((item) => item.filepath === filepath) ?? nextProjects[0];
+      const savedProject =
+        nextProjects
+          .filter((item): item is Project & { filepath: string } => Boolean(item.filepath))
+          .find((item) => item.filepath === filepath) ?? nextProjects[0];
       if (!savedProject) return false;
       try {
         await applyActiveProject(savedProject);

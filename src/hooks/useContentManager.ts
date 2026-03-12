@@ -162,6 +162,7 @@ export function useContentManager({
   const selectedLorePageType = getLoreType(lorePageTypeId);
   const documentsById = useMemo(() => new Map(documents.map((doc) => [doc.id, doc])), [documents]);
   const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
+  const allLorePagesById = useMemo(() => new Map(allLorePages.map((page) => [page.id, page])), [allLorePages]);
 
   const activeDocument = useMemo(
     () => (activeDocumentId ? documentsById.get(activeDocumentId) : undefined),
@@ -556,7 +557,7 @@ export function useContentManager({
   const removeDocument = async (docId: string) => {
     const confirmDelete = await confirmAction("Delete this document?");
     if (!confirmDelete) return false;
-    const deleted = documents.find((doc) => doc.id === docId);
+    const deleted = documentsById.get(docId);
     if (!activeProjectId) return false;
     try {
       await deleteDocument(activeProjectId, docId);
@@ -723,7 +724,7 @@ export function useContentManager({
   const removeLorePage = async (loreId: string) => {
     const confirmDelete = await confirmAction("Delete this lore page?");
     if (!confirmDelete) return false;
-    const deleted = allLorePages.find((page) => page.id === loreId);
+    const deleted = allLorePagesById.get(loreId);
     if (!activeProjectId) return false;
     try {
       await deleteLorePage(activeProjectId, loreId);
@@ -880,7 +881,7 @@ export function useContentManager({
     }
 
     if (activeLoreId) {
-      const activeUpdated = nextAll.find((page) => page.id === activeLoreId);
+      const activeUpdated = activeLoreId ? updatesById.get(activeLoreId) ?? allLorePagesById.get(activeLoreId) : undefined;
       if (activeUpdated) {
         setLoreFields(activeUpdated.fieldsJson ?? "");
         setLorePageTypeId(resolveLoreTypeId(activeUpdated));
@@ -1025,6 +1026,8 @@ export function useContentManager({
       hasUnsavedDocumentChanges,
       hasUnsavedLoreChanges,
       orderedLoreTypes,
+      documentsById,
+      allLorePagesById,
       resolveLoreTypeId,
       getLoreType,
       updateDocumentTitle,
