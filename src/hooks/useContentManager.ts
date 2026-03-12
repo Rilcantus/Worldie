@@ -130,14 +130,16 @@ export function useContentManager({
 
   const activeLoreType = getLoreType(activeLoreTypeId);
   const selectedLorePageType = getLoreType(lorePageTypeId);
+  const documentsById = useMemo(() => new Map(documents.map((doc) => [doc.id, doc])), [documents]);
+  const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
 
   const activeDocument = useMemo(
-    () => documents.find((doc) => doc.id === activeDocumentId),
-    [documents, activeDocumentId],
+    () => (activeDocumentId ? documentsById.get(activeDocumentId) : undefined),
+    [activeDocumentId, documentsById],
   );
   const activeLore = useMemo(
-    () => lorePages.find((page) => page.id === activeLoreId),
-    [lorePages, activeLoreId],
+    () => (activeLoreId ? lorePagesById.get(activeLoreId) : undefined),
+    [activeLoreId, lorePagesById],
   );
   const activeLoreFields = useMemo(() => parseLoreItemFields(loreFields), [loreFields]);
   const recentDocuments = useMemo(() => documents.slice(0, 5), [documents]);
