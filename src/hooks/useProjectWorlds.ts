@@ -221,11 +221,15 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   }, []);
 
   const toggleWorld = (id: string) => {
-    setWorlds((prev) =>
-      prev.map((world) =>
-        world.id === id ? { ...world, isOpen: !world.isOpen } : world,
-      ),
-    );
+    setWorlds((prev) => {
+      let changed = false;
+      const next = prev.map((world) => {
+        if (world.id !== id) return world;
+        changed = true;
+        return { ...world, isOpen: !world.isOpen };
+      });
+      return changed ? next : prev;
+    });
   };
 
   const addWorld = () => {
@@ -244,8 +248,16 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
           loreCount: 0,
           loreCategories: buildLoreCategories(currentLoreTypesRef.current),
         };
-        setWorlds((prev) => prev.map((world) => ({ ...world, isOpen: false })).concat(newWorld));
-        setActiveWorldId(newWorld.id);
+        setWorlds((prev) => {
+          let changed = false;
+          const closed = prev.map((world) => {
+            if (!world.isOpen) return world;
+            changed = true;
+            return { ...world, isOpen: false };
+          });
+          return (changed ? closed : prev).concat(newWorld);
+        });
+        setActiveWorldId((current) => (current === newWorld.id ? current : newWorld.id));
       })
       .catch((error) => {
         showToast(error instanceof Error ? error.message : "Worldie could not create a new world.");
@@ -407,8 +419,8 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     if (!activeProjectId) return;
     const nextTitle = projectDraft.trim();
     if (!nextTitle || nextTitle === projectTitle) {
-      setProjectDraft(projectTitle);
-      setIsEditingProject(false);
+      setProjectDraft((current) => (current === projectTitle ? current : projectTitle));
+      setIsEditingProject((current) => (current ? false : current));
       return;
     }
     let nextProjects: Project[] = [];
@@ -419,20 +431,20 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return;
     }
     setProjects(nextProjects);
-    setProjectTitle(nextTitle);
-    setIsEditingProject(false);
+    setProjectTitle((current) => (current === nextTitle ? current : nextTitle));
+    setIsEditingProject((current) => (current ? false : current));
   };
 
   const startWorldEdit = (world: WorldUI) => {
-    setEditingWorldId(world.id);
-    setWorldDraft(world.name);
+    setEditingWorldId((current) => (current === world.id ? current : world.id));
+    setWorldDraft((current) => (current === world.name ? current : world.name));
   };
 
   const commitWorldTitle = async () => {
     if (!editingWorldId) return;
     const nextTitle = worldDraft.trim();
     if (!nextTitle) {
-      setEditingWorldId(null);
+      setEditingWorldId((current) => (current === null ? current : null));
       return;
     }
     if (!activeProjectId) return;
@@ -447,7 +459,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         world.id === editingWorldId ? { ...world, name: nextTitle } : world,
       ),
     );
-    setEditingWorldId(null);
+    setEditingWorldId((current) => (current === null ? current : null));
   };
 
   const removeProject = async () => {
@@ -492,12 +504,15 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     }
     const nextWorlds = worlds.filter((world) => world.id !== worldId);
     if (editingWorldId === worldId) {
-      setEditingWorldId(null);
-      setWorldDraft("");
+      setEditingWorldId((current) => (current === null ? current : null));
+      setWorldDraft((current) => (current === "" ? current : ""));
     }
     setWorlds(nextWorlds);
     if (activeWorldId === worldId) {
-      setActiveWorldId(nextWorlds[0]?.id ?? null);
+      setActiveWorldId((current) => {
+        const nextActiveWorldId = nextWorlds[0]?.id ?? null;
+        return current === nextActiveWorldId ? current : nextActiveWorldId;
+      });
     }
   };
 
