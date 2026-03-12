@@ -58,6 +58,7 @@ export default function App() {
         <ActivityBar
           activeNav={tabs.activeNav}
           activeLoreExists={Boolean(content.activeLore)}
+          hasActiveProject={Boolean(projectWorlds.activeProjectId)}
           onOpenWorkbench={tabs.openWorkbenchTab}
           onOpenLore={contentTabActions.openLoreEntryPoint}
           onOpenTemplates={tabs.openTemplatesTab}

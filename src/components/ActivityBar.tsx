@@ -1,6 +1,7 @@
 type ActivityBarProps = {
   activeNav: string;
   activeLoreExists: boolean;
+  hasActiveProject: boolean;
   onOpenWorkbench: () => void;
   onOpenLore: () => void;
   onOpenTemplates: () => void;
@@ -13,6 +14,7 @@ type ActivityBarProps = {
 export function ActivityBar({
   activeNav,
   activeLoreExists,
+  hasActiveProject,
   onOpenWorkbench,
   onOpenLore,
   onOpenTemplates,
@@ -21,27 +23,71 @@ export function ActivityBar({
   onOpenTimeline,
   onFocusSearch,
 }: ActivityBarProps) {
+  const disabledTitle = "Open or create a project first";
+
   return (
     <div className="activity-bar">
-      <button className={`ab-icon ${activeNav === "workbench" || activeNav === "editor" ? "active" : ""}`} title="Explorer" type="button" onClick={onOpenWorkbench}>
+      <button
+        className={`ab-icon ${activeNav === "workbench" || activeNav === "editor" ? "active" : ""}`}
+        title={hasActiveProject ? "Explorer" : disabledTitle}
+        type="button"
+        onClick={onOpenWorkbench}
+        disabled={!hasActiveProject}
+      >
         X
       </button>
-      <button className={`ab-icon ${activeNav === "lore" || activeNav === "lcreate" ? "active" : ""}`} title="Lore Items" type="button" onClick={onOpenLore}>
+      <button
+        className={`ab-icon ${activeNav === "lore" || activeNav === "lcreate" ? "active" : ""}`}
+        title={hasActiveProject ? "Lore Items" : disabledTitle}
+        type="button"
+        onClick={onOpenLore}
+        disabled={!hasActiveProject}
+      >
         {activeLoreExists ? "L" : "+"}
       </button>
-      <button className={`ab-icon ${activeNav === "templates" ? "active" : ""}`} title="Templates" type="button" onClick={onOpenTemplates}>
+      <button
+        className={`ab-icon ${activeNav === "templates" ? "active" : ""}`}
+        title={hasActiveProject ? "Templates" : disabledTitle}
+        type="button"
+        onClick={onOpenTemplates}
+        disabled={!hasActiveProject}
+      >
         S
       </button>
-      <button className={`ab-icon ${activeNav === "ltypes" ? "active" : ""}`} title="Lore Types" type="button" onClick={onOpenLoreTypes}>
+      <button
+        className={`ab-icon ${activeNav === "ltypes" ? "active" : ""}`}
+        title={hasActiveProject ? "Lore Types" : disabledTitle}
+        type="button"
+        onClick={onOpenLoreTypes}
+        disabled={!hasActiveProject}
+      >
         Y
       </button>
-      <button className={`ab-icon ${activeNav === "rels" ? "active" : ""}`} title="Relationship Map" type="button" onClick={onOpenRelationships}>
+      <button
+        className={`ab-icon ${activeNav === "rels" ? "active" : ""}`}
+        title={hasActiveProject ? "Relationship Map" : disabledTitle}
+        type="button"
+        onClick={onOpenRelationships}
+        disabled={!hasActiveProject}
+      >
         R
       </button>
-      <button className={`ab-icon ${activeNav === "timeline" ? "active" : ""}`} title="Timeline" type="button" onClick={onOpenTimeline}>
+      <button
+        className={`ab-icon ${activeNav === "timeline" ? "active" : ""}`}
+        title={hasActiveProject ? "Timeline" : disabledTitle}
+        type="button"
+        onClick={onOpenTimeline}
+        disabled={!hasActiveProject}
+      >
         T
       </button>
-      <button className="ab-icon" title="Search" type="button" onClick={onFocusSearch}>
+      <button
+        className="ab-icon"
+        title={hasActiveProject ? "Search" : disabledTitle}
+        type="button"
+        onClick={onFocusSearch}
+        disabled={!hasActiveProject}
+      >
         ?
       </button>
       <div className="ab-spacer"></div>
