@@ -128,21 +128,21 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const recentProjects = useMemo(() => projects.slice(0, 6), [projects]);
   const isProjectActionPending = projectActionState.status !== "idle";
 
-  const setProjectActionStateIfChanged = (nextState: ProjectActionState) => {
+  const setProjectActionStateIfChanged = useCallback((nextState: ProjectActionState) => {
     setProjectActionState((current) =>
       current.status === nextState.status && current.message === nextState.message ? current : nextState,
     );
-  };
+  }, []);
 
-  const setProjectsIfChanged = (nextProjects: Project[]) => {
+  const setProjectsIfChanged = useCallback((nextProjects: Project[]) => {
     setProjects((current) => (areProjectsEqual(current, nextProjects) ? current : nextProjects));
-  };
+  }, []);
 
-  const setWorldsIfChanged = (nextWorlds: WorldUI[]) => {
+  const setWorldsIfChanged = useCallback((nextWorlds: WorldUI[]) => {
     setWorlds((current) => (areWorldsEqual(current, nextWorlds) ? current : nextWorlds));
-  };
+  }, []);
 
-  const runProjectAction = async <T,>(
+  const runProjectAction = useCallback(async <T,>(
     status: Exclude<ProjectActionState["status"], "idle">,
     message: string,
     action: () => Promise<T>,
@@ -153,34 +153,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     } finally {
       setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
     }
-  };
+  }, [setProjectActionStateIfChanged]);
 
-  const applyActiveProject = async (project: Project | null) => {
-    setIsEditingProject((current) => (current ? false : current));
-    setEditingWorldId((current) => (current === null ? current : null));
-    setWorldDraft((current) => (current === "" ? current : ""));
-    if (!project) {
-      setActiveProjectId((current) => (current === null ? current : null));
-      setProjectTitle((current) => (current === "No Project Open" ? current : "No Project Open"));
-      setProjectDraft((current) => (current === "" ? current : ""));
-      setWorldsIfChanged([]);
-      setActiveWorldId((current) => (current === null ? current : null));
-      return false;
-    }
-    const isSameProjectActive = activeProjectId === project.id && worlds.length > 0;
-    setActiveProjectId((current) => (current === project.id ? current : project.id));
-    setProjectTitle((current) => (current === project.title ? current : project.title));
-    setProjectDraft((current) => (current === project.title ? current : project.title));
-    if (isSameProjectActive) {
-      return true;
-    }
-    setWorldsIfChanged([]);
-    setActiveWorldId((current) => (current === null ? current : null));
-    await hydrateWorlds(project.id);
-    return true;
-  };
-
-  const hydrateWorlds = async (projectId: string) => {
+  const hydrateWorlds = useCallback(async (projectId: string) => {
     const requestId = ++hydrateRequestId.current;
     const storedWorlds = await listWorlds(projectId);
     if (requestId !== hydrateRequestId.current) return;
@@ -209,7 +184,32 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       const nextActiveWorldId = hydrated[0]?.id ?? null;
       return current === nextActiveWorldId ? current : nextActiveWorldId;
     });
-  };
+  }, [setWorldsIfChanged]);
+
+  const applyActiveProject = useCallback(async (project: Project | null) => {
+    setIsEditingProject((current) => (current ? false : current));
+    setEditingWorldId((current) => (current === null ? current : null));
+    setWorldDraft((current) => (current === "" ? current : ""));
+    if (!project) {
+      setActiveProjectId((current) => (current === null ? current : null));
+      setProjectTitle((current) => (current === "No Project Open" ? current : "No Project Open"));
+      setProjectDraft((current) => (current === "" ? current : ""));
+      setWorldsIfChanged([]);
+      setActiveWorldId((current) => (current === null ? current : null));
+      return false;
+    }
+    const isSameProjectActive = activeProjectId === project.id && worlds.length > 0;
+    setActiveProjectId((current) => (current === project.id ? current : project.id));
+    setProjectTitle((current) => (current === project.title ? current : project.title));
+    setProjectDraft((current) => (current === project.title ? current : project.title));
+    if (isSameProjectActive) {
+      return true;
+    }
+    setWorldsIfChanged([]);
+    setActiveWorldId((current) => (current === null ? current : null));
+    await hydrateWorlds(project.id);
+    return true;
+  }, [activeProjectId, hydrateWorlds, setWorldsIfChanged, worlds.length]);
 
   useEffect(() => {
     const load = async () => {
@@ -238,7 +238,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     };
 
     void load();
-  }, []);
+  }, [applyActiveProject, setProjectActionStateIfChanged, setProjectsIfChanged, showToast]);
 
   const syncLoreTypes = useCallback((loreTypes: LoreType[]) => {
     currentLoreTypesRef.current = loreTypes;
@@ -275,7 +275,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     });
   }, []);
 
-  const toggleWorld = (id: string) => {
+  const toggleWorld = useCallback((id: string) => {
     setWorlds((prev) => {
       let changed = false;
       const next = prev.map((world) => {
@@ -285,9 +285,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       });
       return changed ? next : prev;
     });
-  };
+  }, []);
 
-  const addWorld = () => {
+  const addWorld = useCallback(() => {
     if (!activeProjectId) return;
     const index = worlds.length + 1;
     const title = `New World ${index}`;
@@ -317,9 +317,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       .catch((error) => {
         showToast(error instanceof Error ? error.message : "Worldie could not create a new world.");
       });
-  };
+  }, [activeProjectId, showToast, worlds.length]);
 
-  const addProject = async () => {
+  const addProject = useCallback(async () => {
     return runProjectAction("creating", "Creating project file...", async () => {
       const suggestedTitle = `New Project ${projects.length + 1}`;
       const filepath = await pickNewProjectFile(`${suggestedTitle}.worldie`);
@@ -345,9 +345,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  };
+  }, [applyActiveProject, projects.length, runProjectAction, setProjectsIfChanged, showToast]);
 
-  const addDemoProject = async () => {
+  const addDemoProject = useCallback(async () => {
     return runProjectAction("creatingDemo", "Creating demo project...", async () => {
       let nextProjects: Project[] = [];
       try {
@@ -367,9 +367,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  };
+  }, [applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
 
-  const openProject = async () => {
+  const openProject = useCallback(async () => {
     return runProjectAction("opening", "Opening project file...", async () => {
       const filepath = await pickOpenProjectFile();
       if (!filepath) return false;
@@ -391,9 +391,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  };
+  }, [applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
 
-  const openRecentProject = async (projectId: string) => {
+  const openRecentProject = useCallback(async (projectId: string) => {
     return runProjectAction("openingRecent", "Opening recent project...", async () => {
       const project = projects.find((item) => item.id === projectId);
       if (!project) {
@@ -431,9 +431,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  };
+  }, [applyActiveProject, projects, runProjectAction, setProjectsIfChanged, showToast]);
 
-  const saveCurrentProjectAs = async () => {
+  const saveCurrentProjectAs = useCallback(async () => {
     if (!activeProjectId) return false;
     return runProjectAction("savingAs", "Saving project copy...", async () => {
       const suggestedName = getProjectFilename(activeProject);
@@ -457,9 +457,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  };
+  }, [activeProject, activeProjectId, applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
 
-  const switchProject = async (projectId: string) => {
+  const switchProject = useCallback(async (projectId: string) => {
     return runProjectAction("switching", "Switching project...", async () => {
       const project = projects.find((item) => item.id === projectId);
       if (!project) {
@@ -468,9 +468,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return applyActiveProject(project);
     });
-  };
+  }, [applyActiveProject, projects, runProjectAction, showToast]);
 
-  const commitProjectTitle = async () => {
+  const commitProjectTitle = useCallback(async () => {
     if (!activeProjectId) return;
     const nextTitle = projectDraft.trim();
     if (!nextTitle || nextTitle === projectTitle) {
@@ -488,14 +488,14 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setProjectsIfChanged(nextProjects);
     setProjectTitle((current) => (current === nextTitle ? current : nextTitle));
     setIsEditingProject((current) => (current ? false : current));
-  };
+  }, [activeProjectId, projectDraft, projectTitle, setProjectsIfChanged, showToast]);
 
-  const startWorldEdit = (world: WorldUI) => {
+  const startWorldEdit = useCallback((world: WorldUI) => {
     setEditingWorldId((current) => (current === world.id ? current : world.id));
     setWorldDraft((current) => (current === world.name ? current : world.name));
-  };
+  }, []);
 
-  const commitWorldTitle = async () => {
+  const commitWorldTitle = useCallback(async () => {
     if (!editingWorldId) return;
     const nextTitle = worldDraft.trim();
     const currentWorldName = worlds.find((world) => world.id === editingWorldId)?.name ?? "";
@@ -521,9 +521,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       ),
     );
     setEditingWorldId((current) => (current === null ? current : null));
-  };
+  }, [activeProjectId, editingWorldId, showToast, worldDraft, worlds]);
 
-  const removeProject = async () => {
+  const removeProject = useCallback(async () => {
     if (!activeProjectId) return false;
     const confirmDelete = await confirmAction("Delete this project and all its data?");
     if (!confirmDelete) return false;
@@ -547,9 +547,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return false;
     }
     return true;
-  };
+  }, [activeProjectId, applyActiveProject, confirmAction, setProjectsIfChanged, showToast]);
 
-  const removeWorld = async (worldId: string) => {
+  const removeWorld = useCallback(async (worldId: string) => {
     if (worlds.length <= 1) {
       showToast("A project needs at least one world.");
       return;
@@ -575,43 +575,76 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return current === nextActiveWorldId ? current : nextActiveWorldId;
       });
     }
-  };
+  }, [activeProjectId, activeWorldId, confirmAction, editingWorldId, showToast, worlds]);
 
-  return {
-    projects,
-    activeProject,
-    recentProjects,
-    projectActionState,
-    isProjectActionPending,
-    projectTitle,
-    activeProjectId,
-    isEditingProject,
-    projectDraft,
-    worlds,
-    activeWorld,
-    activeWorldId,
-    editingWorldId,
-    worldDraft,
-    setIsEditingProject,
-    setProjectDraft,
-    setWorlds,
-    setActiveWorldId,
-    setWorldDraft,
-    setEditingWorldId,
-    hydrateWorlds,
-    toggleWorld,
-    addWorld,
-    addProject,
-    addDemoProject,
-    openProject,
-    openRecentProject,
-    saveCurrentProjectAs,
-    switchProject,
-    commitProjectTitle,
-    startWorldEdit,
-    commitWorldTitle,
-    removeProject,
-    removeWorld,
-    syncLoreTypes,
-  };
+  return useMemo(
+    () => ({
+      projects,
+      activeProject,
+      recentProjects,
+      projectActionState,
+      isProjectActionPending,
+      projectTitle,
+      activeProjectId,
+      isEditingProject,
+      projectDraft,
+      worlds,
+      activeWorld,
+      activeWorldId,
+      editingWorldId,
+      worldDraft,
+      setIsEditingProject,
+      setProjectDraft,
+      setWorlds,
+      setActiveWorldId,
+      setWorldDraft,
+      setEditingWorldId,
+      hydrateWorlds,
+      toggleWorld,
+      addWorld,
+      addProject,
+      addDemoProject,
+      openProject,
+      openRecentProject,
+      saveCurrentProjectAs,
+      switchProject,
+      commitProjectTitle,
+      startWorldEdit,
+      commitWorldTitle,
+      removeProject,
+      removeWorld,
+      syncLoreTypes,
+    }),
+    [
+      projects,
+      activeProject,
+      recentProjects,
+      projectActionState,
+      isProjectActionPending,
+      projectTitle,
+      activeProjectId,
+      isEditingProject,
+      projectDraft,
+      worlds,
+      activeWorld,
+      activeWorldId,
+      editingWorldId,
+      worldDraft,
+      hydrateWorlds,
+      toggleWorld,
+      addWorld,
+      addProject,
+      addDemoProject,
+      openProject,
+      openRecentProject,
+      saveCurrentProjectAs,
+      switchProject,
+      commitProjectTitle,
+      startWorldEdit,
+      commitWorldTitle,
+      removeProject,
+      removeWorld,
+      syncLoreTypes,
+    ],
+  );
 }
