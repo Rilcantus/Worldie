@@ -23,7 +23,7 @@ export function useAppController() {
   const projectWorlds = useProjectWorlds({
     confirmAction: feedback.confirmAction,
     showToast: feedback.showToast,
-    loreTypes: seededLoreTypes,
+    initialLoreTypes: seededLoreTypes,
   });
   const loreTypes = useLoreTypes(projectWorlds.activeProjectId);
   const loreTemplates = useLoreTemplates(projectWorlds.activeProjectId, loreTypes.loreTypes);
@@ -72,6 +72,10 @@ export function useAppController() {
     setProjectStoreErrorHandler(feedback.showToast);
     return () => setProjectStoreErrorHandler(null);
   }, [feedback.showToast]);
+
+  useEffect(() => {
+    projectWorlds.syncLoreTypes(loreTypes.loreTypes);
+  }, [loreTypes.loreTypes, projectWorlds.syncLoreTypes]);
 
   useEffect(() => {
     if (tabs.activeNav === "editor" || tabs.activeNav === "lore") {

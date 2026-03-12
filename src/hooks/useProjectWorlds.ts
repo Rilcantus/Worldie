@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createProjectAtPath,
   createDemoProjectBundle,
@@ -47,7 +47,7 @@ const hydrateWorldUi = (
 type UseProjectWorldsArgs = {
   confirmAction: (message: string) => Promise<boolean>;
   showToast: (message: string) => void;
-  loreTypes: LoreType[];
+  initialLoreTypes: LoreType[];
 };
 
 type ProjectActionState =
@@ -62,7 +62,7 @@ type ProjectActionState =
 
 const IDLE_PROJECT_ACTION_STATE: ProjectActionState = { status: "idle", message: "" };
 
-export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UseProjectWorldsArgs) {
+export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }: UseProjectWorldsArgs) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectTitle, setProjectTitle] = useState("No Project Open");
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
@@ -131,7 +131,7 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
           isOpen: true,
           editorCount: 0,
           loreCount: 0,
-          loreCategories: buildLoreCategories(loreTypes),
+          loreCategories: buildLoreCategories(initialLoreTypes),
         },
       ];
       setWorlds(initial);
@@ -139,7 +139,7 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
       return;
     }
 
-    const hydrated = hydrateWorldUi(storedWorlds, loreTypes);
+    const hydrated = hydrateWorldUi(storedWorlds, initialLoreTypes);
     setWorlds(hydrated);
     setActiveWorldId(hydrated[0]?.id ?? null);
   };
@@ -173,7 +173,7 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
     void load();
   }, []);
 
-  useEffect(() => {
+  const syncLoreTypes = useCallback((loreTypes: LoreType[]) => {
     setWorlds((prev) =>
       prev.map((world) => ({
         ...world,
@@ -183,7 +183,7 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
         }),
       })),
     );
-  }, [loreTypes]);
+  }, []);
 
   const toggleWorld = (id: string) => {
     setWorlds((prev) =>
@@ -208,7 +208,7 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
           isOpen: true,
           editorCount: 0,
           loreCount: 0,
-          loreCategories: buildLoreCategories(loreTypes),
+          loreCategories: buildLoreCategories(initialLoreTypes),
         };
         setWorlds((prev) => prev.map((world) => ({ ...world, isOpen: false })).concat(newWorld));
         setActiveWorldId(newWorld.id);
@@ -484,5 +484,6 @@ export function useProjectWorlds({ confirmAction, showToast, loreTypes }: UsePro
     commitWorldTitle,
     removeProject,
     removeWorld,
+    syncLoreTypes,
   };
 }
