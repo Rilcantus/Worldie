@@ -707,9 +707,35 @@ export function useContentManager({
     }
 
     const nextAll = allLorePages.map((page) => updates.find((updated) => updated.id === page.id) ?? page);
-    const nextPages = nextAll.filter((page) => resolveLoreTypeId(page) === (activeLoreTypeId ?? toLoreTypeId));
+    const nextActiveLoreTypeId = activeLoreTypeId === fromLoreTypeId ? toLoreTypeId : (activeLoreTypeId ?? toLoreTypeId);
+    const nextPages = nextAll.filter((page) => resolveLoreTypeId(page) === nextActiveLoreTypeId);
     setAllLorePages(nextAll);
     setLorePages(nextPages);
+    if (activeLoreTypeId === fromLoreTypeId) {
+      setActiveLoreTypeId(toLoreTypeId);
+    }
+
+    if (activeWorldId) {
+      const counts = Object.fromEntries(
+        orderedLoreTypes.map((type) => [type.id, nextAll.filter((page) => resolveLoreTypeId(page) === type.id).length]),
+      );
+      setWorlds((prev) =>
+        prev.map((world) =>
+          world.id === activeWorldId
+            ? {
+                ...world,
+                loreCount: nextAll.length,
+                loreCategories: orderedLoreTypes.map((type) => ({
+                  id: type.id,
+                  label: type.name,
+                  count: counts[type.id] ?? 0,
+                  isSystem: type.isSystem,
+                })),
+              }
+            : world,
+        ),
+      );
+    }
 
     if (activeLoreId) {
       const activeUpdated = nextAll.find((page) => page.id === activeLoreId);
