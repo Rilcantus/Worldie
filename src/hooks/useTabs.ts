@@ -313,6 +313,43 @@ export function useTabs({
   };
 
   const handleTabSelect = (tab: TabItem) => {
+    const isAlreadyActiveTab = tab.id === activeTabId;
+    if (
+      isAlreadyActiveTab &&
+      (tab.kind === "workbench" ||
+        tab.kind === "templates" ||
+        tab.kind === "ltypes" ||
+        tab.kind === "lcreate" ||
+        tab.kind === "new")
+    ) {
+      return;
+    }
+    if (
+      isAlreadyActiveTab &&
+      tab.kind === "editor" &&
+      tab.refId &&
+      (!tab.worldId || tab.worldId === activeWorldId) &&
+      activeDocumentId === tab.refId
+    ) {
+      return;
+    }
+    if (
+      isAlreadyActiveTab &&
+      tab.kind === "lore" &&
+      tab.refId &&
+      (!tab.worldId || tab.worldId === activeWorldId) &&
+      activeLoreId === tab.refId
+    ) {
+      return;
+    }
+    if (
+      isAlreadyActiveTab &&
+      (tab.kind === "rels" || tab.kind === "timeline") &&
+      (!tab.worldId || tab.worldId === activeWorldId)
+    ) {
+      return;
+    }
+
     setActiveTabId(tab.id);
     if ((tab.kind === "rels" || tab.kind === "timeline") && tab.worldId && tab.worldId !== activeWorldId) {
       pendingWorldScopedTabId.current = tab.id;
