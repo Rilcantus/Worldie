@@ -74,6 +74,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const [editingWorldId, setEditingWorldId] = useState<string | null>(null);
   const [worldDraft, setWorldDraft] = useState("");
   const hydrateRequestId = useRef(0);
+  const currentLoreTypesRef = useRef(initialLoreTypes);
   const [projectActionState, setProjectActionState] = useState<ProjectActionState>(IDLE_PROJECT_ACTION_STATE);
 
   const activeWorld = useMemo(
@@ -131,7 +132,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
           isOpen: true,
           editorCount: 0,
           loreCount: 0,
-          loreCategories: buildLoreCategories(initialLoreTypes),
+          loreCategories: buildLoreCategories(currentLoreTypesRef.current),
         },
       ];
       setWorlds(initial);
@@ -139,7 +140,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return;
     }
 
-    const hydrated = hydrateWorldUi(storedWorlds, initialLoreTypes);
+    const hydrated = hydrateWorldUi(storedWorlds, currentLoreTypesRef.current);
     setWorlds(hydrated);
     setActiveWorldId(hydrated[0]?.id ?? null);
   };
@@ -174,6 +175,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   }, []);
 
   const syncLoreTypes = useCallback((loreTypes: LoreType[]) => {
+    currentLoreTypesRef.current = loreTypes;
     setWorlds((prev) =>
       prev.map((world) => ({
         ...world,
@@ -208,7 +210,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
           isOpen: true,
           editorCount: 0,
           loreCount: 0,
-          loreCategories: buildLoreCategories(initialLoreTypes),
+          loreCategories: buildLoreCategories(currentLoreTypesRef.current),
         };
         setWorlds((prev) => prev.map((world) => ({ ...world, isOpen: false })).concat(newWorld));
         setActiveWorldId(newWorld.id);
