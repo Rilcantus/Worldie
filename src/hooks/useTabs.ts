@@ -61,6 +61,42 @@ function removeTabWithFallback(prev: TabItem[], tabId: string) {
   };
 }
 
+function upsertTab(prev: TabItem[], tab: TabItem, activeTabId: string, shouldReplaceActiveNew: boolean) {
+  const next: TabItem[] = [];
+  let changed = false;
+  let found = false;
+
+  for (const item of prev) {
+    if (shouldReplaceActiveNew && item.id === activeTabId) {
+      changed = true;
+      continue;
+    }
+    if (item.id !== tab.id) {
+      next.push(item);
+      continue;
+    }
+    found = true;
+    const merged = { ...item, ...tab };
+    const same =
+      item.kind === merged.kind &&
+      item.label === merged.label &&
+      item.icon === merged.icon &&
+      item.refId === merged.refId &&
+      item.worldId === merged.worldId;
+    next.push(same ? item : merged);
+    if (!same) {
+      changed = true;
+    }
+  }
+
+  if (!found) {
+    next.push(tab);
+    changed = true;
+  }
+
+  return changed ? next : prev;
+}
+
 export function useTabs({
   activeProjectId,
   activeWorldId,
@@ -305,27 +341,7 @@ export function useTabs({
   const openTab = useCallback((tab: TabItem) => {
     setTabs((prev) => {
       const shouldReplaceActiveNew = activeTabId.startsWith("new:");
-      const exists = prev.some((item) => item.id === tab.id);
-      if (exists) {
-        const filtered = prev.filter((item) => !(shouldReplaceActiveNew && item.id === activeTabId));
-        let changed = filtered.length !== prev.length;
-        const next = filtered.map((item) => {
-          if (item.id !== tab.id) return item;
-          const merged = { ...item, ...tab };
-          const same =
-            item.kind === merged.kind &&
-            item.label === merged.label &&
-            item.icon === merged.icon &&
-            item.refId === merged.refId &&
-            item.worldId === merged.worldId;
-          if (same) return item;
-          changed = true;
-          return merged;
-        });
-        return changed ? next : prev;
-      }
-      const base = shouldReplaceActiveNew ? prev.filter((item) => item.id !== activeTabId) : prev;
-      return [...base, tab];
+      return upsertTab(prev, tab, activeTabId, shouldReplaceActiveNew);
     });
     setActiveTabId((current) => (current === tab.id ? current : tab.id));
   }, [activeTabId]);
