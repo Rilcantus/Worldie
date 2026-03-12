@@ -102,7 +102,7 @@ export function WorkbenchView({
           <div className="workbench-card-label">Current World</div>
           <div className="workbench-card-value">{activeWorld?.name ?? "No world selected"}</div>
           <div className="workbench-card-meta">
-            {activeWorld?.editorCount ?? 0} docs · {activeWorld?.loreCount ?? 0} lore pages
+            {activeWorld?.editorCount ?? 0} docs - {activeWorld?.loreCount ?? 0} lore pages
           </div>
         </div>
         <div className="workbench-card">

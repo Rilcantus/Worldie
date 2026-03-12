@@ -373,15 +373,11 @@ export function RelationshipsView({
                 </div>
               ) : (
                 filteredRelationships.map((relationship) => (
-                  <div
+                  <button
                     key={relationship.id}
                     className={`doc-item ${relationship.id === activeRelationshipId ? "active" : ""}`}
-                    role="button"
-                    tabIndex={0}
+                    type="button"
                     onClick={() => onSelectRelationship(relationship)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") onSelectRelationship(relationship);
-                    }}
                   >
                     <div className="doc-item-info">
                       <div className="doc-item-title">{relationLabel(relationship, lorePages)}</div>
@@ -397,7 +393,7 @@ export function RelationshipsView({
                     >
                       x
                     </button>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
