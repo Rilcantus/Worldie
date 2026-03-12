@@ -155,6 +155,47 @@ export function useContentManager({
   }, [defaultLoreTypeId, orderedLoreTypes]);
 
   useEffect(() => {
+    if (!activeProjectId || allLorePages.length === 0 || orderedLoreTypes.length === 0) return;
+
+    const renamedPages = allLorePages
+      .map((page) => {
+        const loreTypeId = resolveLoreTypeId(page);
+        const loreType = orderedLoreTypes.find((type) => type.id === loreTypeId);
+        if (!loreType || page.type === loreType.name) return null;
+        return {
+          ...page,
+          type: loreType.name,
+        };
+      })
+      .filter((page): page is LorePage => Boolean(page));
+
+    if (renamedPages.length === 0) return;
+
+    setAllLorePages((prev) =>
+      prev.map((page) => renamedPages.find((updated) => updated.id === page.id) ?? page),
+    );
+    setLorePages((prev) =>
+      prev.map((page) => renamedPages.find((updated) => updated.id === page.id) ?? page),
+    );
+    if (activeLoreId) {
+      const activeUpdated = renamedPages.find((page) => page.id === activeLoreId);
+      if (activeUpdated) {
+        setLorePageTypeId(resolveLoreTypeId(activeUpdated));
+      }
+    }
+
+    void Promise.all(
+      renamedPages.map((page) =>
+        updateLorePage(activeProjectId, page.id, {
+          type: page.type,
+        }),
+      ),
+    ).catch((error) => {
+      showToast(error instanceof Error ? error.message : "Worldie could not sync renamed lore type labels.");
+    });
+  }, [activeLoreId, activeProjectId, allLorePages, orderedLoreTypes]);
+
+  useEffect(() => {
     if (!activeProjectId || !activeWorldId) {
       docsLoadRequestId.current += 1;
       setDocuments([]);
