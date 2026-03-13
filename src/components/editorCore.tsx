@@ -852,7 +852,7 @@ function renderInlinePreview(
   keyPrefix: string,
 ): ReactNode[] {
   const parts: ReactNode[] = [];
-  const pattern = /(\[\[[^\]]+\]\]|__\*\*_[^*]+_\*\*__|_\*\*__[^*]+__\*\*_|___[^_]+___|\*\*\*__[^*]+__\*\*\*|\*\*\*[^*]+\*\*\*|\*\*__[^*]+__\*\*|\*\*_[^*]+_\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
+  const pattern = /(\[\[[^\]]+\]\]|__\*\*_[^*]+_\*\*__|_\*\*__[^*]+__\*\*_|\*\*__\*[^*]+\*__\*\*|\*__\*\*[^*]+\*\*__\*|___[^_]+___|\*\*\*__[^*]+__\*\*\*|\*\*\*[^*]+\*\*\*|\*\*__[^*]+__\*\*|\*\*_[^*]+_\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -891,6 +891,26 @@ function renderInlinePreview(
       parts.push(
         <em key={`${keyPrefix}-italic-bold-underline-${match.index}`}>
           {renderInlinePreview(token.slice(1, -1), linkedLoreByTitle, onOpenLore, `${keyPrefix}-ibu-${match.index}`)}
+        </em>,
+      );
+    } else if (token.startsWith("**__*") && token.endsWith("*__**")) {
+      parts.push(
+        <strong key={`${keyPrefix}-bold-underline-italic-${match.index}`}>
+          <span className="editor-preview-underline">
+            <em>
+              {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bui-${match.index}`)}
+            </em>
+          </span>
+        </strong>,
+      );
+    } else if (token.startsWith("*__**") && token.endsWith("**__*")) {
+      parts.push(
+        <em key={`${keyPrefix}-italic-underline-bold-${match.index}`}>
+          <span className="editor-preview-underline">
+            <strong>
+              {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-iub-${match.index}`)}
+            </strong>
+          </span>
         </em>,
       );
     } else if (token.startsWith("___") && token.endsWith("___")) {

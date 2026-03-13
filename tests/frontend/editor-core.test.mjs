@@ -411,7 +411,11 @@ test("renderPreviewContent preserves nested inline formatting structure", () => 
 });
 
 test("renderPreviewContent preserves serializer-ordered nested underline and italic wrappers", () => {
-  const preview = renderPreviewContent("__**_Text_**__\n_**__Lore__**_", new Map(), () => {});
+  const preview = renderPreviewContent(
+    "__**_Text_**__\n_**__Lore__**_\n**__*Glyph*__**\n*__**Rune**__*",
+    new Map(),
+    () => {},
+  );
   assert.deepEqual(
     summarizePreviewNode(preview[0]),
     {
@@ -466,6 +470,70 @@ test("renderPreviewContent preserves serializer-ordered nested underline and ita
                       type: "span",
                       className: null,
                       children: ["Lore"],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+  assert.deepEqual(
+    summarizePreviewNode(preview[2]),
+    {
+      type: "p",
+      className: "editor-preview-paragraph",
+      children: [
+        {
+          type: "strong",
+          className: null,
+          children: [
+            {
+              type: "span",
+              className: "editor-preview-underline",
+              children: [
+                {
+                  type: "em",
+                  className: null,
+                  children: [
+                    {
+                      type: "span",
+                      className: null,
+                      children: ["Glyph"],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+  assert.deepEqual(
+    summarizePreviewNode(preview[3]),
+    {
+      type: "p",
+      className: "editor-preview-paragraph",
+      children: [
+        {
+          type: "em",
+          className: null,
+          children: [
+            {
+              type: "span",
+              className: "editor-preview-underline",
+              children: [
+                {
+                  type: "strong",
+                  className: null,
+                  children: [
+                    {
+                      type: "span",
+                      className: null,
+                      children: ["Rune"],
                     },
                   ],
                 },
