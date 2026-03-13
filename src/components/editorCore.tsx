@@ -473,11 +473,9 @@ export function applyNoteBlockPrefix(text: string, selection: SelectionOffsets) 
   });
   const updated = updatedLines.join("\n");
   const nextText = replaceRange(text, lineStart, lineEnd, updated);
-  const firstCurrentPrefixLength = getCurrentLinePrefix(lines[0] ?? "").length;
-  const firstNextPrefixLength = "> Note: ".length;
-  const firstLineDelta = firstNextPrefixLength - firstCurrentPrefixLength;
+  const firstLineDelta = (updatedLines[0]?.length ?? 0) - (lines[0]?.length ?? 0);
   const delta = updated.length - segment.length;
-  const nextStart = Math.max(lineStart + firstNextPrefixLength, selection.start + firstLineDelta);
+  const nextStart = Math.max(lineStart, selection.start + firstLineDelta);
   const nextEnd = Math.max(nextStart, selection.end + delta);
 
   return {

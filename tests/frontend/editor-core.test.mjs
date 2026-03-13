@@ -171,6 +171,10 @@ test("applyNoteBlockPrefix converts the current line into a note block", () => {
     end: extendExistingNoteSource.length,
   });
   assert.equal(extendExistingNote.text, "> Note: Reminder\n> detail\n> Plain");
+  assert.deepEqual(extendExistingNote.selection, {
+    start: extendExistingNoteSource.indexOf("detail"),
+    end: extendExistingNoteSource.length + 2,
+  });
 
   const mergeExistingNoteSource = "Alpha\n> Note: Reminder\n> detail";
   const mergeExistingNote = applyNoteBlockPrefix(mergeExistingNoteSource, {
