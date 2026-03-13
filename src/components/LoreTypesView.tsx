@@ -40,7 +40,17 @@ export const LoreTypesView = memo(function LoreTypesView({
   const loreTypeNameInputId = "lore-type-name";
   const loreTypeSlugInputId = "lore-type-slug";
   const loreTypeReassignInputId = "lore-type-reassign";
-  const selectedLoreType = loreTypes.find((type) => type.id === selectedLoreTypeId) ?? loreTypes[0] ?? null;
+  const loreTypesById = useMemo(() => new Map(loreTypes.map((type) => [type.id, type])), [loreTypes]);
+  const templatesByLoreTypeId = useMemo(() => {
+    const grouped = new Map<string, LoreTemplate[]>();
+    for (const template of templates) {
+      const existing = grouped.get(template.loreTypeId) ?? [];
+      existing.push(template);
+      grouped.set(template.loreTypeId, existing);
+    }
+    return grouped;
+  }, [templates]);
+  const selectedLoreType = (selectedLoreTypeId ? loreTypesById.get(selectedLoreTypeId) : null) ?? loreTypes[0] ?? null;
   const selectedIndex = loreTypes.findIndex((type) => type.id === selectedLoreType?.id);
   const loreItemCount = selectedLoreType ? loreItemsInUse[selectedLoreType.id] ?? 0 : 0;
   const templateCount = selectedLoreType ? templatesInUse[selectedLoreType.id] ?? 0 : 0;
@@ -200,13 +210,11 @@ export const LoreTypesView = memo(function LoreTypesView({
                 <div className="lore-panel-header">
                   <div className="linked-lore-label">Templates Using This Type</div>
                 </div>
-                {templates.filter((template) => template.loreTypeId === selectedLoreType.id).length === 0 ? (
+                {(templatesByLoreTypeId.get(selectedLoreType.id) ?? []).length === 0 ? (
                   <div className="rp-empty">No templates use this lore type yet.</div>
                 ) : (
                   <div className="trait-list">
-                    {templates
-                      .filter((template) => template.loreTypeId === selectedLoreType.id)
-                      .map((template) => (
+                    {(templatesByLoreTypeId.get(selectedLoreType.id) ?? []).map((template) => (
                         <div key={template.id} className="trait-row">
                           <div>{template.name}</div>
                           <div>{template.traitDefinitions.length} traits</div>
