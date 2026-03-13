@@ -353,8 +353,11 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     }
 
     const recoveryPromise: Promise<boolean> = (async (): Promise<boolean> => {
+    const actionRequestId = projectActionRequestIdRef.current;
+    const isCurrentRecovery = () => projectActionRequestIdRef.current === actionRequestId;
     const message = error instanceof Error ? error.message : "Worldie could not load that project file.";
     if (!isMissingProjectFileError(project, error)) {
+      if (!isCurrentRecovery()) return false;
       showToast(message);
       return false;
     }
@@ -364,28 +367,34 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         `${getProjectFilename(project)} is missing. Remove it from recent projects?`,
         { confirmLabel: "Remove", tone: "danger" },
       );
+      if (!isCurrentRecovery()) return false;
       if (!confirmRemove) {
         showToast(message);
         return false;
       }
     }
 
+    if (!isCurrentRecovery()) return false;
     let nextProjects: Project[] = [];
     try {
       nextProjects = await deleteProject(project.id);
     } catch (deleteError) {
+      if (!isCurrentRecovery()) return false;
       showToast(deleteError instanceof Error ? deleteError.message : "Worldie could not remove the missing project.");
       return false;
     }
 
+    if (!isCurrentRecovery()) return false;
     setProjectsIfChanged(nextProjects);
     const shouldActivateFallback = options?.activateFallback || activeProjectIdRef.current === project.id;
     if (shouldActivateFallback) {
       await applyActiveProject(null);
+      if (!isCurrentRecovery()) return false;
       const nextProject = nextProjects[0] ?? null;
       try {
         await applyActiveProject(nextProject);
       } catch (applyError) {
+        if (!isCurrentRecovery()) return false;
         if (nextProject) {
           return recoverMissingProject(nextProject, applyError, { activateFallback: true, skipConfirm: true });
         }
@@ -394,6 +403,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
     }
 
+    if (!isCurrentRecovery()) return false;
     showToast(`${getProjectFilename(project)} was removed from recent projects.`);
     return shouldActivateFallback;
     })();
