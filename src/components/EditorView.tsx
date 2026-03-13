@@ -395,16 +395,23 @@ export const EditorView = memo(function EditorView({
     ],
     [],
   );
+  const slashCommandSearchIndex = useMemo(
+    () =>
+      slashCommands.map((command) => ({
+        command,
+        searchText: [command.label, command.description, ...command.keywords].join(" ").toLowerCase(),
+      })),
+    [slashCommands],
+  );
   const filteredSlashCommands = useMemo(() => {
     if (!slashCommandMatch) return [];
     const query = slashCommandMatch.query.trim();
     if (!query) return slashCommands;
-    return slashCommands.filter((command) =>
-      [command.label, command.description, ...command.keywords].some((value) =>
-        value.toLowerCase().includes(query),
-      ),
-    );
-  }, [slashCommandMatch, slashCommands]);
+    const normalizedQuery = query.toLowerCase();
+    return slashCommandSearchIndex
+      .filter(({ searchText }) => searchText.includes(normalizedQuery))
+      .map(({ command }) => command);
+  }, [slashCommandMatch, slashCommandSearchIndex, slashCommands]);
   const renderedPreview = useMemo(
     () => renderPreviewContent(documentContent, linkedLoreByTitle, onOpenLore),
     [documentContent, linkedLoreByTitle, onOpenLore],
