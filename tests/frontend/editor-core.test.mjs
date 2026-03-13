@@ -11,6 +11,7 @@ import {
   findInlinePairAutoInsert,
   getFormattingState,
   getSlashCommandMatch,
+  isUnderlineElement,
   moveSelectedLineBlock,
   normalizePastedText,
   toggleLinePrefix,
@@ -113,4 +114,29 @@ test("getFormattingState reports inline and block formatting flags", () => {
 test("normalizePastedText standardizes quote prefixes and list markers", () => {
   assert.equal(normalizePastedText("│ quoted\n| also quoted"), "> quoted\n> also quoted");
   assert.equal(normalizePastedText("  1) First\n  * Second"), "1. First\n- Second");
+});
+test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {
+  assert.equal(isUnderlineElement({ tagName: "U" }), true);
+  assert.equal(
+    isUnderlineElement({
+      tagName: "SPAN",
+      classList: { contains: (className) => className === "editor-format-underline" },
+    }),
+    true,
+  );
+  assert.equal(
+    isUnderlineElement({
+      tagName: "SPAN",
+      style: { textDecoration: "underline solid rgb(255, 255, 255)" },
+    }),
+    true,
+  );
+  assert.equal(
+    isUnderlineElement({
+      tagName: "SPAN",
+      style: { textDecorationLine: "underline" },
+    }),
+    true,
+  );
+  assert.equal(isUnderlineElement({ tagName: "SPAN", style: { textDecoration: "none" } }), false);
 });

@@ -44,6 +44,12 @@ type EditorDisplayRepresentation = {
   displayToSource: number[];
 };
 
+type UnderlineElementLike = {
+  tagName: string;
+  classList?: { contains: (className: string) => boolean };
+  style?: { textDecoration?: string; textDecorationLine?: string };
+};
+
 function escapeHtml(text: string) {
   return text
     .replace(/&/g, "&amp;")
@@ -170,6 +176,13 @@ export function normalizeEditorText(text: string) {
   return text.replace(/\r\n/g, "\n").replace(/\u00a0/g, " ");
 }
 
+export function isUnderlineElement(node: UnderlineElementLike) {
+  if (node.tagName === "U") return true;
+  if (node.classList?.contains("editor-format-underline")) return true;
+  const textDecoration = `${node.style?.textDecoration ?? ""} ${node.style?.textDecorationLine ?? ""}`.toLowerCase();
+  return textDecoration.includes("underline");
+}
+
 export function serializeEditorDom(root: HTMLElement): string {
   const serializeNode = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -188,8 +201,7 @@ export function serializeEditorDom(root: HTMLElement): string {
 
     if (node.tagName === "STRONG" || node.tagName === "B") return `**${content}**`;
     if (node.tagName === "EM" || node.tagName === "I") return `_${content}_`;
-    if (node.tagName === "U") return `__${content}__`;
-    if (node.classList.contains("editor-format-underline")) return `__${content}__`;
+    if (isUnderlineElement(node)) return `__${content}__`;
 
     return content;
   };
