@@ -30,7 +30,9 @@ import {
 
 function normalizeChildren(children) {
   if (children === undefined || children === null) return [];
-  return Array.isArray(children) ? children : [children];
+  return (Array.isArray(children) ? children : [children]).flatMap((child) =>
+    Array.isArray(child) ? normalizeChildren(child) : [child],
+  );
 }
 
 function summarizePreviewNode(node) {
@@ -630,6 +632,84 @@ test("renderPreviewContent preserves explicit ordered list numbering", () => {
   assert.equal(preview[0].props.children[0].props.value, undefined);
   assert.equal(preview[0].props.children[1].props.value, 7);
   assert.equal(preview[0].props.children[2].props.value, undefined);
+});
+
+test("renderPreviewContent preserves nested list indentation structure", () => {
+  const preview = renderPreviewContent("- Parent\n  - Child bullet\n  3. Child step", new Map(), () => {});
+  assert.deepEqual(
+    summarizePreviewNode(preview[0]),
+    {
+      type: "ul",
+      className: "editor-preview-list",
+      children: [
+        {
+          type: "li",
+          className: null,
+          children: [
+            {
+              type: "span",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["Parent"],
+                },
+              ],
+            },
+            {
+              type: "ul",
+              className: "editor-preview-list",
+              children: [
+                {
+                  type: "li",
+                  className: null,
+                  children: [
+                    {
+                      type: "span",
+                      className: null,
+                      children: [
+                        {
+                          type: "span",
+                          className: null,
+                          children: ["Child bullet"],
+                        },
+                      ],
+                    },
+                    null,
+                  ],
+                },
+              ],
+            },
+            {
+              type: "ol",
+              className: "editor-preview-list editor-preview-list-ordered",
+              children: [
+                {
+                  type: "li",
+                  className: null,
+                  children: [
+                    {
+                      type: "span",
+                      className: null,
+                      children: [
+                        {
+                          type: "span",
+                          className: null,
+                          children: ["Child step"],
+                        },
+                      ],
+                    },
+                    null,
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
 });
 
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {

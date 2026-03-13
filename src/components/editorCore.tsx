@@ -1072,64 +1072,128 @@ export function renderPreviewContent(
 ) {
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
-  let listBuffer: string[] = [];
-  let orderedListBuffer: Array<{ value: number; text: string }> = [];
+  let listLineBuffer: Array<{ kind: "ul" | "ol"; indent: number; text: string; value?: number }> = [];
 
-  const flushList = () => {
-    if (listBuffer.length === 0) return;
-    blocks.push(
-      <ul key={`list-${blocks.length}`} className="editor-preview-list">
-        {listBuffer.map((item, index) => (
-          <li key={`list-item-${index}`}>
-            {renderInlinePreview(item, linkedLoreByTitle, onOpenLore, `list-${blocks.length}-${index}`)}
-          </li>
-        ))}
-      </ul>,
-    );
-    listBuffer = [];
+  const renderPreviewListNodes = (
+    nodes: Array<{ kind: "ul" | "ol"; text: string; value?: number; children: Array<any> }>,
+    keyPrefix: string,
+  ): ReactNode[] => {
+    const groups: Array<{ kind: "ul" | "ol"; items: Array<{ kind: "ul" | "ol"; text: string; value?: number; children: Array<any> }> }> = [];
+
+    for (const node of nodes) {
+      const currentGroup = groups[groups.length - 1];
+      if (!currentGroup || currentGroup.kind !== node.kind) {
+        groups.push({ kind: node.kind, items: [node] });
+      } else {
+        currentGroup.items.push(node);
+      }
+    }
+
+    return groups.map((group, groupIndex) => {
+      if (group.kind === "ol") {
+        const listStart = group.items[0]?.value ?? 1;
+        return (
+          <ol
+            key={`${keyPrefix}-ol-${groupIndex}`}
+            className="editor-preview-list editor-preview-list-ordered"
+            start={listStart}
+          >
+            {group.items.map((item, itemIndex) => (
+              <li
+                key={`${keyPrefix}-ol-item-${groupIndex}-${itemIndex}`}
+                value={
+                  itemIndex === 0 || item.value === undefined
+                    ? undefined
+                    : item.value === (group.items[itemIndex - 1]?.value ?? item.value - 1) + 1
+                    ? undefined
+                    : item.value
+                }
+              >
+                <span>
+                  {renderInlinePreview(item.text, linkedLoreByTitle, onOpenLore, `${keyPrefix}-ol-${groupIndex}-${itemIndex}`)}
+                </span>
+                {item.children.length > 0
+                  ? renderPreviewListNodes(item.children, `${keyPrefix}-ol-${groupIndex}-${itemIndex}-children`)
+                  : null}
+              </li>
+            ))}
+          </ol>
+        );
+      }
+
+      return (
+        <ul key={`${keyPrefix}-ul-${groupIndex}`} className="editor-preview-list">
+          {group.items.map((item, itemIndex) => (
+            <li key={`${keyPrefix}-ul-item-${groupIndex}-${itemIndex}`}>
+              <span>
+                {renderInlinePreview(item.text, linkedLoreByTitle, onOpenLore, `${keyPrefix}-ul-${groupIndex}-${itemIndex}`)}
+              </span>
+              {item.children.length > 0
+                ? renderPreviewListNodes(item.children, `${keyPrefix}-ul-${groupIndex}-${itemIndex}-children`)
+                : null}
+            </li>
+          ))}
+        </ul>
+      );
+    });
   };
 
-  const flushOrderedList = () => {
-    if (orderedListBuffer.length === 0) return;
-    const listStart = orderedListBuffer[0]?.value ?? 1;
-    blocks.push(
-      <ol key={`olist-${blocks.length}`} className="editor-preview-list editor-preview-list-ordered" start={listStart}>
-        {orderedListBuffer.map((item, index) => (
-          <li
-            key={`olist-item-${index}`}
-            value={
-              index === 0 || item.value === orderedListBuffer[index - 1].value + 1
-                ? undefined
-                : item.value
-            }
-          >
-            {renderInlinePreview(item.text, linkedLoreByTitle, onOpenLore, `olist-${blocks.length}-${index}`)}
-          </li>
-        ))}
-      </ol>,
-    );
-    orderedListBuffer = [];
+  const flushLists = () => {
+    if (listLineBuffer.length === 0) return;
+
+    const roots: Array<{ kind: "ul" | "ol"; text: string; value?: number; children: Array<any> }> = [];
+    const stack: Array<{ indent: number; nodes: Array<any> }> = [];
+
+    for (const entry of listLineBuffer) {
+      while (stack.length > 0 && entry.indent < stack[stack.length - 1].indent) {
+        stack.pop();
+      }
+
+      if (stack.length === 0) {
+        stack.push({ indent: entry.indent, nodes: roots });
+      } else if (entry.indent > stack[stack.length - 1].indent) {
+        const parent = stack[stack.length - 1].nodes[stack[stack.length - 1].nodes.length - 1];
+        if (parent) {
+          stack.push({ indent: entry.indent, nodes: parent.children });
+        }
+      }
+
+      const targetNodes = stack[stack.length - 1]?.nodes ?? roots;
+      targetNodes.push({
+        kind: entry.kind,
+        text: entry.text,
+        value: entry.value,
+        children: [],
+      });
+    }
+
+    blocks.push(...renderPreviewListNodes(roots, `list-${blocks.length}`));
+    listLineBuffer = [];
   };
 
   lines.forEach((line, index) => {
-    if (line.startsWith("- ")) {
-      flushOrderedList();
-      listBuffer.push(line.slice(2));
-      return;
-    }
-
-    const orderedMatch = line.match(/^(\d+)\.\s+(.*)$/);
-    if (orderedMatch) {
-      flushList();
-      orderedListBuffer.push({
-        value: Number.parseInt(orderedMatch[1], 10),
-        text: orderedMatch[2],
+    const bulletMatch = line.match(/^(\s*)-\s+(.*)$/);
+    if (bulletMatch) {
+      listLineBuffer.push({
+        kind: "ul",
+        indent: bulletMatch[1].length,
+        text: bulletMatch[2],
       });
       return;
     }
 
-    flushList();
-    flushOrderedList();
+    const orderedMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+    if (orderedMatch) {
+      listLineBuffer.push({
+        kind: "ol",
+        indent: orderedMatch[1].length,
+        value: Number.parseInt(orderedMatch[2], 10),
+        text: orderedMatch[3],
+      });
+      return;
+    }
+
+    flushLists();
 
     if (line.startsWith("## ")) {
       blocks.push(
@@ -1187,7 +1251,6 @@ export function renderPreviewContent(
     );
   });
 
-  flushList();
-  flushOrderedList();
+  flushLists();
   return blocks;
 }
