@@ -270,35 +270,6 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     return true;
   }, [hydrateWorlds, setWorldsIfChanged]);
 
-  useEffect(() => {
-    const load = async () => {
-      setProjectActionStateIfChanged({ status: "loading", message: "Loading recent projects..." });
-      const requestId = ++hydrateRequestId.current;
-      let loadedProjects: Project[] = [];
-      try {
-        loadedProjects = await listProjects();
-      } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not load recent project files.");
-      }
-      if (requestId !== hydrateRequestId.current) return;
-      setProjectsIfChanged(loadedProjects);
-      const project = loadedProjects[0];
-      if (!project) {
-        await applyActiveProject(null);
-        setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
-        return;
-      }
-      try {
-        await applyActiveProject(project);
-      } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not load worlds for the active project.");
-      }
-      setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
-    };
-
-    void load();
-  }, [applyActiveProject, setProjectActionStateIfChanged, setProjectsIfChanged, showToast]);
-
   const syncLoreTypes = useCallback((loreTypes: LoreType[]) => {
     currentLoreTypesRef.current = loreTypes;
     setWorlds((prev) => {
@@ -435,8 +406,8 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     });
   }, [applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
 
-  const recoverMissingRecentProject = useCallback(async (project: Project, error: unknown) => {
-    const message = error instanceof Error ? error.message : "Worldie could not reopen that project file.";
+  const recoverMissingProject = useCallback(async (project: Project, error: unknown) => {
+    const message = error instanceof Error ? error.message : "Worldie could not load that project file.";
     if (!isMissingProjectFileError(project, error)) {
       showToast(message);
       return false;
@@ -475,6 +446,35 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     showToast(`${getProjectFilename(project)} was removed from recent projects.`);
     return false;
   }, [applyActiveProject, confirmAction, setProjectsIfChanged, showToast]);
+
+  useEffect(() => {
+    const load = async () => {
+      setProjectActionStateIfChanged({ status: "loading", message: "Loading recent projects..." });
+      const requestId = ++hydrateRequestId.current;
+      let loadedProjects: Project[] = [];
+      try {
+        loadedProjects = await listProjects();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Worldie could not load recent project files.");
+      }
+      if (requestId !== hydrateRequestId.current) return;
+      setProjectsIfChanged(loadedProjects);
+      const project = loadedProjects[0];
+      if (!project) {
+        await applyActiveProject(null);
+        setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
+        return;
+      }
+      try {
+        await applyActiveProject(project);
+      } catch (error) {
+        await recoverMissingProject(project, error);
+      }
+      setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
+    };
+
+    void load();
+  }, [applyActiveProject, recoverMissingProject, setProjectActionStateIfChanged, setProjectsIfChanged, showToast]);
 
   const openProject = useCallback(async () => {
     return runProjectAction("opening", "Opening project file...", async () => {
@@ -533,7 +533,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         nextProjects = result.projects;
         reopened = result.project;
       } catch (error) {
-        return recoverMissingRecentProject(project, error);
+        return recoverMissingProject(project, error);
       }
       setProjectsIfChanged(nextProjects);
       reopened ??= getProjectByFilepath(nextProjects, project.filepath);
@@ -549,7 +549,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  }, [applyActiveProject, projectsById, recoverMissingRecentProject, runProjectAction, setProjectsIfChanged, showToast]);
+  }, [applyActiveProject, projectsById, recoverMissingProject, runProjectAction, setProjectsIfChanged, showToast]);
 
   const saveCurrentProjectAs = useCallback(async () => {
     if (!activeProjectId) return false;
@@ -590,9 +590,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         showToast("Worldie could not find that project.");
         return false;
       }
-      return applyActiveProject(project);
+      try {
+        return await applyActiveProject(project);
+      } catch (error) {
+        return recoverMissingProject(project, error);
+      }
     });
-  }, [applyActiveProject, projectsById, runProjectAction, showToast]);
+  }, [applyActiveProject, projectsById, recoverMissingProject, runProjectAction, showToast]);
 
   const commitProjectTitle = useCallback(async () => {
     if (!activeProjectId) return;
