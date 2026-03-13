@@ -77,6 +77,10 @@ export function useWorldStructures({
   const [timelineSaveState, setTimelineSaveState] = useState<SaveState>("idle");
   const [timelineLastSavedAt, setTimelineLastSavedAt] = useState<number | null>(null);
   const loadRequestId = useRef(0);
+  const currentScopeRef = useRef<{ projectId: string | null; worldId: string | null }>({
+    projectId: activeProjectId,
+    worldId: activeWorldId,
+  });
   const currentRelationshipSaveTargetRef = useRef<{ projectId: string | null; relationshipId: string | null }>({
     projectId: activeProjectId,
     relationshipId: null,
@@ -170,6 +174,13 @@ export function useWorldStructures({
     timelineTitle,
     timelineType,
   ]);
+
+  useEffect(() => {
+    currentScopeRef.current = {
+      projectId: activeProjectId,
+      worldId: activeWorldId,
+    };
+  }, [activeProjectId, activeWorldId]);
 
   useEffect(() => {
     currentRelationshipSaveTargetRef.current = {
@@ -300,6 +311,8 @@ export function useWorldStructures({
     notes?: string;
   }) => {
     if (!activeProjectId || !activeWorldId) return null;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     if (!(await canLeaveRelationshipDraft())) return null;
     const getAlternateLorePage = (excludedId: string | undefined) => {
       for (const page of allLorePages) {
@@ -327,7 +340,7 @@ export function useWorldStructures({
     }
     let created: Relationship;
     try {
-      created = await createRelationship(activeProjectId, activeWorldId, {
+      created = await createRelationship(actionProjectId, actionWorldId, {
         sourcePageId: defaultPage.id,
         targetPageId: secondPage.id,
         relationType: seed?.relationType?.trim() || "ally",
@@ -336,6 +349,12 @@ export function useWorldStructures({
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not create the relationship.");
       return null;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return created;
     }
     setRelationships((prev) => [created, ...prev]);
     void selectRelationship(created, { skipGuard: true });
@@ -397,11 +416,19 @@ export function useWorldStructures({
     const confirmDelete = await confirmAction("Delete this relationship?");
     if (!confirmDelete) return false;
     if (!activeProjectId) return false;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     try {
-      await deleteRelationship(activeProjectId, relationshipId);
+      await deleteRelationship(actionProjectId, relationshipId);
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not delete the relationship.");
       return false;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return true;
     }
     const { next, first } = removeItemWithFallback(relationships, relationshipId);
     setRelationships(next);
@@ -464,10 +491,12 @@ export function useWorldStructures({
     description?: string;
   }) => {
     if (!activeProjectId || !activeWorldId) return null;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     if (!(await canLeaveTimelineDraft())) return null;
     let created: TimelineEvent;
     try {
-      created = await createTimelineEvent(activeProjectId, activeWorldId, {
+      created = await createTimelineEvent(actionProjectId, actionWorldId, {
         title: seed?.title?.trim() || `New Event ${timelineEvents.length + 1}`,
         eventDate: seed?.eventDate ?? "",
         eventType: seed?.eventType?.trim() || "event",
@@ -477,6 +506,12 @@ export function useWorldStructures({
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not create the timeline event.");
       return null;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return created;
     }
     setTimelineEvents((prev) => [created, ...prev]);
     void selectTimelineEvent(created, { skipGuard: true });
@@ -548,11 +583,19 @@ export function useWorldStructures({
     const confirmDelete = await confirmAction("Delete this timeline event?");
     if (!confirmDelete) return false;
     if (!activeProjectId) return false;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     try {
-      await deleteTimelineEvent(activeProjectId, eventId);
+      await deleteTimelineEvent(actionProjectId, eventId);
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not delete the timeline event.");
       return false;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return true;
     }
     const { next, first } = removeItemWithFallback(timelineEvents, eventId);
     setTimelineEvents(next);
