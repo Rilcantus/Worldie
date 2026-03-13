@@ -190,11 +190,11 @@ export function useTabs({
   }, [tabs, activeTabId, activeProjectId, tabsProjectId]);
 
   useEffect(() => {
-    if (!tabs.some((tab) => tab.id === activeTabId)) {
+    if (!tabsById.has(activeTabId)) {
       const fallbackTabId = tabs[0]?.id ?? "workbench";
       setActiveTabId((current) => (current === fallbackTabId ? current : fallbackTabId));
     }
-  }, [tabs, activeTabId]);
+  }, [tabs, activeTabId, tabsById]);
 
   useEffect(() => {
     if (!activeProjectId || tabsProjectId !== activeProjectId || worldIds.length === 0) return;
