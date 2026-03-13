@@ -514,9 +514,20 @@ export function clearCurrentLinePrefix(text: string, selection: SelectionOffsets
   const currentLine = text.slice(lineStart, lineEnd);
   const currentPrefix = getCurrentLinePrefix(currentLine);
   const isNotePrefix = /^>\s*Note:\s*/i.test(currentLine);
+  const isNoteContinuation = !isNotePrefix && isOffsetWithinNoteBlock(text, selection.start) && isQuoteLine(currentLine);
 
   if (!currentPrefix) {
     return null;
+  }
+
+  if (isNoteContinuation) {
+    return {
+      text,
+      selection,
+      lineStart,
+      contentStart: lineStart + currentPrefix.length,
+      prefix: currentPrefix,
+    };
   }
 
   const normalized = currentLine.slice(currentPrefix.length);

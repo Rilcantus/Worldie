@@ -249,6 +249,11 @@ test("clearCurrentLinePrefix removes active list prefixes and preserves selectio
   assert.equal(downgradedNote?.text, "> Reminder");
   assert.deepEqual(downgradedNote?.selection, { start: 2, end: 10 });
   assert.equal(downgradedNote?.prefix, "> Note: ");
+
+  const preservedNoteContinuation = clearCurrentLinePrefix("> Note: Reminder\n> detail", { start: 19, end: 19 });
+  assert.equal(preservedNoteContinuation?.text, "> Note: Reminder\n> detail");
+  assert.deepEqual(preservedNoteContinuation?.selection, { start: 19, end: 19 });
+  assert.equal(preservedNoteContinuation?.prefix, "> ");
 });
 
 test("getFormattingState reports inline and block formatting flags", () => {
