@@ -405,8 +405,12 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
   const updatedLines = lines
     .map((line, index) => {
       const normalized = stripKnownLinePrefix(line);
+      const absoluteLineStart =
+        lineStart +
+        lines.slice(0, index).reduce((total, currentLine) => total + currentLine.length + 1, 0);
+      const lineWithinNoteBlock = isQuotePrefix && isOffsetWithinNoteBlock(text, absoluteLineStart);
       if (everyLineHasPrefix) {
-        if (isQuotePrefix && firstNoteLineIndex !== -1 && index >= firstNoteLineIndex) {
+        if (isQuotePrefix && (lineWithinNoteBlock || (firstNoteLineIndex !== -1 && index >= firstNoteLineIndex))) {
           return normalized.length > 0 ? `> ${normalized}` : ">";
         }
         if (isQuotePrefix && /^>\s*Note:\s*/i.test(line)) {
@@ -818,11 +822,9 @@ function getCurrentLine(text: string, selection: SelectionOffsets | null) {
   return text.slice(lineStart, lineEnd);
 }
 
-function isLineWithinNoteBlock(text: string, selection: SelectionOffsets | null) {
-  if (!selection) return false;
-
-  const lineStart = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
-  const lineEndCandidate = text.indexOf("\n", selection.start);
+function isOffsetWithinNoteBlock(text: string, offset: number) {
+  const lineStart = text.lastIndexOf("\n", Math.max(0, offset - 1)) + 1;
+  const lineEndCandidate = text.indexOf("\n", offset);
   const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
   const currentLine = text.slice(lineStart, lineEnd);
 
@@ -840,6 +842,11 @@ function isLineWithinNoteBlock(text: string, selection: SelectionOffsets | null)
   }
 
   return false;
+}
+
+function isLineWithinNoteBlock(text: string, selection: SelectionOffsets | null) {
+  if (!selection) return false;
+  return isOffsetWithinNoteBlock(text, selection.start);
 }
 
 function isBulletListLine(line: string) {
