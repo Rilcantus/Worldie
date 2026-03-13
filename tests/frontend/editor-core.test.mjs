@@ -1,0 +1,91 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import {
+  appendTypewriterCommit,
+  continueBlockPrefix,
+  duplicateSelectedLineBlock,
+  findActiveInlinePairExit,
+  findEmptyInlinePairAtCursor,
+  findInlinePairAutoInsert,
+  getSlashCommandMatch,
+  moveSelectedLineBlock,
+  toggleLinePrefix,
+  trimTypewriterCommit,
+} from "../../.tmp-frontend-tests/src/components/editorCore.js";
+
+test("trimTypewriterCommit removes trailing blank lines and appendTypewriterCommit joins paragraphs", () => {
+  assert.equal(trimTypewriterCommit("Draft line\n\n"), "Draft line");
+  assert.equal(appendTypewriterCommit("", "Draft line\n"), "Draft line");
+  assert.equal(appendTypewriterCommit("Base paragraph", "Draft line\n"), "Base paragraph\nDraft line");
+  assert.equal(appendTypewriterCommit("Base paragraph\n", "Draft line\n"), "Base paragraph\nDraft line");
+});
+
+test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {
+  const added = toggleLinePrefix("Alpha\nBeta", { start: 0, end: 10 }, "- ");
+  assert.equal(added.text, "- Alpha\n- Beta");
+
+  const removed = toggleLinePrefix(added.text, added.selection, "- ");
+  assert.equal(removed.text, "Alpha\nBeta");
+});
+
+test("toggleLinePrefix normalizes ordered list prefixes", () => {
+  const result = toggleLinePrefix("Alpha\nBeta", { start: 0, end: 10 }, "1. ");
+  assert.equal(result.text, "1. Alpha\n2. Beta");
+});
+
+test("continueBlockPrefix advances lists and clears empty prefixes", () => {
+  const ordered = continueBlockPrefix("1. Alpha", { start: 8, end: 8 });
+  assert.equal(ordered.text, "1. Alpha\n2. ");
+  assert.deepEqual(ordered.selection, { start: 12, end: 12 });
+
+  const cleared = continueBlockPrefix("- ", { start: 2, end: 2 });
+  assert.equal(cleared.text, "");
+  assert.deepEqual(cleared.selection, { start: 0, end: 0 });
+});
+
+test("duplicateSelectedLineBlock duplicates the active line block below the selection", () => {
+  const duplicated = duplicateSelectedLineBlock("Alpha\nBeta", { start: 0, end: 5 });
+  assert.equal(duplicated.text, "Alpha\nAlpha\nBeta");
+  assert.deepEqual(duplicated.selection, { start: 6, end: 11 });
+});
+
+test("moveSelectedLineBlock swaps line blocks up and down", () => {
+  const movedDown = moveSelectedLineBlock("Alpha\nBeta\nGamma", { start: 0, end: 5 }, 1);
+  assert.equal(movedDown?.text, "Beta\nAlpha\nGamma");
+  assert.deepEqual(movedDown?.selection, { start: 5, end: 10 });
+
+  const movedUp = moveSelectedLineBlock("Alpha\nBeta\nGamma", { start: 6, end: 10 }, -1);
+  assert.equal(movedUp?.text, "Beta\nAlpha\nGamma");
+  assert.deepEqual(movedUp?.selection, { start: 0, end: 4 });
+});
+
+test("getSlashCommandMatch detects slash commands only at word boundaries", () => {
+  assert.deepEqual(getSlashCommandMatch("/hea", { start: 4, end: 4 }), {
+    start: 0,
+    end: 4,
+    query: "hea",
+  });
+  assert.equal(getSlashCommandMatch("word/hea", { start: 8, end: 8 }), null);
+  assert.equal(getSlashCommandMatch("/two words", { start: 10, end: 10 }), null);
+});
+
+test("inline pair helpers detect lore-link auto insert, empty pairs, and exit points", () => {
+  assert.deepEqual(findInlinePairAutoInsert("[", { start: 1, end: 1 }, "["), {
+    replaceStart: 0,
+    replaceEnd: 1,
+    insertion: "[[]]",
+    cursor: 2,
+  });
+
+  assert.deepEqual(findEmptyInlinePairAtCursor("[[]]", 2), {
+    pair: { open: "[[", close: "]]" },
+    start: 0,
+    end: 4,
+  });
+
+  assert.deepEqual(findActiveInlinePairExit("[[Lore]]", 6), {
+    pair: { open: "[[", close: "]]" },
+    nextCursor: 8,
+  });
+});
