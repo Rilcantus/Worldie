@@ -1382,6 +1382,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   border-left: 2px solid var(--accent-bright);
   color: var(--text-primary);
   font-style: italic;
+  white-space: pre-wrap;
 }
 .editor-preview-note {
   margin-bottom: 12px;

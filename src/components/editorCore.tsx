@@ -1073,6 +1073,7 @@ export function renderPreviewContent(
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
   let listLineBuffer: Array<{ kind: "ul" | "ol"; indent: number; text: string; value?: number }> = [];
+  let quoteLineBuffer: string[] = [];
 
   const renderPreviewListNodes = (
     nodes: Array<{ kind: "ul" | "ol"; text: string; value?: number; children: Array<any> }>,
@@ -1171,9 +1172,57 @@ export function renderPreviewContent(
     listLineBuffer = [];
   };
 
+  const flushQuotes = () => {
+    if (quoteLineBuffer.length === 0) return;
+
+    const quoteChildren: ReactNode[] = [];
+    quoteLineBuffer.forEach((line, index) => {
+      if (index > 0) {
+        quoteChildren.push(<br key={`quote-${blocks.length}-break-${index}`} />);
+      }
+      if (line.length > 0) {
+        quoteChildren.push(
+          <span key={`quote-${blocks.length}-line-${index}`}>
+            {renderInlinePreview(line, linkedLoreByTitle, onOpenLore, `quote-${blocks.length}-${index}`)}
+          </span>,
+        );
+      }
+    });
+
+    blocks.push(
+      <blockquote key={`quote-${blocks.length}`} className="editor-preview-quote">
+        {quoteChildren}
+      </blockquote>,
+    );
+    quoteLineBuffer = [];
+  };
+
   lines.forEach((line, index) => {
+    const noteMatch = line.match(/^>\s*Note:\s*(.*)$/i);
+    if (noteMatch) {
+      flushLists();
+      flushQuotes();
+      blocks.push(
+        <div key={`note-${index}`} className="editor-preview-note">
+          <div className="editor-preview-note-label">Note</div>
+          <div className="editor-preview-note-body">
+            {renderInlinePreview(noteMatch[1], linkedLoreByTitle, onOpenLore, `note-${index}`)}
+          </div>
+        </div>,
+      );
+      return;
+    }
+
+    const quoteMatch = line.match(/^>\s?(.*)$/);
+    if (quoteMatch) {
+      flushLists();
+      quoteLineBuffer.push(quoteMatch[1]);
+      return;
+    }
+
     const bulletMatch = line.match(/^(\s*)-\s+(.*)$/);
     if (bulletMatch) {
+      flushQuotes();
       listLineBuffer.push({
         kind: "ul",
         indent: bulletMatch[1].length,
@@ -1184,6 +1233,7 @@ export function renderPreviewContent(
 
     const orderedMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
     if (orderedMatch) {
+      flushQuotes();
       listLineBuffer.push({
         kind: "ol",
         indent: orderedMatch[1].length,
@@ -1193,6 +1243,7 @@ export function renderPreviewContent(
       return;
     }
 
+    flushQuotes();
     flushLists();
 
     if (line.startsWith("## ")) {
@@ -1209,27 +1260,6 @@ export function renderPreviewContent(
         <h1 key={`h1-${index}`} className="editor-preview-heading">
           {renderInlinePreview(line.slice(2), linkedLoreByTitle, onOpenLore, `h1-${index}`)}
         </h1>,
-      );
-      return;
-    }
-
-    if (line.startsWith("> ")) {
-      const noteMatch = line.match(/^>\s*Note:\s*(.*)$/i);
-      if (noteMatch) {
-        blocks.push(
-          <div key={`note-${index}`} className="editor-preview-note">
-            <div className="editor-preview-note-label">Note</div>
-            <div className="editor-preview-note-body">
-              {renderInlinePreview(noteMatch[1], linkedLoreByTitle, onOpenLore, `note-${index}`)}
-            </div>
-          </div>,
-        );
-        return;
-      }
-      blocks.push(
-        <blockquote key={`quote-${index}`} className="editor-preview-quote">
-          {renderInlinePreview(line.slice(2), linkedLoreByTitle, onOpenLore, `quote-${index}`)}
-        </blockquote>,
       );
       return;
     }
@@ -1251,6 +1281,7 @@ export function renderPreviewContent(
     );
   });
 
+  flushQuotes();
   flushLists();
   return blocks;
 }

@@ -712,6 +712,67 @@ test("renderPreviewContent preserves nested list indentation structure", () => {
   );
 });
 
+test("renderPreviewContent preserves multiline quote spacing and indentation", () => {
+  const preview = renderPreviewContent("> Quoted line\n>   nested detail\n>\n> Closing line", new Map(), () => {});
+  assert.deepEqual(
+    summarizePreviewNode(preview[0]),
+    {
+      type: "blockquote",
+      className: "editor-preview-quote",
+      children: [
+        {
+          type: "span",
+          className: null,
+          children: [
+            {
+              type: "span",
+              className: null,
+              children: ["Quoted line"],
+            },
+          ],
+        },
+        {
+          type: "br",
+          className: null,
+          children: [],
+        },
+        {
+          type: "span",
+          className: null,
+          children: [
+            {
+              type: "span",
+              className: null,
+              children: ["  nested detail"],
+            },
+          ],
+        },
+        {
+          type: "br",
+          className: null,
+          children: [],
+        },
+        {
+          type: "br",
+          className: null,
+          children: [],
+        },
+        {
+          type: "span",
+          className: null,
+          children: [
+            {
+              type: "span",
+              className: null,
+              children: ["Closing line"],
+            },
+          ],
+        },
+      ],
+    },
+  );
+});
+
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {
   assert.equal(isUnderlineElement({ tagName: "U" }), true);
   assert.equal(
