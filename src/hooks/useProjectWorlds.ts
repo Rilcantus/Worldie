@@ -734,15 +734,18 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return;
     }
     if (currentScopeRef.current.projectId !== actionProjectId) return;
-    const { next: nextWorlds, first: nextWorld } = removeItemWithFallback(worlds, worldId);
+    let nextActiveWorldId: string | null = null;
     if (editingWorldId === worldId) {
       setEditingWorldId((current) => (current === null ? current : null));
       setWorldDraft((current) => (current === "" ? current : ""));
     }
-    setWorlds(nextWorlds);
+    setWorlds((prev) => {
+      const { next, first } = removeItemWithFallback(prev, worldId);
+      nextActiveWorldId = first?.id ?? null;
+      return next;
+    });
     if (startedActiveWorldId === worldId && activeWorldIdRef.current === worldId) {
       setActiveWorldId((current) => {
-        const nextActiveWorldId = nextWorld?.id ?? null;
         return current === nextActiveWorldId ? current : nextActiveWorldId;
       });
     }
