@@ -818,6 +818,30 @@ function getCurrentLine(text: string, selection: SelectionOffsets | null) {
   return text.slice(lineStart, lineEnd);
 }
 
+function isLineWithinNoteBlock(text: string, selection: SelectionOffsets | null) {
+  if (!selection) return false;
+
+  const lineStart = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
+  const lineEndCandidate = text.indexOf("\n", selection.start);
+  const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
+  const currentLine = text.slice(lineStart, lineEnd);
+
+  if (!isQuoteLine(currentLine)) return false;
+  if (/^>\s*Note:\s*/i.test(currentLine)) return true;
+
+  let previousLineEnd = Math.max(0, lineStart - 1);
+  while (previousLineEnd >= 0) {
+    const previousLineStart = text.lastIndexOf("\n", Math.max(0, previousLineEnd - 1)) + 1;
+    const previousLine = text.slice(previousLineStart, previousLineEnd);
+    if (!isQuoteLine(previousLine)) return false;
+    if (/^>\s*Note:\s*/i.test(previousLine)) return true;
+    if (previousLineStart === 0) return false;
+    previousLineEnd = previousLineStart - 1;
+  }
+
+  return false;
+}
+
 function isBulletListLine(line: string) {
   return /^[-*\u2022\u25cf\u25e6]\s+/.test(line.trimStart());
 }
@@ -836,7 +860,7 @@ function isSceneBreakLine(line: string) {
 
 export function getFormattingState(text: string, selection: SelectionOffsets | null): EditorFormattingState {
   const line = getCurrentLine(text, selection);
-  const noteBlock = /^>\s*Note:\s*/i.test(line);
+  const noteBlock = isLineWithinNoteBlock(text, selection);
   return {
     bold: isMarkerActiveAcrossSelection(text, selection, "**"),
     italic:
