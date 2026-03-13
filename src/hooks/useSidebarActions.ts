@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 type UseSidebarActionsArgs = {
   projectTitle: string;
@@ -27,6 +27,12 @@ export function useSidebarActions({
   canLeaveCurrentView,
   openSpecialTab,
 }: UseSidebarActionsArgs) {
+  const activeWorldIdRef = useRef(activeWorldId);
+
+  useEffect(() => {
+    activeWorldIdRef.current = activeWorldId;
+  }, [activeWorldId]);
+
   const cancelProjectEdit = useCallback(() => {
     setProjectDraft(projectTitle);
     setIsEditingProject(false);
@@ -49,13 +55,17 @@ export function useSidebarActions({
   }, [setEditingWorldId]);
 
   const handleAddWorld = useCallback(async () => {
+    const startingWorldId = activeWorldId;
     if (!(await canLeaveCurrentView())) return;
+    if (activeWorldIdRef.current !== startingWorldId) return;
     addWorld();
-  }, [addWorld, canLeaveCurrentView]);
+  }, [activeWorldId, addWorld, canLeaveCurrentView]);
 
   const handleRemoveWorld = useCallback(
     async (worldId: string) => {
+      const startingWorldId = activeWorldId;
       if (worldId === activeWorldId && !(await canLeaveCurrentView())) return;
+      if (activeWorldIdRef.current !== startingWorldId) return;
       await removeWorld(worldId);
     },
     [activeWorldId, canLeaveCurrentView, removeWorld],

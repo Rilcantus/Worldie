@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppFeedback } from "./useAppFeedback";
 import { useContentManager } from "./useContentManager";
 import { useContentTabActions } from "./useContentTabActions";
@@ -65,6 +65,11 @@ export function useAppController() {
   );
 
   const hasUnsavedProjectChanges = content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+  const activeProjectIdRef = useRef(projectWorlds.activeProjectId);
+
+  useEffect(() => {
+    activeProjectIdRef.current = projectWorlds.activeProjectId;
+  }, [projectWorlds.activeProjectId]);
 
   const canLeaveCurrentView = useCallback(async () => {
     if (!hasUnsavedProjectChanges) return true;
@@ -239,32 +244,45 @@ export function useAppController() {
   const projectFileActions = useMemo(
     () => ({
       addProject: async () => {
+        const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
+        if (activeProjectIdRef.current !== startingProjectId) return;
         await projectWorlds.addProject();
       },
       openProject: async () => {
+        const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
+        if (activeProjectIdRef.current !== startingProjectId) return;
         await projectWorlds.openProject();
       },
       openRecentProject: async (projectId: string) => {
+        const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
+        if (activeProjectIdRef.current !== startingProjectId) return;
         await projectWorlds.openRecentProject(projectId);
       },
       saveCurrentProjectAs: async () => {
+        const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
+        if (activeProjectIdRef.current !== startingProjectId) return;
         await projectWorlds.saveCurrentProjectAs();
       },
       addDemoProject: async () => {
+        const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
+        if (activeProjectIdRef.current !== startingProjectId) return;
         await projectWorlds.addDemoProject();
       },
       removeProject: async () => {
+        const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
+        if (activeProjectIdRef.current !== startingProjectId) return;
         await projectWorlds.removeProject();
       },
     }),
     [
       canLeaveCurrentView,
+      projectWorlds.activeProjectId,
       projectWorlds.addProject,
       projectWorlds.openProject,
       projectWorlds.openRecentProject,
