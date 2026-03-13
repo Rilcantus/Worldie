@@ -1,8 +1,11 @@
 import importlib
+import io
+import json
 import shutil
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 
 class ProjectStoreTests(unittest.TestCase):
@@ -265,6 +268,15 @@ class ProjectStoreTests(unittest.TestCase):
 
         self.assertEqual(response["status"], "error")
         self.assertIn("does-not-exist.worldie", response["message"])
+
+    def test_sidecar_main_returns_error_payload_when_request_read_fails(self):
+        with patch.object(self.sidecar, "_read_request", side_effect=ValueError("bad request payload")):
+            with patch("sys.stdout", new=io.StringIO()) as stdout:
+                self.sidecar.main()
+
+        response = json.loads(stdout.getvalue())
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], "bad request payload")
 
 
 if __name__ == "__main__":

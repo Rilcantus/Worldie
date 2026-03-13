@@ -17,6 +17,7 @@ fn sidecar_request(payload: Value) -> Result<Value, String> {
         .arg(sidecar_path)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| e.to_string())?;
 
@@ -28,12 +29,22 @@ fn sidecar_request(payload: Value) -> Result<Value, String> {
     }
 
     let output = child.wait_with_output().map_err(|e| e.to_string())?;
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
     if !output.status.success() {
-        return Err(format!("sidecar failed: {}", output.status));
+        return Err(if stderr.is_empty() {
+            format!("sidecar failed: {}", output.status)
+        } else {
+            stderr
+        });
     }
 
-    let response: Value =
-        serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?;
+    let response: Value = serde_json::from_slice(&output.stdout).map_err(|e| {
+        if stderr.is_empty() {
+            e.to_string()
+        } else {
+            format!("{e}: {stderr}")
+        }
+    })?;
     if response
         .get("status")
         .and_then(|status| status.as_str())

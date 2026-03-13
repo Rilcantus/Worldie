@@ -537,9 +537,12 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def main():
-    init_db()
-    request = _read_request()
-    response = _handle_request(request)
+    try:
+        init_db()
+        request = _read_request()
+        response = _handle_request(request)
+    except Exception as error:
+        response = {"status": "error", "message": str(error)}
     _reply(response)
 
 
