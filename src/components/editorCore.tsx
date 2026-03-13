@@ -833,7 +833,7 @@ function renderInlinePreview(
   keyPrefix: string,
 ): ReactNode[] {
   const parts: ReactNode[] = [];
-  const pattern = /(\[\[[^\]]+\]\]|___[^_]+___|\*\*\*__[^*]+__\*\*\*|\*\*\*[^*]+\*\*\*|\*\*_[^*]+_\*\*|\*\*__[^*]+__\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
+  const pattern = /(\[\[[^\]]+\]\]|__\*\*_[^*]+_\*\*__|_\*\*__[^*]+__\*\*_|___[^_]+___|\*\*\*__[^*]+__\*\*\*|\*\*\*[^*]+\*\*\*|\*\*__[^*]+__\*\*|\*\*_[^*]+_\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -862,6 +862,18 @@ function renderInlinePreview(
           </span>
         ),
       );
+    } else if (token.startsWith("__**_") && token.endsWith("_**__")) {
+      parts.push(
+        <span key={`${keyPrefix}-underline-bold-italic-${match.index}`} className="editor-preview-underline">
+          {renderInlinePreview(token.slice(2, -2), linkedLoreByTitle, onOpenLore, `${keyPrefix}-ubi-${match.index}`)}
+        </span>,
+      );
+    } else if (token.startsWith("_**__") && token.endsWith("__**_")) {
+      parts.push(
+        <em key={`${keyPrefix}-italic-bold-underline-${match.index}`}>
+          {renderInlinePreview(token.slice(1, -1), linkedLoreByTitle, onOpenLore, `${keyPrefix}-ibu-${match.index}`)}
+        </em>,
+      );
     } else if (token.startsWith("___") && token.endsWith("___")) {
       parts.push(
         <span key={`${keyPrefix}-italic-underline-underscore-${match.index}`} className="editor-preview-underline">
@@ -884,18 +896,18 @@ function renderInlinePreview(
           <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bis-${match.index}`)}</em>
         </strong>,
       );
-    } else if (token.startsWith("**_") && token.endsWith("_**")) {
-      parts.push(
-        <strong key={`${keyPrefix}-bold-italic-${match.index}`}>
-          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bi-${match.index}`)}</em>
-        </strong>,
-      );
     } else if (token.startsWith("**__") && token.endsWith("__**")) {
       parts.push(
         <strong key={`${keyPrefix}-bold-underline-${match.index}`}>
           <span className="editor-preview-underline">
             {renderInlinePreview(token.slice(4, -4), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bu-${match.index}`)}
           </span>
+        </strong>,
+      );
+    } else if (token.startsWith("**_") && token.endsWith("_**")) {
+      parts.push(
+        <strong key={`${keyPrefix}-bold-italic-${match.index}`}>
+          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bi-${match.index}`)}</em>
         </strong>,
       );
     } else if (token.startsWith("*__") && token.endsWith("__*")) {

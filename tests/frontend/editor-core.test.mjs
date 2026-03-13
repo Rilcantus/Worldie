@@ -316,6 +316,74 @@ test("renderPreviewContent preserves nested inline formatting structure", () => 
   );
 });
 
+test("renderPreviewContent preserves serializer-ordered nested underline and italic wrappers", () => {
+  const preview = renderPreviewContent("__**_Text_**__\n_**__Lore__**_", new Map(), () => {});
+  assert.deepEqual(
+    summarizePreviewNode(preview[0]),
+    {
+      type: "p",
+      className: "editor-preview-paragraph",
+      children: [
+        {
+          type: "span",
+          className: "editor-preview-underline",
+          children: [
+            {
+              type: "strong",
+              className: null,
+              children: [
+                {
+                  type: "em",
+                  className: null,
+                  children: [
+                    {
+                      type: "span",
+                      className: null,
+                      children: ["Text"],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+  assert.deepEqual(
+    summarizePreviewNode(preview[1]),
+    {
+      type: "p",
+      className: "editor-preview-paragraph",
+      children: [
+        {
+          type: "em",
+          className: null,
+          children: [
+            {
+              type: "strong",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: "editor-preview-underline",
+                  children: [
+                    {
+                      type: "span",
+                      className: null,
+                      children: ["Lore"],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+});
+
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {
   assert.equal(isUnderlineElement({ tagName: "U" }), true);
   assert.equal(
