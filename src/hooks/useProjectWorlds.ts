@@ -435,12 +435,11 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       try {
         await applyActiveProject(project);
       } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not load the new project.");
-        return false;
+        return recoverMissingProject(project, error);
       }
       return true;
     });
-  }, [applyActiveProject, projects.length, runProjectAction, setProjectsIfChanged, showToast]);
+  }, [applyActiveProject, projects.length, recoverMissingProject, runProjectAction, setProjectsIfChanged, showToast]);
 
   const addDemoProject = useCallback(async () => {
     return runProjectAction("creatingDemo", "Creating demo project...", async () => {
@@ -457,12 +456,11 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       try {
         await applyActiveProject(project);
       } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not load the demo project.");
-        return false;
+        return recoverMissingProject(project, error);
       }
       return true;
     });
-  }, [applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
+  }, [applyActiveProject, recoverMissingProject, runProjectAction, setProjectsIfChanged, showToast]);
 
   useEffect(() => {
     const load = async () => {
@@ -516,12 +514,11 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       try {
         await applyActiveProject(project);
       } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not load that project.");
-        return false;
+        return recoverMissingProject(project, error);
       }
       return true;
     });
-  }, [applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
+  }, [applyActiveProject, recoverMissingProject, runProjectAction, setProjectsIfChanged, showToast]);
 
   const openRecentProject = useCallback(async (projectId: string) => {
     return runProjectAction("openingRecent", "Opening recent project...", async () => {
@@ -561,8 +558,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       try {
         await applyActiveProject(reopened);
       } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not load that recent project.");
-        return false;
+        return recoverMissingProject(reopened, error);
       }
       return true;
     });
@@ -592,8 +588,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       try {
         await applyActiveProject(savedProject);
       } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not load the saved project copy.");
-        return false;
+        return recoverMissingProject(savedProject, error);
       }
       return true;
     });
