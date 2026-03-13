@@ -90,7 +90,7 @@ const getProjectByFilepath = (projects: Project[], filepath: string) => {
       return project;
     }
   }
-  return projects[0];
+  return null;
 };
 
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
@@ -377,7 +377,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       setProjectsIfChanged(nextProjects);
       const project = getProjectByFilepath(nextProjects, filepath);
-      if (!project) return false;
+      if (!project) {
+        showToast("Worldie could not find the newly created project file.");
+        return false;
+      }
       try {
         await applyActiveProject(project);
       } catch (error) {
@@ -423,7 +426,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       setProjectsIfChanged(nextProjects);
       const project = getProjectByFilepath(nextProjects, filepath);
-      if (!project) return false;
+      if (!project) {
+        showToast("Worldie could not find the opened project in the project list.");
+        return false;
+      }
       try {
         await applyActiveProject(project);
       } catch (error) {
@@ -463,7 +469,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       setProjectsIfChanged(nextProjects);
       const reopened = getProjectByFilepath(nextProjects, project.filepath);
-      if (!reopened) return false;
+      if (!reopened) {
+        showToast("Worldie could not find the reopened recent project.");
+        return false;
+      }
       try {
         await applyActiveProject(reopened);
       } catch (error) {
@@ -489,7 +498,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       setProjectsIfChanged(nextProjects);
       const savedProject = getProjectByFilepath(nextProjects, filepath);
-      if (!savedProject) return false;
+      if (!savedProject) {
+        showToast("Worldie could not find the saved project copy.");
+        return false;
+      }
       try {
         await applyActiveProject(savedProject);
       } catch (error) {
