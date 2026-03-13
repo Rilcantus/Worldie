@@ -704,6 +704,27 @@ function isSelectionInsideTripleAsteriskRange(text: string, selection: Selection
   }
 }
 
+function isSelectionInsideTripleUnderscoreRange(text: string, selection: SelectionOffsets | null) {
+  if (!selection) return false;
+
+  let searchIndex = 0;
+  while (true) {
+    const openIndex = text.indexOf("___", searchIndex);
+    if (openIndex === -1) return false;
+    const closeIndex = text.indexOf("___", openIndex + 3);
+    if (closeIndex === -1) return false;
+    const contentStart = openIndex + 3;
+    if (
+      contentStart <= selection.start &&
+      closeIndex >= selection.end &&
+      closeIndex > contentStart
+    ) {
+      return true;
+    }
+    searchIndex = closeIndex + 3;
+  }
+}
+
 function getCurrentLine(text: string, selection: SelectionOffsets | null) {
   if (!selection) return "";
   const lineStart = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
@@ -716,8 +737,14 @@ export function getFormattingState(text: string, selection: SelectionOffsets | n
   const line = getCurrentLine(text, selection);
   return {
     bold: isSelectionWrapped(text, selection, "**") || isSelectionInsideWrappedRange(text, selection, "**"),
-    italic: isSelectionWrappedWithAny(text, selection, ["_", "*"]) || isSelectionInsideTripleAsteriskRange(text, selection),
-    underline: isSelectionWrapped(text, selection, "__") || isSelectionInsideWrappedRange(text, selection, "__"),
+    italic:
+      isSelectionWrappedWithAny(text, selection, ["_", "*"]) ||
+      isSelectionInsideTripleAsteriskRange(text, selection) ||
+      isSelectionInsideTripleUnderscoreRange(text, selection),
+    underline:
+      isSelectionWrapped(text, selection, "__") ||
+      isSelectionInsideWrappedRange(text, selection, "__") ||
+      isSelectionInsideTripleUnderscoreRange(text, selection),
     heading1: line.startsWith("# "),
     heading2: line.startsWith("## "),
     list: line.startsWith("- "),
@@ -846,7 +873,7 @@ function renderInlinePreview(
   keyPrefix: string,
 ): ReactNode[] {
   const parts: ReactNode[] = [];
-  const pattern = /(\[\[[^\]]+\]\]|\*\*\*__[^*]+__\*\*\*|\*\*\*[^*]+\*\*\*|\*\*_[^*]+_\*\*|\*\*__[^*]+__\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
+  const pattern = /(\[\[[^\]]+\]\]|___[^_]+___|\*\*\*__[^*]+__\*\*\*|\*\*\*[^*]+\*\*\*|\*\*_[^*]+_\*\*|\*\*__[^*]+__\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -874,6 +901,12 @@ function renderInlinePreview(
             {label}
           </span>
         ),
+      );
+    } else if (token.startsWith("___") && token.endsWith("___")) {
+      parts.push(
+        <span key={`${keyPrefix}-italic-underline-underscore-${match.index}`} className="editor-preview-underline">
+          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-iuu-${match.index}`)}</em>
+        </span>,
       );
     } else if (token.startsWith("***__") && token.endsWith("__***")) {
       parts.push(

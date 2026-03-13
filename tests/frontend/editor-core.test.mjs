@@ -129,6 +129,8 @@ test("getFormattingState reports inline and block formatting flags", () => {
   assert.equal(getFormattingState("**Bold**", { start: 4, end: 4 }).bold, true);
   assert.equal(getFormattingState("_Italic_", { start: 1, end: 7 }).italic, true);
   assert.equal(getFormattingState("_Italic_", { start: 3, end: 3 }).italic, true);
+  assert.equal(getFormattingState("___Both___", { start: 5, end: 5 }).italic, true);
+  assert.equal(getFormattingState("___Both___", { start: 5, end: 5 }).underline, true);
   assert.equal(getFormattingState("***Both***", { start: 5, end: 5 }).bold, true);
   assert.equal(getFormattingState("***Both***", { start: 5, end: 5 }).italic, true);
   assert.equal(getFormattingState("***__Both__***", { start: 7, end: 7 }).italic, true);
@@ -170,6 +172,13 @@ test("combined italic underline markers round-trip through editor display mappin
   assert.deepEqual(displaySelectionToSource(text, { start: 0, end: 4 }), { start: 3, end: 7 });
 });
 
+test("triple-underscore italic underline markers round-trip through editor display mapping", () => {
+  const representation = buildEditorDisplayRepresentation("___Text___");
+  assert.equal(representation.html, "<u><em>Text</em></u>");
+  assert.deepEqual(sourceSelectionToDisplay("___Text___", { start: 3, end: 7 }), { start: 0, end: 4 });
+  assert.deepEqual(displaySelectionToSource("___Text___", { start: 0, end: 4 }), { start: 3, end: 7 });
+});
+
 test("triple-asterisk bold italic markers round-trip through editor display mapping", () => {
   const representation = buildEditorDisplayRepresentation("***Text***");
   assert.equal(representation.html, "<strong><em>Text</em></strong>");
@@ -193,7 +202,7 @@ test("serializeFormattedInlineContent preserves semantic and inline-style combin
 });
 
 test("renderPreviewContent preserves nested inline formatting structure", () => {
-  const preview = renderPreviewContent("**_Text_**\n*__Lore__*\n***Both***", new Map(), () => {});
+  const preview = renderPreviewContent("**_Text_**\n*__Lore__*\n***Both***\n___Both___", new Map(), () => {});
   assert.deepEqual(
     summarizePreviewNode(preview[0]),
     {
@@ -255,6 +264,32 @@ test("renderPreviewContent preserves nested inline formatting structure", () => 
         {
           type: "strong",
           className: null,
+          children: [
+            {
+              type: "em",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["Both"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+  assert.deepEqual(
+    summarizePreviewNode(preview[3]),
+    {
+      type: "p",
+      className: "editor-preview-paragraph",
+      children: [
+        {
+          type: "span",
+          className: "editor-preview-underline",
           children: [
             {
               type: "em",
