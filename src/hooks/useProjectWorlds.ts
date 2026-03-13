@@ -164,6 +164,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const currentLoreTypesRef = useRef(initialLoreTypes);
   const activeProjectIdRef = useRef<string | null>(null);
   const worldsLengthRef = useRef(0);
+  const missingProjectRecoveryPromisesRef = useRef(new Map<string, Promise<boolean>>());
   const [projectActionState, setProjectActionState] = useState<ProjectActionState>(IDLE_PROJECT_ACTION_STATE);
   const worldsById = useMemo(() => new Map(worlds.map((world) => [world.id, world])), [worlds]);
   const projectsById = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
@@ -325,7 +326,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     project: Project,
     error: unknown,
     options?: { activateFallback?: boolean },
-  ) => {
+  ): Promise<boolean> => {
+    const inFlightRecovery = missingProjectRecoveryPromisesRef.current.get(project.id);
+    if (inFlightRecovery) {
+      return inFlightRecovery;
+    }
+
+    const recoveryPromise: Promise<boolean> = (async (): Promise<boolean> => {
     const message = error instanceof Error ? error.message : "Worldie could not load that project file.";
     if (!isMissingProjectFileError(project, error)) {
       showToast(message);
@@ -367,6 +374,14 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
     showToast(`${getProjectFilename(project)} was removed from recent projects.`);
     return shouldActivateFallback;
+    })();
+
+    missingProjectRecoveryPromisesRef.current.set(project.id, recoveryPromise);
+    try {
+      return await recoveryPromise;
+    } finally {
+      missingProjectRecoveryPromisesRef.current.delete(project.id);
+    }
   }, [applyActiveProject, confirmAction, setProjectsIfChanged, showToast]);
 
   const recoverActiveProjectError = useCallback(async (error: unknown, fallbackMessage: string) => {
