@@ -390,11 +390,18 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
   const lines = segment.split("\n");
   const isOrderedPrefix = prefix === "1. ";
   const isBulletPrefix = prefix === "- ";
+  const isQuotePrefix = prefix === "> ";
   const everyLineHasPrefix = lines.every((line, index) =>
-    isOrderedPrefix ? isOrderedListLine(line) : isBulletPrefix ? isBulletListLine(line) : line.startsWith(prefix),
+    isOrderedPrefix
+      ? isOrderedListLine(line)
+      : isBulletPrefix
+        ? isBulletListLine(line)
+        : isQuotePrefix
+          ? isQuoteLine(line)
+          : line.startsWith(prefix),
   );
 
-  const updated = lines
+  const updatedLines = lines
     .map((line, index) => {
       const normalized = stripKnownLinePrefix(line);
       if (everyLineHasPrefix) {
@@ -404,12 +411,13 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
         return `${index + 1}. ${normalized}`;
       }
       return `${prefix}${normalized}`;
-    })
-    .join("\n");
+    });
+  const updated = updatedLines.join("\n");
 
-  const delta = (everyLineHasPrefix ? -prefix.length : prefix.length) * lines.length;
+  const firstLineDelta = (updatedLines[0]?.length ?? 0) - (lines[0]?.length ?? 0);
+  const delta = updated.length - segment.length;
   const nextText = replaceRange(text, lineStart, lineEnd, updated);
-  const nextStart = Math.max(lineStart, selection.start + (everyLineHasPrefix ? -prefix.length : prefix.length));
+  const nextStart = Math.max(lineStart, selection.start + firstLineDelta);
   const nextEnd = Math.max(nextStart, selection.end + delta);
 
   return {

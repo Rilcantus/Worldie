@@ -123,6 +123,10 @@ test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {
 
   const removedAlternate = toggleLinePrefix("* Alpha\n• Beta", { start: 0, end: 14 }, "- ");
   assert.equal(removedAlternate.text, "Alpha\nBeta");
+
+  const removedQuote = toggleLinePrefix(">Quote", { start: 0, end: 6 }, "> ");
+  assert.equal(removedQuote.text, "Quote");
+  assert.deepEqual(removedQuote.selection, { start: 0, end: 5 });
 });
 
 test("toggleLinePrefix normalizes ordered list prefixes", () => {
