@@ -712,6 +712,84 @@ test("renderPreviewContent preserves nested list indentation structure", () => {
   );
 });
 
+test("renderPreviewContent accepts alternate typed list markers", () => {
+  const preview = renderPreviewContent("* Parent\n  • Child bullet\n  3) Child step", new Map(), () => {});
+  assert.deepEqual(
+    summarizePreviewNode(preview[0]),
+    {
+      type: "ul",
+      className: "editor-preview-list",
+      children: [
+        {
+          type: "li",
+          className: null,
+          children: [
+            {
+              type: "span",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["Parent"],
+                },
+              ],
+            },
+            {
+              type: "ul",
+              className: "editor-preview-list",
+              children: [
+                {
+                  type: "li",
+                  className: null,
+                  children: [
+                    {
+                      type: "span",
+                      className: null,
+                      children: [
+                        {
+                          type: "span",
+                          className: null,
+                          children: ["Child bullet"],
+                        },
+                      ],
+                    },
+                    null,
+                  ],
+                },
+              ],
+            },
+            {
+              type: "ol",
+              className: "editor-preview-list editor-preview-list-ordered",
+              children: [
+                {
+                  type: "li",
+                  className: null,
+                  children: [
+                    {
+                      type: "span",
+                      className: null,
+                      children: [
+                        {
+                          type: "span",
+                          className: null,
+                          children: ["Child step"],
+                        },
+                      ],
+                    },
+                    null,
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+});
+
 test("renderPreviewContent preserves multiline quote spacing and indentation", () => {
   const preview = renderPreviewContent("> Quoted line\n>   nested detail\n>\n> Closing line", new Map(), () => {});
   assert.deepEqual(

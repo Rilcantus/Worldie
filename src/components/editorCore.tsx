@@ -1220,7 +1220,7 @@ export function renderPreviewContent(
       return;
     }
 
-    const bulletMatch = line.match(/^(\s*)-\s+(.*)$/);
+    const bulletMatch = line.match(/^(\s*)(?:-|[*\u2022\u25cf\u25e6])\s+(.*)$/);
     if (bulletMatch) {
       flushQuotes();
       listLineBuffer.push({
@@ -1231,7 +1231,7 @@ export function renderPreviewContent(
       return;
     }
 
-    const orderedMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+    const orderedMatch = line.match(/^(\s*)(\d+)[\.\)]\s+(.*)$/);
     if (orderedMatch) {
       flushQuotes();
       listLineBuffer.push({
