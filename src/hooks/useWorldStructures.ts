@@ -77,6 +77,14 @@ export function useWorldStructures({
   const [timelineSaveState, setTimelineSaveState] = useState<SaveState>("idle");
   const [timelineLastSavedAt, setTimelineLastSavedAt] = useState<number | null>(null);
   const loadRequestId = useRef(0);
+  const currentRelationshipSaveTargetRef = useRef<{ projectId: string | null; relationshipId: string | null }>({
+    projectId: activeProjectId,
+    relationshipId: null,
+  });
+  const currentTimelineSaveTargetRef = useRef<{ projectId: string | null; timelineEventId: string | null }>({
+    projectId: activeProjectId,
+    timelineEventId: null,
+  });
 
   const resetRelationshipState = (saveState: SaveState = "idle") => {
     setRelationships((current) => (current.length === 0 ? current : []));
@@ -162,6 +170,20 @@ export function useWorldStructures({
     timelineTitle,
     timelineType,
   ]);
+
+  useEffect(() => {
+    currentRelationshipSaveTargetRef.current = {
+      projectId: activeProjectId,
+      relationshipId: activeRelationshipId,
+    };
+  }, [activeProjectId, activeRelationshipId]);
+
+  useEffect(() => {
+    currentTimelineSaveTargetRef.current = {
+      projectId: activeProjectId,
+      timelineEventId: activeTimelineEventId,
+    };
+  }, [activeProjectId, activeTimelineEventId]);
 
   const canLeaveRelationshipDraft = useCallback(
     async (nextRelationshipId?: string | null) => {
@@ -336,23 +358,29 @@ export function useWorldStructures({
       return;
     }
     if (!activeProjectId) return;
+    const saveProjectId = activeProjectId;
+    const saveRelationshipId = activeRelationshipId;
     try {
       setRelationshipSaveState("saving");
-      await updateRelationship(activeProjectId, activeRelationshipId, {
+      await updateRelationship(saveProjectId, saveRelationshipId, {
         sourcePageId: relationshipSourceId,
         targetPageId: relationshipTargetId,
         relationType: relationshipType.trim(),
         notes: relationshipNotes,
       });
+      const currentTarget = currentRelationshipSaveTargetRef.current;
+      if (currentTarget.projectId !== saveProjectId || currentTarget.relationshipId !== saveRelationshipId) return;
       markRelationshipSaved();
     } catch (error) {
+      const currentTarget = currentRelationshipSaveTargetRef.current;
+      if (currentTarget.projectId !== saveProjectId || currentTarget.relationshipId !== saveRelationshipId) return;
       setRelationshipSaveState("error");
       await recoverActiveProjectError(error, "Worldie could not save the relationship.");
       return;
     }
     setRelationships((prev) =>
       prev.map((item) =>
-        item.id === activeRelationshipId
+        item.id === saveRelationshipId
           ? {
               ...item,
               sourcePageId: relationshipSourceId,
@@ -479,24 +507,30 @@ export function useWorldStructures({
       return;
     }
     if (!activeProjectId) return;
+    const saveProjectId = activeProjectId;
+    const saveTimelineEventId = activeTimelineEventId;
     try {
       setTimelineSaveState("saving");
-      await updateTimelineEvent(activeProjectId, activeTimelineEventId, {
+      await updateTimelineEvent(saveProjectId, saveTimelineEventId, {
         title: timelineTitle.trim(),
         eventDate: timelineDate.trim(),
         eventType: timelineType.trim() || "event",
         linkedPageId: timelineLinkedPageId,
         description: timelineDescription,
       });
+      const currentTarget = currentTimelineSaveTargetRef.current;
+      if (currentTarget.projectId !== saveProjectId || currentTarget.timelineEventId !== saveTimelineEventId) return;
       markTimelineSaved();
     } catch (error) {
+      const currentTarget = currentTimelineSaveTargetRef.current;
+      if (currentTarget.projectId !== saveProjectId || currentTarget.timelineEventId !== saveTimelineEventId) return;
       setTimelineSaveState("error");
       await recoverActiveProjectError(error, "Worldie could not save the timeline event.");
       return;
     }
     setTimelineEvents((prev) =>
       prev.map((item) =>
-        item.id === activeTimelineEventId
+        item.id === saveTimelineEventId
           ? {
               ...item,
               title: timelineTitle.trim(),
