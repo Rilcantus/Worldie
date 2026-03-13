@@ -210,6 +210,8 @@ test("getFormattingState reports inline and block formatting flags", () => {
   assert.equal(getFormattingState("***__Both__***", { start: 7, end: 7 }).underline, true);
   assert.equal(getFormattingState("__Under__", { start: 4, end: 4 }).underline, true);
   assert.equal(getFormattingState("> Note: Reminder", { start: 8, end: 8 }).noteBlock, true);
+  assert.equal(getFormattingState(">Quote", { start: 2, end: 2 }).quote, true);
+  assert.equal(getFormattingState(">", { start: 1, end: 1 }).quote, true);
   assert.equal(getFormattingState("* * *", { start: 5, end: 5 }).sceneBreak, true);
   assert.equal(getFormattingState("---", { start: 1, end: 1 }).sceneBreak, true);
   assert.equal(getFormattingState("* Bullet", { start: 3, end: 3 }).list, true);

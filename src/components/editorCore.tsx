@@ -796,6 +796,10 @@ function isOrderedListLine(line: string) {
   return /^\d+[\.\)]\s+/.test(line.trimStart());
 }
 
+function isQuoteLine(line: string) {
+  return /^>\s?.*$/.test(line);
+}
+
 function isSceneBreakLine(line: string) {
   return /^(\* \* \*|---|___|\*\*\*)$/.test(line.trim());
 }
@@ -812,7 +816,7 @@ export function getFormattingState(text: string, selection: SelectionOffsets | n
     heading2: line.startsWith("## "),
     list: isBulletListLine(line),
     orderedList: isOrderedListLine(line),
-    quote: line.startsWith("> "),
+    quote: isQuoteLine(line),
     noteBlock: /^>\s*Note:\s*/i.test(line),
     sceneBreak: isSceneBreakLine(line),
   };
