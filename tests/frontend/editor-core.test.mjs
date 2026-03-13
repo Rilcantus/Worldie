@@ -161,6 +161,10 @@ test("applyNoteBlockPrefix converts the current line into a note block", () => {
   assert.equal(alreadyNote.text, "> Note: Reminder");
   assert.deepEqual(alreadyNote.selection, { start: 8, end: 16 });
 
+  const continuationNoop = applyNoteBlockPrefix("> Note: Reminder\n> detail", { start: 19, end: 25 });
+  assert.equal(continuationNoop.text, "> Note: Reminder\n> detail");
+  assert.deepEqual(continuationNoop.selection, { start: 19, end: 25 });
+
   const multiline = applyNoteBlockPrefix("Alpha\n- Beta\n> Gamma", { start: 0, end: 20 });
   assert.equal(multiline.text, "> Note: Alpha\n> Beta\n> Gamma");
 });

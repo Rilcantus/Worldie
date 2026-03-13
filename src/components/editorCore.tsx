@@ -446,6 +446,12 @@ export function applyNoteBlockPrefix(text: string, selection: SelectionOffsets) 
   const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
   const segment = text.slice(lineStart, lineEnd);
   const lines = segment.split("\n");
+  if (isOffsetWithinNoteBlock(text, selection.start)) {
+    return {
+      text,
+      selection,
+    };
+  }
   const everyLineAlreadyNote = lines.every((line, index) =>
     index === 0 ? /^>\s*Note:\s*/i.test(line) : isQuoteLine(line),
   );
