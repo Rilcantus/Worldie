@@ -300,10 +300,10 @@ export function useContentManager({
           type: page.type,
         }),
       ),
-    ).catch((error) => {
-      showToast(error instanceof Error ? error.message : "Worldie could not sync renamed lore type labels.");
+    ).catch(async (error) => {
+      await recoverActiveProjectError(error, "Worldie could not sync renamed lore type labels.");
     });
-  }, [activeLoreId, activeProjectId, allLorePages, loreTypesById, resolveLoreTypeId, showToast]);
+  }, [activeLoreId, activeProjectId, allLorePages, loreTypesById, recoverActiveProjectError, resolveLoreTypeId]);
 
   useEffect(() => {
     if (!activeProjectId || !activeWorldId) {
@@ -642,27 +642,31 @@ export function useContentManager({
     }
     if (deleted && activeWorldId) {
       showToast("Document deleted", () => {
-        void createDocument(activeProjectId, activeWorldId, deleted.title).then((restored) => {
-          void updateDocument(activeProjectId, restored.id, {
-            contentJson: deleted.contentJson ?? "",
-            folderPath: deleted.folderPath ?? "",
-          }).then(() => {
-            setDocuments((prev) => {
-              const restoredDocument = {
-                ...restored,
-                contentJson: deleted.contentJson ?? "",
-                folderPath: deleted.folderPath ?? "",
-              };
-              const nextDocs = [restoredDocument, ...prev];
-              setWorlds((worldsPrev) =>
-                worldsPrev.map((world) =>
-                  world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
-                ),
-              );
-              return nextDocs;
-            });
+        void createDocument(activeProjectId, activeWorldId, deleted.title)
+          .then((restored) =>
+            updateDocument(activeProjectId, restored.id, {
+              contentJson: deleted.contentJson ?? "",
+              folderPath: deleted.folderPath ?? "",
+            }).then(() => {
+              setDocuments((prev) => {
+                const restoredDocument = {
+                  ...restored,
+                  contentJson: deleted.contentJson ?? "",
+                  folderPath: deleted.folderPath ?? "",
+                };
+                const nextDocs = [restoredDocument, ...prev];
+                setWorlds((worldsPrev) =>
+                  worldsPrev.map((world) =>
+                    world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
+                  ),
+                );
+                return nextDocs;
+              });
+            }),
+          )
+          .catch(async (error) => {
+            await recoverActiveProjectError(error, "Worldie could not restore the deleted document.");
           });
-        });
       });
     }
     return true;
@@ -824,47 +828,51 @@ export function useContentManager({
     if (deleted && activeWorldId) {
       showToast("Lore page deleted", () => {
         const deletedFields = parseLoreItemFields(deleted.fieldsJson);
-        void createLorePage(activeProjectId, activeWorldId, deleted.title, deleted.type).then((restored) => {
-          void updateLorePage(activeProjectId, restored.id, {
-            title: deleted.title,
-            type: deleted.type,
-            tagsJson: deleted.tagsJson ?? "",
-            fieldsJson: stringifyLoreItemFields(deletedFields),
-          }).then(() => {
-            const restoredPage = {
-              ...restored,
+        void createLorePage(activeProjectId, activeWorldId, deleted.title, deleted.type)
+          .then((restored) =>
+            updateLorePage(activeProjectId, restored.id, {
               title: deleted.title,
               type: deleted.type,
               tagsJson: deleted.tagsJson ?? "",
               fieldsJson: stringifyLoreItemFields(deletedFields),
-            };
-            const restoredLoreTypeId = resolveLoreTypeId(restoredPage);
-            setAllLorePages((prev) => {
-              const nextAll = [restoredPage, ...prev];
-              const counts = buildLoreTypeCounts(nextAll);
-              setWorlds((worldsPrev) =>
-                worldsPrev.map((world) =>
-                  world.id === activeWorldId
-                    ? {
-                        ...world,
-                        loreCount: nextAll.length,
-                        loreCategories: orderedLoreTypes.map((type) => ({
-                          id: type.id,
-                          label: type.name,
-                          count: counts[type.id] ?? 0,
-                          isSystem: type.isSystem,
-                        })),
-                      }
-                    : world,
-                ),
+            }).then(() => {
+              const restoredPage = {
+                ...restored,
+                title: deleted.title,
+                type: deleted.type,
+                tagsJson: deleted.tagsJson ?? "",
+                fieldsJson: stringifyLoreItemFields(deletedFields),
+              };
+              const restoredLoreTypeId = resolveLoreTypeId(restoredPage);
+              setAllLorePages((prev) => {
+                const nextAll = [restoredPage, ...prev];
+                const counts = buildLoreTypeCounts(nextAll);
+                setWorlds((worldsPrev) =>
+                  worldsPrev.map((world) =>
+                    world.id === activeWorldId
+                      ? {
+                          ...world,
+                          loreCount: nextAll.length,
+                          loreCategories: orderedLoreTypes.map((type) => ({
+                            id: type.id,
+                            label: type.name,
+                            count: counts[type.id] ?? 0,
+                            isSystem: type.isSystem,
+                          })),
+                        }
+                      : world,
+                  ),
+                );
+                return nextAll;
+              });
+              setLorePages((prev) =>
+                restoredLoreTypeId === activeLoreTypeId ? [restoredPage, ...prev] : prev,
               );
-              return nextAll;
-            });
-            setLorePages((prev) =>
-              restoredLoreTypeId === activeLoreTypeId ? [restoredPage, ...prev] : prev,
-            );
+            }),
+          )
+          .catch(async (error) => {
+            await recoverActiveProjectError(error, "Worldie could not restore the deleted lore page.");
           });
-        });
       });
     }
     return true;
@@ -898,7 +906,7 @@ export function useContentManager({
         ),
       );
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not reassign lore items to the new type.");
+      await recoverActiveProjectError(error, "Worldie could not reassign lore items to the new type.");
       return;
     }
 
