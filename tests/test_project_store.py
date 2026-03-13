@@ -313,7 +313,7 @@ class ProjectStoreTests(unittest.TestCase):
 
     def test_open_project_uses_filename_when_project_meta_is_untitled(self):
         manual_path = self.temp_path / "manual" / "ashen-sky.worldie"
-        self.db_manager._init_project_db(str(manual_path))
+        self.db_manager._init_project_db(str(manual_path), create_if_missing=True)
         self.db_manager._set_project_meta_title(str(manual_path), "Untitled Project")
 
         reopened_uuid, reopened_title, reopened_path = self.db_manager.open_project(str(manual_path))
@@ -338,6 +338,18 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(reopened_title, "Mistvale")
         self.assertEqual(Path(reopened_path), project_path.resolve())
         self.assertEqual(len(self.db_manager.get_all_projects()), 1)
+
+    def test_sidecar_returns_structured_error_when_project_file_is_missing_for_world_actions(self):
+        project_uuid, project_path = self.db_manager.add_project("Missing File Project", "")
+        os.remove(project_path)
+
+        response = self.sidecar._handle_request(
+            {"action": "create_world", "data": {"projectId": project_uuid, "title": "Broken World"}}
+        )
+
+        self.assertEqual(response["status"], "error")
+        self.assertIn(Path(project_path).name, response["message"])
+        self.assertFalse(Path(project_path).exists())
 
     def test_sidecar_returns_structured_error_for_missing_project_file(self):
         missing_path = self.temp_path / "missing" / "does-not-exist.worldie"
@@ -386,7 +398,7 @@ class ProjectStoreTests(unittest.TestCase):
             project_path = Path("local.worldie").resolve()
 
             self.db_manager.init_db()
-            self.db_manager._init_project_db("local.worldie")
+            self.db_manager._init_project_db("local.worldie", create_if_missing=True)
 
             self.assertTrue(registry_path.exists())
             self.assertTrue(project_path.exists())

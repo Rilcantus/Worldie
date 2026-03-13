@@ -25,9 +25,14 @@ def _registry_conn():
     return sqlite3.connect(REGISTRY_DB_PATH)
 
 
-def _project_conn(db_path):
-    _ensure_parent_dir(db_path)
-    return sqlite3.connect(db_path)
+def _project_conn(db_path, create_if_missing=False):
+    if not db_path:
+        raise FileNotFoundError("Project file not found for requested project.")
+    resolved_path = os.path.abspath(db_path)
+    if not create_if_missing and not os.path.exists(resolved_path):
+        raise FileNotFoundError(resolved_path)
+    _ensure_parent_dir(resolved_path)
+    return sqlite3.connect(resolved_path)
 
 
 def _ensure_column(conn, table, column, col_type):
@@ -69,8 +74,8 @@ def _init_registry_db():
     conn.close()
 
 
-def _init_project_db(db_path):
-    conn = _project_conn(db_path)
+def _init_project_db(db_path, create_if_missing=False):
+    conn = _project_conn(db_path, create_if_missing=create_if_missing)
     c = conn.cursor()
     c.execute(
         """
@@ -298,7 +303,7 @@ def add_project(title, filepath):
     resolved_path = _resolve_project_db_path(project_uuid, title, filepath)
     if _get_project_by_filepath(resolved_path) or os.path.exists(resolved_path):
         raise ValueError("Choose a new filepath for project creation.")
-    _init_project_db(resolved_path)
+    _init_project_db(resolved_path, create_if_missing=True)
     _set_project_meta_title(resolved_path, title)
 
     conn = _registry_conn()
