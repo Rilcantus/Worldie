@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, type Ref } from "react";
+import { memo, useEffect, useMemo, useRef, type Ref } from "react";
 import type { Document, LorePage } from "../lib/data";
 import type { EditorFormattingState } from "./editorCore";
 
@@ -83,6 +83,10 @@ export const EditorToolbar = memo(function EditorToolbar({
   const documentMenuId = "editor-toolbar-more-menu";
   const documentMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousDocumentMenuOpenRef = useRef(false);
+  const orderedDocumentsById = useMemo(
+    () => new Map(orderedDocuments.map((doc) => [doc.id, doc])),
+    [orderedDocuments],
+  );
   const closeAfter = (action: () => void) => () => {
     action();
     onCloseDocumentMenu();
@@ -236,7 +240,7 @@ export const EditorToolbar = memo(function EditorToolbar({
           className="tb-select tb-select-doc"
           value={activeDocumentId ?? ""}
           onChange={(event) => {
-            const nextDocument = orderedDocuments.find((doc) => doc.id === event.target.value);
+            const nextDocument = orderedDocumentsById.get(event.target.value);
             if (nextDocument) onOpenDocument(nextDocument);
           }}
           disabled={orderedDocuments.length === 0}
