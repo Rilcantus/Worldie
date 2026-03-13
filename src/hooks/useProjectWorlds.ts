@@ -87,6 +87,25 @@ const areWorldsEqual = (left: WorldUI[], right: WorldUI[]) =>
 const getProjectByFilepath = (projects: Project[], filepath: string) =>
   projects.find((project) => project.filepath === filepath) ?? projects[0];
 
+function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
+  const next: T[] = [];
+  let removed = false;
+
+  for (const item of items) {
+    if (item.id === itemId) {
+      removed = true;
+      continue;
+    }
+    next.push(item);
+  }
+
+  return {
+    next,
+    first: next[0] ?? null,
+    removed,
+  };
+}
+
 type UseProjectWorldsArgs = {
   confirmAction: (message: string) => Promise<boolean>;
   showToast: (message: string) => void;
@@ -569,7 +588,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       showToast(error instanceof Error ? error.message : "Worldie could not delete the world.");
       return;
     }
-    const nextWorlds = worlds.filter((world) => world.id !== worldId);
+    const { next: nextWorlds, first: nextWorld } = removeItemWithFallback(worlds, worldId);
     if (editingWorldId === worldId) {
       setEditingWorldId((current) => (current === null ? current : null));
       setWorldDraft((current) => (current === "" ? current : ""));
@@ -577,7 +596,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setWorlds(nextWorlds);
     if (activeWorldId === worldId) {
       setActiveWorldId((current) => {
-        const nextActiveWorldId = nextWorlds[0]?.id ?? null;
+        const nextActiveWorldId = nextWorld?.id ?? null;
         return current === nextActiveWorldId ? current : nextActiveWorldId;
       });
     }
