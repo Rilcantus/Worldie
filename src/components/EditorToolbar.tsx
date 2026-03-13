@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, type Ref } from "react";
+import { memo, useEffect, useMemo, useRef, type MouseEvent as ReactMouseEvent, type Ref } from "react";
 import type { Document, LorePage } from "../lib/data";
 import type { EditorFormattingState } from "./editorCore";
 
@@ -91,6 +91,9 @@ export const EditorToolbar = memo(function EditorToolbar({
     action();
     onCloseDocumentMenu();
   };
+  const preserveEditorSelection = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
 
   useEffect(() => {
     const wasOpen = previousDocumentMenuOpenRef.current;
@@ -145,6 +148,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn tb-save save-state-${saveState}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={onSave}
           title={saveTitle}
         >
@@ -153,6 +157,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className="tb-btn"
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={() => onApplyHistoryCommand("undo")}
           title="Undo (Ctrl/Cmd+Z)"
         >
@@ -161,6 +166,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className="tb-btn"
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={() => onApplyHistoryCommand("redo")}
           title="Redo (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y)"
         >
@@ -169,6 +175,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${editorFormattingState.bold ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={() => onApplyRichFormat("bold")}
           title="Bold (Ctrl/Cmd+B)"
         >
@@ -177,6 +184,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${editorFormattingState.italic ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={() => onApplyRichFormat("italic")}
           title="Italic (Ctrl/Cmd+I)"
         >
@@ -185,6 +193,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${editorFormattingState.underline ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={() => onApplyRichFormat("underline")}
           title="Underline (Ctrl/Cmd+U)"
         >
@@ -193,6 +202,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${editorFormattingState.list ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={() => onApplyLinePrefix("- ")}
           title="Bullet list (Ctrl/Cmd+Shift+8)"
         >
@@ -201,6 +211,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${editorFormattingState.orderedList ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={onApplyOrderedList}
           title="Numbered list (Ctrl/Cmd+Shift+7)"
         >
@@ -209,6 +220,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${editorFormattingState.quote ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={() => onApplyLinePrefix("> ")}
           title="Quote block (Ctrl/Cmd+Shift+9)"
         >
@@ -217,6 +229,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className="tb-btn"
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={onInsertLoreLink}
           title="Insert lore link (Ctrl/Cmd+K)"
         >
@@ -259,6 +272,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${isPreviewOpen ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={onTogglePreview}
           title="Toggle preview (Ctrl/Cmd+Shift+P)"
         >
@@ -267,6 +281,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${isDetailsOpen ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={onToggleDetails}
           disabled={isFocusMode}
           title="Toggle details (Ctrl/Cmd+Shift+D)"
@@ -276,6 +291,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         <button
           className={`tb-btn ${isFocusMode ? "active" : ""}`}
           type="button"
+          onMouseDown={preserveEditorSelection}
           onClick={onToggleFocusMode}
           title="Toggle focus mode (Ctrl/Cmd+Alt+F)"
         >
@@ -287,6 +303,7 @@ export const EditorToolbar = memo(function EditorToolbar({
             ref={documentMenuButtonRef}
             className={`tb-btn ${isDocumentMenuOpen ? "active" : ""}`}
             type="button"
+            onMouseDown={preserveEditorSelection}
             onClick={onToggleDocumentMenu}
             aria-haspopup="menu"
             aria-expanded={isDocumentMenuOpen}
@@ -305,6 +322,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 className="toolbar-menu-item"
                 type="button"
                 role="menuitem"
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(onAddDocument)}
                 title="New document (Ctrl/Cmd+Alt+N)"
               >
@@ -314,6 +332,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 className="toolbar-menu-item"
                 type="button"
                 role="menuitem"
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(onRenameDocument)}
                 disabled={!activeDocumentId}
                 title="Rename document (Ctrl/Cmd+Alt+R)"
@@ -324,6 +343,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 className="toolbar-menu-item"
                 type="button"
                 role="menuitem"
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(onDuplicateDocument)}
                 disabled={!activeDocumentId}
                 title="Duplicate document (Ctrl/Cmd+Alt+D)"
@@ -334,6 +354,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.heading1 ? "active" : ""}`}
                 type="button"
                 role="menuitem"
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(() => onApplyLinePrefix("# "))}
                 title="Large heading (Ctrl/Cmd+Alt+1)"
               >
@@ -343,6 +364,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.heading2 ? "active" : ""}`}
                 type="button"
                 role="menuitem"
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(() => onApplyLinePrefix("## "))}
                 title="Medium heading (Ctrl/Cmd+Alt+2)"
               >
@@ -352,6 +374,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.orderedList ? "active" : ""}`}
                 type="button"
                 role="menuitem"
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(onApplyOrderedList)}
               >
                 Numbered list
@@ -360,6 +383,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.noteBlock ? "active" : ""}`}
                 type="button"
                 role="menuitem"
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(onInsertNoteBlock)}
                 title="Note block (Ctrl/Cmd+Shift+N)"
               >
@@ -369,6 +393,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 className={`toolbar-menu-item ${editorFormattingState.sceneBreak ? "active" : ""}`}
                 type="button"
                 role="menuitem"
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(onInsertSceneBreak)}
                 title="Scene break (Ctrl/Cmd+Shift+-)"
               >
@@ -379,6 +404,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 type="button"
                 role="menuitemradio"
                 aria-checked={editorWidth === "narrow"}
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(() => onSetEditorWidth("narrow"))}
               >
                 Narrow page width
@@ -388,6 +414,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 type="button"
                 role="menuitemradio"
                 aria-checked={editorWidth === "standard"}
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(() => onSetEditorWidth("standard"))}
               >
                 Standard page width
@@ -397,6 +424,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 type="button"
                 role="menuitemradio"
                 aria-checked={editorWidth === "wide"}
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(() => onSetEditorWidth("wide"))}
               >
                 Wide page width
@@ -406,6 +434,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 type="button"
                 role="menuitemradio"
                 aria-checked={editorMode === "standard"}
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(() => onSetEditorMode("standard"))}
               >
                 Standard mode
@@ -415,6 +444,7 @@ export const EditorToolbar = memo(function EditorToolbar({
                 type="button"
                 role="menuitemradio"
                 aria-checked={editorMode === "typewriter"}
+                onMouseDown={preserveEditorSelection}
                 onClick={closeAfter(() => onSetEditorMode("typewriter"))}
                 title="Toggle typewriter mode (Ctrl/Cmd+Alt+M)"
               >
