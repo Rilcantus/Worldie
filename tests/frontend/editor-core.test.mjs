@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 
 import {
   appendTypewriterCommit,
+  buildEditorDisplayRepresentation,
   clearCurrentLinePrefix,
   continueBlockPrefix,
+  displaySelectionToSource,
   duplicateSelectedLineBlock,
   findActiveInlinePairExit,
   findEmptyInlinePairAtCursor,
@@ -16,6 +18,7 @@ import {
   isUnderlineElement,
   moveSelectedLineBlock,
   normalizePastedText,
+  sourceSelectionToDisplay,
   toggleLinePrefix,
   trimTypewriterCommit,
   wrapSerializedInlineContent,
@@ -134,8 +137,16 @@ test("isItalicElement detects semantic and inline-style italic markup", () => {
 test("wrapSerializedInlineContent preserves combined inline formatting markers", () => {
   assert.equal(wrapSerializedInlineContent("Text", { bold: true, italic: true }), "**_Text_**");
   assert.equal(wrapSerializedInlineContent("Text", { bold: true, underline: true }), "**__Text__**");
-  assert.equal(wrapSerializedInlineContent("Text", { italic: true, underline: true }), "___Text___");
-  assert.equal(wrapSerializedInlineContent("Text", { bold: true, italic: true, underline: true }), "**___Text___**");
+  assert.equal(wrapSerializedInlineContent("Text", { italic: true, underline: true }), "*__Text__*");
+  assert.equal(wrapSerializedInlineContent("Text", { bold: true, italic: true, underline: true }), "***__Text__***");
+});
+
+test("combined italic underline markers round-trip through editor display mapping", () => {
+  const text = wrapSerializedInlineContent("Text", { italic: true, underline: true });
+  const representation = buildEditorDisplayRepresentation(text);
+  assert.equal(representation.html, "<em><u>Text</u></em>");
+  assert.deepEqual(sourceSelectionToDisplay(text, { start: 3, end: 7 }), { start: 0, end: 4 });
+  assert.deepEqual(displaySelectionToSource(text, { start: 0, end: 4 }), { start: 3, end: 7 });
 });
 
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {

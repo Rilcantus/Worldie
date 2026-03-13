@@ -73,13 +73,14 @@ export function buildEditorDisplayRepresentation(text: string): EditorDisplayRep
 
   const htmlParts: string[] = [];
   const sourceToDisplay = new Array<number>(text.length + 1).fill(0);
-  const displayToSource: number[] = [0];
+  const displayToSource: number[] = [];
   const openMarkers: string[] = [];
   let visibleOffset = 0;
   let index = 0;
 
-  const ensureDisplaySource = (offset: number, sourceOffset: number) => {
-    if (displayToSource[offset] === undefined) {
+  const setDisplaySource = (offset: number, sourceOffset: number, options?: { preferLater?: boolean }) => {
+    const current = displayToSource[offset];
+    if (current === undefined || (options?.preferLater && sourceOffset > current)) {
       displayToSource[offset] = sourceOffset;
     }
   };
@@ -89,7 +90,7 @@ export function buildEditorDisplayRepresentation(text: string): EditorDisplayRep
 
     if (text[index] === "\n") {
       htmlParts.push("<br>");
-      ensureDisplaySource(visibleOffset, index);
+      setDisplaySource(visibleOffset, index);
       visibleOffset += 1;
       displayToSource[visibleOffset] = index + 1;
       index += 1;
@@ -115,14 +116,14 @@ export function buildEditorDisplayRepresentation(text: string): EditorDisplayRep
         htmlParts.push(`<${tag}>`);
         openMarkers.push(marker);
         index += marker.length;
-        ensureDisplaySource(visibleOffset, index);
+        setDisplaySource(visibleOffset, index, { preferLater: true });
         sourceToDisplay[index] = visibleOffset;
         continue;
       }
     }
 
     htmlParts.push(escapeHtml(text[index]));
-    ensureDisplaySource(visibleOffset, index);
+    setDisplaySource(visibleOffset, index);
     visibleOffset += 1;
     displayToSource[visibleOffset] = index + 1;
     index += 1;
@@ -208,7 +209,10 @@ export function wrapSerializedInlineContent(
 ) {
   let nextContent = content;
   if (options.underline) nextContent = `__${nextContent}__`;
-  if (options.italic) nextContent = `_${nextContent}_`;
+  if (options.italic) {
+    const italicMarker = options.underline ? "*" : "_";
+    nextContent = `${italicMarker}${nextContent}${italicMarker}`;
+  }
   if (options.bold) nextContent = `**${nextContent}**`;
   return nextContent;
 }
