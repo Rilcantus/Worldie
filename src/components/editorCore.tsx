@@ -472,7 +472,10 @@ export function applyNoteBlockPrefix(text: string, selection: SelectionOffsets) 
     }
     const normalized = stripKnownLinePrefix(line);
     const nextPrefix = selectionStartsInNote || index > 0 ? "> " : "> Note: ";
-    return normalized.length > 0 ? `${nextPrefix}${normalized}` : nextPrefix.trimEnd();
+    if (normalized.length > 0) {
+      return `${nextPrefix}${normalized}`;
+    }
+    return index === 0 && !selectionStartsInNote ? nextPrefix : nextPrefix.trimEnd();
   });
   const updated = updatedLines.join("\n");
   const nextText = replaceRange(text, lineStart, lineEnd, updated);

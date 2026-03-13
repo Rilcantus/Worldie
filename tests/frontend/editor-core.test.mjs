@@ -184,6 +184,10 @@ test("applyNoteBlockPrefix converts the current line into a note block", () => {
   });
   assert.equal(mergeExistingNote.text, "> Note: Alpha\n> Reminder\n> detail");
 
+  const emptyLine = applyNoteBlockPrefix("", { start: 0, end: 0 });
+  assert.equal(emptyLine.text, "> Note: ");
+  assert.deepEqual(emptyLine.selection, { start: 8, end: 8 });
+
   const multiline = applyNoteBlockPrefix("Alpha\n- Beta\n> Gamma", { start: 0, end: 20 });
   assert.equal(multiline.text, "> Note: Alpha\n> Beta\n> Gamma");
 });
