@@ -153,6 +153,7 @@ test("normalizePastedText standardizes quote prefixes and list markers", () => {
 });
 test("normalizePastedText avoids false quote matches and supports heavy bars", () => {
   assert.equal(normalizePastedText("\u00e2lpha"), "\u00e2lpha");
+  assert.equal(normalizePastedText("  \u00e2lpha"), "  \u00e2lpha");
   assert.equal(normalizePastedText("\u2503 quoted"), "> quoted");
 });
 
