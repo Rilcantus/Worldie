@@ -854,19 +854,19 @@ export function useContentManager({
     if (!activeProjectId) return;
     const nextLoreType = getLoreType(toLoreTypeId);
     if (!nextLoreType) return;
-    const updates = allLorePages
-      .filter((page) => resolveLoreTypeId(page) === fromLoreTypeId)
-      .map((page) => {
+    const updates: LorePage[] = [];
+    for (const page of allLorePages) {
+      if (resolveLoreTypeId(page) !== fromLoreTypeId) continue;
         const fields = parseLoreItemFields(page.fieldsJson);
-        return {
+        updates.push({
           ...page,
           type: nextLoreType.name,
           fieldsJson: stringifyLoreItemFields({
             ...fields,
             loreTypeId: toLoreTypeId,
           }),
-        };
-      });
+        });
+    }
 
     try {
       await Promise.all(
