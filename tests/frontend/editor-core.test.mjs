@@ -23,7 +23,23 @@ import {
   toggleLinePrefix,
   trimTypewriterCommit,
   wrapSerializedInlineContent,
+  renderPreviewContent,
 } from "../../.tmp-frontend-tests/src/components/editorCore.js";
+
+function normalizeChildren(children) {
+  if (children === undefined || children === null) return [];
+  return Array.isArray(children) ? children : [children];
+}
+
+function summarizePreviewNode(node) {
+  if (typeof node === "string") return node;
+  if (!node || typeof node !== "object") return node;
+  return {
+    type: node.type,
+    className: node.props?.className ?? null,
+    children: normalizeChildren(node.props?.children).map(summarizePreviewNode),
+  };
+}
 
 test("trimTypewriterCommit removes trailing blank lines and appendTypewriterCommit joins paragraphs", () => {
   assert.equal(trimTypewriterCommit("Draft line\n\n"), "Draft line");
@@ -162,6 +178,62 @@ test("serializeFormattedInlineContent preserves semantic and inline-style combin
   assert.equal(
     serializeFormattedInlineContent("Text", { tagName: "U" }),
     "__Text__",
+  );
+});
+
+test("renderPreviewContent preserves nested inline formatting structure", () => {
+  const preview = renderPreviewContent("**_Text_**\n*__Lore__*", new Map(), () => {});
+  assert.deepEqual(
+    summarizePreviewNode(preview[0]),
+    {
+      type: "p",
+      className: "editor-preview-paragraph",
+      children: [
+        {
+          type: "strong",
+          className: null,
+          children: [
+            {
+              type: "em",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["Text"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+  assert.deepEqual(
+    summarizePreviewNode(preview[1]),
+    {
+      type: "p",
+      className: "editor-preview-paragraph",
+      children: [
+        {
+          type: "em",
+          className: null,
+          children: [
+            {
+              type: "span",
+              className: "editor-preview-underline",
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["Lore"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
   );
 });
 
