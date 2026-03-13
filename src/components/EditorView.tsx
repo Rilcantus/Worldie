@@ -572,6 +572,39 @@ export const EditorView = memo(function EditorView({
     }
   };
 
+  const runAfterTypewriterDraftCommit = (action: () => void) => {
+    if (!isTypewriterMode) {
+      action();
+      return;
+    }
+
+    const editor = editorRef.current;
+    if (!editor) {
+      action();
+      return;
+    }
+
+    const currentDraft = trimTypewriterCommit(serializeEditorDom(editor));
+    if (!currentDraft) {
+      action();
+      return;
+    }
+
+    commitTypewriterDraft({ restoreFocus: false });
+    window.requestAnimationFrame(action);
+  };
+
+  const changeEditorMode = (nextMode: EditorPresentationMode) => {
+    if (nextMode === editorMode) return;
+    if (editorMode === "typewriter" && nextMode === "standard") {
+      runAfterTypewriterDraftCommit(() => {
+        setEditorMode((current) => (current === nextMode ? current : nextMode));
+      });
+      return;
+    }
+    setEditorMode((current) => (current === nextMode ? current : nextMode));
+  };
+
   const applySlashCommand = (commandId: string) => {
     if (!slashCommandMatch) return;
     const dismissStart = slashCommandMatch.start;
@@ -760,12 +793,12 @@ export const EditorView = memo(function EditorView({
       const key = event.key.toLowerCase();
       if (key === "n") {
         event.preventDefault();
-        onAddDocument();
+        runAfterTypewriterDraftCommit(onAddDocument);
         return;
       }
       if (key === "d") {
         event.preventDefault();
-        onDuplicateDocument();
+        runAfterTypewriterDraftCommit(onDuplicateDocument);
         return;
       }
       if (key === "r") {
@@ -790,7 +823,7 @@ export const EditorView = memo(function EditorView({
       }
       if (key === "m") {
         event.preventDefault();
-        setEditorMode((current) => (current === "standard" ? "typewriter" : "standard"));
+        changeEditorMode(editorMode === "standard" ? "typewriter" : "standard");
         return;
       }
     }
@@ -1042,7 +1075,7 @@ export const EditorView = memo(function EditorView({
     const nextIndex = (baseIndex + offset + orderedDocuments.length) % orderedDocuments.length;
     const nextDocument = orderedDocuments[nextIndex];
     if (nextDocument) {
-      onOpenDocument(nextDocument);
+      runAfterTypewriterDraftCommit(() => onOpenDocument(nextDocument));
     }
   };
 
@@ -1187,7 +1220,7 @@ export const EditorView = memo(function EditorView({
             editorWidth={editorWidth}
             onSetEditorWidth={setEditorWidth}
             editorMode={editorMode}
-            onSetEditorMode={setEditorMode}
+            onSetEditorMode={changeEditorMode}
           />
         </div>
 
