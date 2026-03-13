@@ -16,6 +16,7 @@
     "src/hooks/projectWorldState.ts",
     "src/hooks/searchState.ts",
     "src/hooks/tabState.ts",
+    "src/hooks/worldStructureState.ts",
     "src/hooks/workspaceTargets.ts",
     "src/types/ui.ts"
   ]

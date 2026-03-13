@@ -12,6 +12,14 @@ import {
   type Relationship,
   type TimelineEvent,
 } from "../lib/data";
+import {
+  hasUnsavedRelationshipChanges,
+  hasUnsavedTimelineChanges,
+  removeItemWithFallback,
+  resolveRelationshipSeedPages,
+  validateRelationshipDraft,
+  validateTimelineDraft,
+} from "./worldStructureState";
 
 type UseWorldStructuresArgs = {
   activeProjectId: string | null;
@@ -30,25 +38,6 @@ type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 type SelectionOptions = {
   skipGuard?: boolean;
 };
-
-function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
-  const next: T[] = [];
-  let removed = false;
-
-  for (const item of items) {
-    if (item.id === itemId) {
-      removed = true;
-      continue;
-    }
-    next.push(item);
-  }
-
-  return {
-    next,
-    first: next[0] ?? null,
-    removed,
-  };
-}
 
 export function useWorldStructures({
   activeProjectId,
@@ -142,31 +131,27 @@ export function useWorldStructures({
     () => (activeTimelineEventId ? timelineEventsById.get(activeTimelineEventId) ?? null : null),
     [activeTimelineEventId, timelineEventsById],
   );
-  const hasUnsavedRelationshipChanges = useMemo(() => {
-    if (!activeRelationship) return false;
-    return (
-      activeRelationship.sourcePageId !== relationshipSourceId ||
-      activeRelationship.targetPageId !== relationshipTargetId ||
-      activeRelationship.relationType !== relationshipType ||
-      (activeRelationship.notes ?? "") !== relationshipNotes
-    );
-  }, [
+  const hasUnsavedRelationshipDraftChanges = useMemo(() => hasUnsavedRelationshipChanges(
+    activeRelationship,
+    relationshipSourceId,
+    relationshipTargetId,
+    relationshipType,
+    relationshipNotes,
+  ), [
     activeRelationship,
     relationshipNotes,
     relationshipSourceId,
     relationshipTargetId,
     relationshipType,
   ]);
-  const hasUnsavedTimelineChanges = useMemo(() => {
-    if (!activeTimelineEvent) return false;
-    return (
-      activeTimelineEvent.title !== timelineTitle ||
-      activeTimelineEvent.eventDate !== timelineDate ||
-      (activeTimelineEvent.eventType ?? "event") !== timelineType ||
-      (activeTimelineEvent.linkedPageId ?? "") !== timelineLinkedPageId ||
-      (activeTimelineEvent.description ?? "") !== timelineDescription
-    );
-  }, [
+  const hasUnsavedTimelineDraftChanges = useMemo(() => hasUnsavedTimelineChanges(
+    activeTimelineEvent,
+    timelineTitle,
+    timelineDate,
+    timelineType,
+    timelineLinkedPageId,
+    timelineDescription,
+  ), [
     activeTimelineEvent,
     timelineDate,
     timelineDescription,
@@ -198,26 +183,26 @@ export function useWorldStructures({
 
   const canLeaveRelationshipDraft = useCallback(
     async (nextRelationshipId?: string | null) => {
-      if (!hasUnsavedRelationshipChanges) return true;
+      if (!hasUnsavedRelationshipDraftChanges) return true;
       if (nextRelationshipId && nextRelationshipId === activeRelationshipId) return true;
       return confirmAction("You have unsaved relationship changes. Continue anyway?", {
         confirmLabel: "Continue",
         tone: "default",
       });
     },
-    [activeRelationshipId, confirmAction, hasUnsavedRelationshipChanges],
+    [activeRelationshipId, confirmAction, hasUnsavedRelationshipDraftChanges],
   );
 
   const canLeaveTimelineDraft = useCallback(
     async (nextTimelineEventId?: string | null) => {
-      if (!hasUnsavedTimelineChanges) return true;
+      if (!hasUnsavedTimelineDraftChanges) return true;
       if (nextTimelineEventId && nextTimelineEventId === activeTimelineEventId) return true;
       return confirmAction("You have unsaved timeline changes. Continue anyway?", {
         confirmLabel: "Continue",
         tone: "default",
       });
     },
-    [activeTimelineEventId, confirmAction, hasUnsavedTimelineChanges],
+    [activeTimelineEventId, confirmAction, hasUnsavedTimelineDraftChanges],
   );
 
   useEffect(() => {
@@ -314,20 +299,7 @@ export function useWorldStructures({
     const actionProjectId = activeProjectId;
     const actionWorldId = activeWorldId;
     if (!(await canLeaveRelationshipDraft())) return null;
-    const getAlternateLorePage = (excludedId: string | undefined) => {
-      for (const page of allLorePages) {
-        if (page.id !== excludedId) {
-          return page;
-        }
-      }
-      return null;
-    };
-    const sourcePage =
-      (seed?.sourcePageId ? lorePagesById.get(seed.sourcePageId) ?? null : null) ?? firstLorePage;
-    const targetPage =
-      (seed?.targetPageId ? lorePagesById.get(seed.targetPageId) ?? null : null) ??
-      getAlternateLorePage(sourcePage?.id) ??
-      firstLorePage;
+    const { sourcePage, targetPage } = resolveRelationshipSeedPages(allLorePages, lorePagesById, firstLorePage, seed);
     const defaultPage = sourcePage;
     const secondPage = targetPage;
     if (!defaultPage || !secondPage) {
@@ -364,16 +336,13 @@ export function useWorldStructures({
 
   const saveRelationship = async () => {
     if (!activeRelationshipId) return;
-    if (!relationshipSourceId || !relationshipTargetId) {
-      showToast("Select both a source page and a target page");
-      return;
-    }
-    if (relationshipSourceId === relationshipTargetId) {
-      showToast("Choose two different lore pages for a relationship");
-      return;
-    }
-    if (!relationshipType.trim()) {
-      showToast("Enter a relationship type");
+    const relationshipValidationError = validateRelationshipDraft(
+      relationshipSourceId,
+      relationshipTargetId,
+      relationshipType,
+    );
+    if (relationshipValidationError) {
+      showToast(relationshipValidationError);
       return;
     }
     if (!activeProjectId) return;
@@ -533,12 +502,9 @@ export function useWorldStructures({
 
   const saveTimelineEvent = async () => {
     if (!activeTimelineEventId) return;
-    if (!timelineTitle.trim()) {
-      showToast("Enter a timeline event title");
-      return;
-    }
-    if (!timelineDate.trim()) {
-      showToast("Enter a timeline date or marker");
+    const timelineValidationError = validateTimelineDraft(timelineTitle, timelineDate);
+    if (timelineValidationError) {
+      showToast(timelineValidationError);
       return;
     }
     if (!activeProjectId) return;
@@ -703,7 +669,7 @@ export function useWorldStructures({
       timelineType,
       timelineLinkedPageId,
       timelineDescription,
-      hasUnsavedChanges: hasUnsavedRelationshipChanges || hasUnsavedTimelineChanges,
+      hasUnsavedChanges: hasUnsavedRelationshipDraftChanges || hasUnsavedTimelineDraftChanges,
       relationshipSaveState,
       relationshipLastSavedAt,
       timelineSaveState,
@@ -743,8 +709,8 @@ export function useWorldStructures({
       timelineType,
       timelineLinkedPageId,
       timelineDescription,
-      hasUnsavedRelationshipChanges,
-      hasUnsavedTimelineChanges,
+      hasUnsavedRelationshipDraftChanges,
+      hasUnsavedTimelineDraftChanges,
       relationshipSaveState,
       relationshipLastSavedAt,
       timelineSaveState,
