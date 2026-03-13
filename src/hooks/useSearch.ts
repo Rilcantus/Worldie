@@ -15,8 +15,9 @@ type UseSearchArgs = {
   enabled: boolean;
   documents: Document[];
   allLorePages: LorePage[];
-  onOpenDocument: (doc: Document) => void;
-  onOpenLore: (page: LorePage) => void;
+  onOpenDocument: (doc: Document, options?: { skipGuard?: boolean }) => void;
+  onOpenLore: (page: LorePage, options?: { skipGuard?: boolean }) => void;
+  canLeaveCurrentView: () => Promise<boolean>;
 };
 
 function normalizeText(value: string | null | undefined) {
@@ -68,6 +69,7 @@ export function useSearch({
   allLorePages,
   onOpenDocument,
   onOpenLore,
+  canLeaveCurrentView,
 }: UseSearchArgs) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
@@ -188,17 +190,18 @@ export function useSearch({
   }, [enabled]);
 
   const selectSearchResult = useCallback(
-    (result: SearchResult) => {
+    async (result: SearchResult) => {
+      if (!(await canLeaveCurrentView())) return;
       if (result.kind === "Document") {
         const doc = documentsById.get(result.id);
-        if (doc) onOpenDocument(doc);
+        if (doc) onOpenDocument(doc, { skipGuard: true });
       } else {
         const page = lorePagesById.get(result.id);
-        if (page) onOpenLore(page);
+        if (page) onOpenLore(page, { skipGuard: true });
       }
       setIsQuickOpenOpen((current) => (current ? false : current));
     },
-    [documentsById, lorePagesById, onOpenDocument, onOpenLore],
+    [canLeaveCurrentView, documentsById, lorePagesById, onOpenDocument, onOpenLore],
   );
 
   return useMemo(

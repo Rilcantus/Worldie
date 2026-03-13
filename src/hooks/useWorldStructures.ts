@@ -17,11 +17,18 @@ type UseWorldStructuresArgs = {
   activeProjectId: string | null;
   activeWorldId: string | null;
   allLorePages: LorePage[];
-  confirmAction: (message: string) => Promise<boolean>;
+  confirmAction: (
+    message: string,
+    options?: { confirmLabel?: string; tone?: "default" | "danger" },
+  ) => Promise<boolean>;
   showToast: (message: string) => void;
 };
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+
+type SelectionOptions = {
+  skipGuard?: boolean;
+};
 
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
   const next: T[] = [];
@@ -154,6 +161,30 @@ export function useWorldStructures({
     timelineType,
   ]);
 
+  const canLeaveRelationshipDraft = useCallback(
+    async (nextRelationshipId?: string | null) => {
+      if (!hasUnsavedRelationshipChanges) return true;
+      if (nextRelationshipId && nextRelationshipId === activeRelationshipId) return true;
+      return confirmAction("You have unsaved relationship changes. Continue anyway?", {
+        confirmLabel: "Continue",
+        tone: "default",
+      });
+    },
+    [activeRelationshipId, confirmAction, hasUnsavedRelationshipChanges],
+  );
+
+  const canLeaveTimelineDraft = useCallback(
+    async (nextTimelineEventId?: string | null) => {
+      if (!hasUnsavedTimelineChanges) return true;
+      if (nextTimelineEventId && nextTimelineEventId === activeTimelineEventId) return true;
+      return confirmAction("You have unsaved timeline changes. Continue anyway?", {
+        confirmLabel: "Continue",
+        tone: "default",
+      });
+    },
+    [activeTimelineEventId, confirmAction, hasUnsavedTimelineChanges],
+  );
+
   useEffect(() => {
     if (!activeProjectId || !activeWorldId) {
       loadRequestId.current += 1;
@@ -208,7 +239,8 @@ export function useWorldStructures({
     void loadTimeline();
   }, [activeProjectId, activeWorldId]);
 
-  const selectRelationship = useCallback((relationship: Relationship) => {
+  const selectRelationship = useCallback(async (relationship: Relationship, options?: SelectionOptions) => {
+    if (!options?.skipGuard && !(await canLeaveRelationshipDraft(relationship.id))) return;
     const nextNotes = relationship.notes ?? "";
     const changed =
       activeRelationshipId !== relationship.id ||
@@ -225,6 +257,7 @@ export function useWorldStructures({
     markRelationshipSaved();
   }, [
     activeRelationshipId,
+    canLeaveRelationshipDraft,
     markRelationshipSaved,
     relationshipNotes,
     relationshipSourceId,
@@ -243,6 +276,7 @@ export function useWorldStructures({
     notes?: string;
   }) => {
     if (!activeProjectId || !activeWorldId) return null;
+    if (!(await canLeaveRelationshipDraft())) return null;
     const getAlternateLorePage = (excludedId: string | undefined) => {
       for (const page of allLorePages) {
         if (page.id !== excludedId) {
@@ -280,7 +314,7 @@ export function useWorldStructures({
       return null;
     }
     setRelationships((prev) => [created, ...prev]);
-    selectRelationship(created);
+    void selectRelationship(created, { skipGuard: true });
     markRelationshipSaved();
     return created;
   };
@@ -357,7 +391,8 @@ export function useWorldStructures({
     return true;
   };
 
-  const selectTimelineEvent = useCallback((event: TimelineEvent) => {
+  const selectTimelineEvent = useCallback(async (event: TimelineEvent, options?: SelectionOptions) => {
+    if (!options?.skipGuard && !(await canLeaveTimelineDraft(event.id))) return;
     const nextType = event.eventType ?? "event";
     const nextLinkedPageId = event.linkedPageId ?? "";
     const nextDescription = event.description ?? "";
@@ -378,6 +413,7 @@ export function useWorldStructures({
     markTimelineSaved();
   }, [
     activeTimelineEventId,
+    canLeaveTimelineDraft,
     markTimelineSaved,
     timelineDate,
     timelineDescription,
@@ -398,6 +434,7 @@ export function useWorldStructures({
     description?: string;
   }) => {
     if (!activeProjectId || !activeWorldId) return null;
+    if (!(await canLeaveTimelineDraft())) return null;
     let created: TimelineEvent;
     try {
       created = await createTimelineEvent(activeProjectId, activeWorldId, {
@@ -412,7 +449,7 @@ export function useWorldStructures({
       return null;
     }
     setTimelineEvents((prev) => [created, ...prev]);
-    selectTimelineEvent(created);
+    void selectTimelineEvent(created, { skipGuard: true });
     markTimelineSaved();
     return created;
   };

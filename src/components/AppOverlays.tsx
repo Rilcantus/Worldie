@@ -1,7 +1,11 @@
 import { memo, useEffect, useRef } from "react";
 import type { SearchResult } from "../hooks/useSearch";
 
-type ConfirmState = { message: string } | null;
+type ConfirmState = {
+  message: string;
+  confirmLabel: string;
+  tone: "default" | "danger";
+} | null;
 type ToastState = { message: string; onUndo?: () => void } | null;
 type QuickOpenState = {
   isOpen: boolean;
@@ -228,8 +232,12 @@ export const AppOverlays = memo(function AppOverlays({
               >
                 Cancel
               </button>
-              <button className="confirm-btn danger" type="button" onClick={() => onResolveConfirm(true)}>
-                Delete
+              <button
+                className={`confirm-btn ${confirmState.tone === "danger" ? "danger" : ""}`}
+                type="button"
+                onClick={() => onResolveConfirm(true)}
+              >
+                {confirmState.confirmLabel}
               </button>
             </div>
           </div>

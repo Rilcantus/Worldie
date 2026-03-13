@@ -4,6 +4,7 @@ type UseMainContentActionsArgs = {
   setIsSidebarCollapsed: (value: boolean) => void;
   setIsDocListCollapsed: (value: boolean) => void;
   setIsRightPanelCollapsed: (value: boolean) => void;
+  canLeaveCurrentView: () => Promise<boolean>;
   openSpecialTab: (kind: "rels" | "timeline") => void;
   openNewTab: () => void;
   openWorkbenchTab: () => void;
@@ -58,6 +59,7 @@ export function useMainContentActions({
   setIsSidebarCollapsed,
   setIsDocListCollapsed,
   setIsRightPanelCollapsed,
+  canLeaveCurrentView,
   openSpecialTab,
   openNewTab,
   openWorkbenchTab,
@@ -97,7 +99,10 @@ export function useMainContentActions({
       addTab: () => openNewTab(),
       openWorkbench: () => openWorkbenchTab(),
       addDocument: () => void handleAddDocument(),
-      duplicateDocument: () => void duplicateDocument(),
+      duplicateDocument: async () => {
+        if (!(await canLeaveCurrentView())) return;
+        void duplicateDocument();
+      },
       removeDocument: (docId: string) => void handleRemoveDocument(docId),
       saveDocument: () => void saveDocument(),
       addLorePage: () => void handleOpenLoreCreate(),
@@ -118,6 +123,7 @@ export function useMainContentActions({
       addRelationshipWithSeed,
       addTimelineEvent,
       addTimelineEventWithSeed,
+      canLeaveCurrentView,
       duplicateDocument,
       duplicateTimelineEvent,
       handleAddDocument,

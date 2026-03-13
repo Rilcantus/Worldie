@@ -3,6 +3,7 @@ import type { Document, LorePage } from "../lib/data";
 
 type UseContentTabActionsArgs = {
   activeLore: LorePage | undefined;
+  canLeaveCurrentView: () => Promise<boolean>;
   addDocument: () => Promise<Document | null>;
   removeDocument: (docId: string) => Promise<boolean>;
   removeLorePage: (loreId: string) => Promise<boolean>;
@@ -10,11 +11,12 @@ type UseContentTabActionsArgs = {
   openLoreTab: (page: LorePage) => void;
   openLoreCreateTab: () => void;
   openNewTab: () => void;
-  removeTabById: (tabId: string) => void;
+  removeTabById: (tabId: string, options?: { skipGuard?: boolean }) => void;
 };
 
 export function useContentTabActions({
   activeLore,
+  canLeaveCurrentView,
   addDocument,
   removeDocument,
   removeLorePage,
@@ -25,16 +27,17 @@ export function useContentTabActions({
   removeTabById,
 }: UseContentTabActionsArgs) {
   const handleAddDocument = useCallback(async () => {
+    if (!(await canLeaveCurrentView())) return;
     const created = await addDocument();
     if (created) {
       openDocumentTab(created);
     }
-  }, [addDocument, openDocumentTab]);
+  }, [addDocument, canLeaveCurrentView, openDocumentTab]);
 
   const handleRemoveDocument = useCallback(async (docId: string) => {
     const removed = await removeDocument(docId);
     if (removed) {
-      removeTabById(`doc:${docId}`);
+      removeTabById(`doc:${docId}`, { skipGuard: true });
     }
   }, [removeDocument, removeTabById]);
 
@@ -45,7 +48,7 @@ export function useContentTabActions({
   const handleRemoveLorePage = useCallback(async (loreId: string) => {
     const removed = await removeLorePage(loreId);
     if (removed) {
-      removeTabById(`lore:${loreId}`);
+      removeTabById(`lore:${loreId}`, { skipGuard: true });
     }
   }, [removeLorePage, removeTabById]);
 

@@ -1,6 +1,15 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 
-type ConfirmState = { message: string } | null;
+type ConfirmOptions = {
+  confirmLabel?: string;
+  tone?: "default" | "danger";
+};
+
+type ConfirmState = {
+  message: string;
+  confirmLabel: string;
+  tone: "default" | "danger";
+} | null;
 type ToastState = { message: string; onUndo?: () => void } | null;
 
 export function useAppFeedback() {
@@ -9,10 +18,14 @@ export function useAppFeedback() {
   const [toast, setToast] = useState<ToastState>(null);
 
   const confirmAction = useCallback(
-    (message: string) =>
+    (message: string, options?: ConfirmOptions) =>
       new Promise<boolean>((resolve) => {
         confirmResolver.current = resolve;
-        setConfirmState({ message });
+        setConfirmState({
+          message,
+          confirmLabel: options?.confirmLabel ?? "Delete",
+          tone: options?.tone ?? "danger",
+        });
       }),
     [],
   );

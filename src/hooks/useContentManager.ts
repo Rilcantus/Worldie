@@ -21,7 +21,10 @@ type UseContentManagerArgs = {
   activeWorldId: string | null;
   loreTypes: LoreType[];
   setWorlds: Dispatch<SetStateAction<WorldUI[]>>;
-  confirmAction: (message: string) => Promise<boolean>;
+  confirmAction: (
+    message: string,
+    options?: { confirmLabel?: string; tone?: "default" | "danger" },
+  ) => Promise<boolean>;
   showToast: (message: string, onUndo?: () => void) => void;
 };
 

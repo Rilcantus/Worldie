@@ -113,7 +113,10 @@ function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: st
 }
 
 type UseProjectWorldsArgs = {
-  confirmAction: (message: string) => Promise<boolean>;
+  confirmAction: (
+    message: string,
+    options?: { confirmLabel?: string; tone?: "default" | "danger" },
+  ) => Promise<boolean>;
   showToast: (message: string) => void;
   initialLoreTypes: LoreType[];
 };

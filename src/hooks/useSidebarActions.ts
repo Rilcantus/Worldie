@@ -7,7 +7,10 @@ type UseSidebarActionsArgs = {
   removeProject: () => Promise<boolean>;
   setIsSidebarCollapsed: (value: boolean) => void;
   setEditingWorldId: (value: string | null) => void;
+  addWorld: () => void;
   removeWorld: (worldId: string) => Promise<void>;
+  activeWorldId: string | null;
+  canLeaveCurrentView: () => Promise<boolean>;
   openSpecialTab: (kind: "rels" | "timeline", worldId?: string | null) => Promise<void>;
 };
 
@@ -18,7 +21,10 @@ export function useSidebarActions({
   removeProject,
   setIsSidebarCollapsed,
   setEditingWorldId,
+  addWorld,
   removeWorld,
+  activeWorldId,
+  canLeaveCurrentView,
   openSpecialTab,
 }: UseSidebarActionsArgs) {
   const cancelProjectEdit = useCallback(() => {
@@ -42,11 +48,17 @@ export function useSidebarActions({
     setEditingWorldId(null);
   }, [setEditingWorldId]);
 
+  const handleAddWorld = useCallback(async () => {
+    if (!(await canLeaveCurrentView())) return;
+    addWorld();
+  }, [addWorld, canLeaveCurrentView]);
+
   const handleRemoveWorld = useCallback(
-    (worldId: string) => {
-      void removeWorld(worldId);
+    async (worldId: string) => {
+      if (worldId === activeWorldId && !(await canLeaveCurrentView())) return;
+      await removeWorld(worldId);
     },
-    [removeWorld],
+    [activeWorldId, canLeaveCurrentView, removeWorld],
   );
 
   const openRelationshipsForWorld = useCallback(
@@ -70,6 +82,7 @@ export function useSidebarActions({
       removeProject: handleRemoveProject,
       collapseSidebar,
       cancelWorldEdit,
+      addWorld: handleAddWorld,
       removeWorld: handleRemoveWorld,
       openRelationshipsForWorld,
       openTimelineForWorld,
@@ -80,6 +93,7 @@ export function useSidebarActions({
       handleRemoveProject,
       collapseSidebar,
       cancelWorldEdit,
+      handleAddWorld,
       handleRemoveWorld,
       openRelationshipsForWorld,
       openTimelineForWorld,

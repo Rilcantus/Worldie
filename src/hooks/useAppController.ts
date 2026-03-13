@@ -62,7 +62,10 @@ export function useAppController() {
 
   const canLeaveCurrentView = useCallback(async () => {
     if (!hasUnsavedProjectChanges) return true;
-    return feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?");
+    return feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
+      confirmLabel: "Continue",
+      tone: "default",
+    });
   }, [feedback.confirmAction, hasUnsavedProjectChanges]);
 
   const tabs = useTabs({
@@ -88,6 +91,7 @@ export function useAppController() {
     allLorePages: content.allLorePages,
     onOpenDocument: tabs.openDocumentTab,
     onOpenLore: tabs.openLoreTab,
+    canLeaveCurrentView,
   });
 
   useEffect(() => {
@@ -124,6 +128,7 @@ export function useAppController() {
 
   const contentTabActions = useContentTabActions({
     activeLore: content.activeLore,
+    canLeaveCurrentView,
     addDocument: content.addDocument,
     removeDocument: content.removeDocument,
     removeLorePage: content.removeLorePage,
@@ -160,7 +165,10 @@ export function useAppController() {
     removeProject: projectWorlds.removeProject,
     setIsSidebarCollapsed: panelLayout.setIsSidebarCollapsed,
     setEditingWorldId: projectWorlds.setEditingWorldId,
+    addWorld: projectWorlds.addWorld,
     removeWorld: projectWorlds.removeWorld,
+    activeWorldId: projectWorlds.activeWorldId,
+    canLeaveCurrentView,
     openSpecialTab: tabs.openSpecialTab,
   });
 
@@ -168,6 +176,7 @@ export function useAppController() {
     setIsSidebarCollapsed: panelLayout.setIsSidebarCollapsed,
     setIsDocListCollapsed: panelLayout.setIsDocListCollapsed,
     setIsRightPanelCollapsed: panelLayout.setIsRightPanelCollapsed,
+    canLeaveCurrentView,
     openSpecialTab: tabs.openSpecialTab,
     openNewTab: tabs.openNewTab,
     openWorkbenchTab: tabs.openWorkbenchTab,

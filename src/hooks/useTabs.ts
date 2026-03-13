@@ -24,6 +24,10 @@ type NavigationOptions = {
   skipGuard?: boolean;
 };
 
+type RemoveTabOptions = {
+  skipGuard?: boolean;
+};
+
 const WORKBENCH_TAB: TabItem = { id: "workbench", kind: "workbench", label: "Workbench", icon: "W" };
 
 function isWorkbenchOnlyTabState(tabs: TabItem[]) {
@@ -550,7 +554,10 @@ export function useTabs({
     canLeaveCurrentView,
   ]);
 
-  const handleTabClose = useCallback((tab: TabItem) => {
+  const handleTabClose = useCallback(async (tab: TabItem, options?: RemoveTabOptions) => {
+    if (tab.id === activeTabId && !options?.skipGuard && !(await canLeaveCurrentView())) {
+      return;
+    }
     clearPendingTabRefs(tab.id);
     setTabs((prev) => {
       const { closingIndex, normalizedNextTabs } = removeTabWithFallback(prev, tab.id);
@@ -563,9 +570,12 @@ export function useTabs({
       }
       return normalizedNextTabs;
     });
-  }, [activeTabId, clearPendingTabRefs]);
+  }, [activeTabId, canLeaveCurrentView, clearPendingTabRefs]);
 
-  const removeTabById = useCallback((tabId: string) => {
+  const removeTabById = useCallback(async (tabId: string, options?: RemoveTabOptions) => {
+    if (tabId === activeTabId && !options?.skipGuard && !(await canLeaveCurrentView())) {
+      return;
+    }
     clearPendingTabRefs(tabId);
     setTabs((prev) => {
       const { closingIndex, normalizedNextTabs, removed } = removeTabWithFallback(prev, tabId);
@@ -579,7 +589,7 @@ export function useTabs({
       }
       return normalizedNextTabs;
     });
-  }, [activeTabId, clearPendingTabRefs]);
+  }, [activeTabId, canLeaveCurrentView, clearPendingTabRefs]);
   const resetTabs = useCallback(() => {
     clearPendingTabRefs();
     setTabs((current) => (isWorkbenchOnlyTabState(current) ? current : [WORKBENCH_TAB]));

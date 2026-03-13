@@ -92,13 +92,22 @@ export default function App() {
   const handleCreateLoreItem = useCallback(
     ({ title, loreTypeId, templateId, tags }: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => {
       const template = templateId ? loreTemplatesById.get(templateId) ?? null : null;
-      void content.createLoreItem({ title, loreTypeId, template, tags }).then((created) => {
+      void (async () => {
+        const hasUnsavedChanges = content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+        if (hasUnsavedChanges) {
+          const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
+            confirmLabel: "Continue",
+            tone: "default",
+          });
+          if (!canContinue) return;
+        }
+        const created = await content.createLoreItem({ title, loreTypeId, template, tags });
         if (created) {
           tabs.openLoreTab(created);
         }
-      });
+      })();
     },
-    [content.createLoreItem, loreTemplatesById, tabs.openLoreTab],
+    [content.createLoreItem, content.hasUnsavedChanges, feedback.confirmAction, loreTemplatesById, tabs.openLoreTab, worldStructures.hasUnsavedChanges],
   );
 
   const handleCreateTemplate = useCallback(() => {
@@ -209,13 +218,13 @@ export default function App() {
           onCollapse={sidebarActions.collapseSidebar}
           onOpenRecentProject={projectFileActions.openRecentProject}
           onSearchQueryChange={search.setSearchQuery}
-          onAddWorld={projectWorlds.addWorld}
+          onAddWorld={sidebarActions.addWorld}
           onToggleWorld={projectWorlds.toggleWorld}
           onWorldDraftChange={projectWorlds.setWorldDraft}
           onCommitWorldTitle={projectWorlds.commitWorldTitle}
           onCancelWorldEdit={sidebarActions.cancelWorldEdit}
           onStartWorldEdit={projectWorlds.startWorldEdit}
-          onRemoveWorld={projectWorlds.removeWorld}
+          onRemoveWorld={sidebarActions.removeWorld}
           onOpenEditor={workspaceNavigation.openEditorForWorld}
           onOpenLoreRoot={workspaceNavigation.openLoreRootForWorld}
           onOpenLoreCategory={workspaceNavigation.openLoreCategoryForWorld}
