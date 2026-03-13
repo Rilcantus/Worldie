@@ -129,6 +129,13 @@ test("getFormattingState reports inline and block formatting flags", () => {
   assert.equal(getFormattingState("**Bold**", { start: 4, end: 4 }).bold, true);
   assert.equal(getFormattingState("_Italic_", { start: 1, end: 7 }).italic, true);
   assert.equal(getFormattingState("_Italic_", { start: 3, end: 3 }).italic, true);
+  assert.equal(getFormattingState("_**Both**_", { start: 5, end: 5 }).bold, true);
+  assert.equal(getFormattingState("_**Both**_", { start: 5, end: 5 }).italic, true);
+  assert.equal(getFormattingState("__*Both*__", { start: 5, end: 5 }).italic, true);
+  assert.equal(getFormattingState("__*Both*__", { start: 5, end: 5 }).underline, true);
+  assert.equal(getFormattingState("__***Both***__", { start: 7, end: 7 }).bold, true);
+  assert.equal(getFormattingState("__***Both***__", { start: 7, end: 7 }).italic, true);
+  assert.equal(getFormattingState("__***Both***__", { start: 7, end: 7 }).underline, true);
   assert.equal(getFormattingState("___Both___", { start: 5, end: 5 }).italic, true);
   assert.equal(getFormattingState("___Both___", { start: 5, end: 5 }).underline, true);
   assert.equal(getFormattingState("***Both***", { start: 5, end: 5 }).bold, true);

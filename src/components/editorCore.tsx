@@ -640,89 +640,53 @@ export function getSelectionText(text: string, selection: SelectionOffsets | nul
   return text.slice(selection.start, selection.end);
 }
 
-function isSelectionWrapped(text: string, selection: SelectionOffsets | null, marker: string) {
-  if (!selection) return false;
-  const before = text.slice(Math.max(0, selection.start - marker.length), selection.start);
-  const after = text.slice(selection.end, selection.end + marker.length);
-  return before === marker && after === marker;
-}
+function getInlineMarkersAtOffset(text: string, offset: number) {
+  const openMarkers: string[] = [];
+  let index = 0;
 
-function isSelectionInsideWrappedRange(text: string, selection: SelectionOffsets | null, marker: string) {
-  if (!selection) return false;
+  while (index < text.length) {
+    if (index === offset) {
+      return new Set(openMarkers);
+    }
 
-  let searchIndex = 0;
-  while (true) {
-    const openIndex = text.indexOf(marker, searchIndex);
-    if (openIndex === -1) return false;
-    if (marker.length === 1 && !isStandaloneInlineMarker(text, openIndex, marker)) {
-      searchIndex = openIndex + 1;
+    if (text[index] === "\n") {
+      index += 1;
       continue;
     }
 
-    const closeIndex = text.indexOf(marker, openIndex + marker.length);
-    if (closeIndex === -1) return false;
-    if (marker.length === 1 && !isStandaloneInlineMarker(text, closeIndex, marker)) {
-      searchIndex = closeIndex + 1;
-      continue;
+    const lastOpenMarker = openMarkers[openMarkers.length - 1];
+    const closingMarkerDef = lastOpenMarker
+      ? FORMAT_MARKERS.find(({ marker }) => marker === lastOpenMarker && text.startsWith(marker, index))
+      : undefined;
+    const markerDef = closingMarkerDef ?? FORMAT_MARKERS.find(({ marker }) => text.startsWith(marker, index));
+    if (markerDef) {
+      const { marker } = markerDef;
+      const hasClosingMarkerAhead = text.indexOf(marker, index + marker.length) !== -1;
+
+      if (lastOpenMarker === marker) {
+        openMarkers.pop();
+        index += marker.length;
+        continue;
+      }
+
+      if (hasClosingMarkerAhead) {
+        openMarkers.push(marker);
+        index += marker.length;
+        continue;
+      }
     }
 
-    const contentStart = openIndex + marker.length;
-    if (
-      contentStart <= selection.start &&
-      closeIndex >= selection.end &&
-      closeIndex > contentStart
-    ) {
-      return true;
-    }
-
-    searchIndex = closeIndex + marker.length;
+    index += 1;
   }
+
+  return new Set(openMarkers);
 }
 
-function isSelectionWrappedWithAny(text: string, selection: SelectionOffsets | null, markers: string[]) {
-  return markers.some((marker) => isSelectionWrapped(text, selection, marker) || isSelectionInsideWrappedRange(text, selection, marker));
-}
-
-function isSelectionInsideTripleAsteriskRange(text: string, selection: SelectionOffsets | null) {
+function isMarkerActiveAcrossSelection(text: string, selection: SelectionOffsets | null, marker: string) {
   if (!selection) return false;
-
-  let searchIndex = 0;
-  while (true) {
-    const openIndex = text.indexOf("***", searchIndex);
-    if (openIndex === -1) return false;
-    const closeIndex = text.indexOf("***", openIndex + 3);
-    if (closeIndex === -1) return false;
-    const contentStart = openIndex + 3;
-    if (
-      contentStart <= selection.start &&
-      closeIndex >= selection.end &&
-      closeIndex > contentStart
-    ) {
-      return true;
-    }
-    searchIndex = closeIndex + 3;
-  }
-}
-
-function isSelectionInsideTripleUnderscoreRange(text: string, selection: SelectionOffsets | null) {
-  if (!selection) return false;
-
-  let searchIndex = 0;
-  while (true) {
-    const openIndex = text.indexOf("___", searchIndex);
-    if (openIndex === -1) return false;
-    const closeIndex = text.indexOf("___", openIndex + 3);
-    if (closeIndex === -1) return false;
-    const contentStart = openIndex + 3;
-    if (
-      contentStart <= selection.start &&
-      closeIndex >= selection.end &&
-      closeIndex > contentStart
-    ) {
-      return true;
-    }
-    searchIndex = closeIndex + 3;
-  }
+  const startMarkers = getInlineMarkersAtOffset(text, selection.start);
+  const endMarkers = getInlineMarkersAtOffset(text, selection.end);
+  return startMarkers.has(marker) && endMarkers.has(marker);
 }
 
 function getCurrentLine(text: string, selection: SelectionOffsets | null) {
@@ -736,15 +700,11 @@ function getCurrentLine(text: string, selection: SelectionOffsets | null) {
 export function getFormattingState(text: string, selection: SelectionOffsets | null): EditorFormattingState {
   const line = getCurrentLine(text, selection);
   return {
-    bold: isSelectionWrapped(text, selection, "**") || isSelectionInsideWrappedRange(text, selection, "**"),
+    bold: isMarkerActiveAcrossSelection(text, selection, "**"),
     italic:
-      isSelectionWrappedWithAny(text, selection, ["_", "*"]) ||
-      isSelectionInsideTripleAsteriskRange(text, selection) ||
-      isSelectionInsideTripleUnderscoreRange(text, selection),
-    underline:
-      isSelectionWrapped(text, selection, "__") ||
-      isSelectionInsideWrappedRange(text, selection, "__") ||
-      isSelectionInsideTripleUnderscoreRange(text, selection),
+      isMarkerActiveAcrossSelection(text, selection, "_") ||
+      isMarkerActiveAcrossSelection(text, selection, "*"),
+    underline: isMarkerActiveAcrossSelection(text, selection, "__"),
     heading1: line.startsWith("# "),
     heading2: line.startsWith("## "),
     list: line.startsWith("- "),
