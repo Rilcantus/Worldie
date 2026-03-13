@@ -296,6 +296,8 @@ def _touch_project(project_uuid):
 def add_project(title, filepath):
     project_uuid = str(uuid.uuid4())
     resolved_path = _resolve_project_db_path(project_uuid, title, filepath)
+    if _get_project_by_filepath(resolved_path) or os.path.exists(resolved_path):
+        raise ValueError("Choose a new filepath for project creation.")
     _init_project_db(resolved_path)
     _set_project_meta_title(resolved_path, title)
 

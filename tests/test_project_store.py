@@ -105,6 +105,13 @@ class ProjectStoreTests(unittest.TestCase):
         reopened_lore = self.db_manager.list_lore_pages(reopened_uuid, world_id)
         self.assertEqual(len(reopened_lore), 1)
 
+    def test_add_project_rejects_existing_filepath(self):
+        existing_path = self.temp_path / "existing.worldie"
+        self.db_manager.add_project("Original Project", str(existing_path))
+
+        with self.assertRaisesRegex(ValueError, "Choose a new filepath for project creation."):
+            self.db_manager.add_project("Duplicate Project", str(existing_path))
+
     def test_sidecar_request_flow_persists_project_entities(self):
         create_response = self.sidecar._handle_request(
             {
@@ -193,6 +200,20 @@ class ProjectStoreTests(unittest.TestCase):
         )
         self.assertEqual(len(list_templates_response["templates"]), 1)
         self.assertEqual(list_templates_response["templates"][0]["name"], "Hero")
+
+    def test_sidecar_returns_structured_error_for_existing_create_project_filepath(self):
+        existing_path = self.temp_path / "existing-sidecar.worldie"
+        self.db_manager.add_project("Existing Project", str(existing_path))
+
+        response = self.sidecar._handle_request(
+            {
+                "action": "create_project",
+                "data": {"title": "Replacement Project", "filepath": str(existing_path)},
+            }
+        )
+
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], "Choose a new filepath for project creation.")
 
     def test_sidecar_project_file_actions_return_target_project(self):
         create_response = self.sidecar._handle_request(
