@@ -93,6 +93,22 @@ const getProjectByFilepath = (projects: Project[], filepath: string) => {
   return null;
 };
 
+const normalizeProjectPathText = (value: string) => value.split("\\").join("/").toLowerCase();
+
+const isMissingProjectFileError = (project: Project, error: unknown) => {
+  if (!(error instanceof Error) || !project.filepath) return false;
+  const message = error.message.trim();
+  if (!message) return false;
+  const normalizedMessage = normalizeProjectPathText(message);
+  const normalizedPath = normalizeProjectPathText(project.filepath);
+  const normalizedFilename = normalizeProjectPathText(getProjectFilename(project));
+  return (
+    normalizedMessage.includes(normalizedPath) ||
+    normalizedMessage.includes(normalizedFilename) ||
+    normalizedMessage.includes("project file not found")
+  );
+};
+
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
   const next: T[] = [];
   let removed = false;
@@ -419,6 +435,47 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     });
   }, [applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
 
+  const recoverMissingRecentProject = useCallback(async (project: Project, error: unknown) => {
+    const message = error instanceof Error ? error.message : "Worldie could not reopen that project file.";
+    if (!isMissingProjectFileError(project, error)) {
+      showToast(message);
+      return false;
+    }
+
+    const confirmRemove = await confirmAction(
+      `${getProjectFilename(project)} is missing. Remove it from recent projects?`,
+      { confirmLabel: "Remove", tone: "danger" },
+    );
+    if (!confirmRemove) {
+      showToast(message);
+      return false;
+    }
+
+    let nextProjects: Project[] = [];
+    try {
+      nextProjects = await deleteProject(project.id);
+    } catch (deleteError) {
+      showToast(deleteError instanceof Error ? deleteError.message : "Worldie could not remove the missing project.");
+      return false;
+    }
+
+    setProjectsIfChanged(nextProjects);
+    if (activeProjectIdRef.current === project.id) {
+      const nextProject = nextProjects[0] ?? null;
+      try {
+        await applyActiveProject(nextProject);
+      } catch (applyError) {
+        showToast(
+          applyError instanceof Error ? applyError.message : "Worldie could not load the next available project.",
+        );
+        return false;
+      }
+    }
+
+    showToast(`${getProjectFilename(project)} was removed from recent projects.`);
+    return false;
+  }, [applyActiveProject, confirmAction, setProjectsIfChanged, showToast]);
+
   const openProject = useCallback(async () => {
     return runProjectAction("opening", "Opening project file...", async () => {
       const filepath = await pickOpenProjectFile();
@@ -476,8 +533,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         nextProjects = result.projects;
         reopened = result.project;
       } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not reopen that project file.");
-        return false;
+        return recoverMissingRecentProject(project, error);
       }
       setProjectsIfChanged(nextProjects);
       reopened ??= getProjectByFilepath(nextProjects, project.filepath);
@@ -493,7 +549,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  }, [applyActiveProject, projectsById, runProjectAction, setProjectsIfChanged, showToast]);
+  }, [applyActiveProject, projectsById, recoverMissingRecentProject, runProjectAction, setProjectsIfChanged, showToast]);
 
   const saveCurrentProjectAs = useCallback(async () => {
     if (!activeProjectId) return false;
