@@ -241,7 +241,9 @@ def _get_project_filepath(project_uuid):
     c.execute("SELECT filepath FROM projects WHERE uuid = ?", (project_uuid,))
     row = c.fetchone()
     conn.close()
-    return row[0] if row else None
+    if not row:
+        raise FileNotFoundError(f"Project not found: {project_uuid}")
+    return row[0]
 
 
 def _get_project_by_filepath(filepath):

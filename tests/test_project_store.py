@@ -112,6 +112,10 @@ class ProjectStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Choose a new filepath for project creation."):
             self.db_manager.add_project("Duplicate Project", str(existing_path))
 
+    def test_project_operations_reject_unknown_project_ids(self):
+        with self.assertRaisesRegex(FileNotFoundError, "Project not found: missing-project"):
+            self.db_manager.list_worlds("missing-project")
+
     def test_sidecar_request_flow_persists_project_entities(self):
         create_response = self.sidecar._handle_request(
             {
@@ -350,6 +354,14 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(response["status"], "error")
         self.assertIn(Path(project_path).name, response["message"])
         self.assertFalse(Path(project_path).exists())
+
+    def test_sidecar_returns_structured_error_for_unknown_project_id(self):
+        response = self.sidecar._handle_request(
+            {"action": "list_worlds", "data": {"projectId": "missing-project"}}
+        )
+
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], "Project not found: missing-project")
 
     def test_sidecar_returns_structured_error_for_missing_project_file(self):
         missing_path = self.temp_path / "missing" / "does-not-exist.worldie"
