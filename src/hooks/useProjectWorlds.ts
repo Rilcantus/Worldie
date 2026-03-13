@@ -325,7 +325,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const recoverMissingProject = useCallback(async (
     project: Project,
     error: unknown,
-    options?: { activateFallback?: boolean },
+    options?: { activateFallback?: boolean; skipConfirm?: boolean },
   ): Promise<boolean> => {
     const inFlightRecovery = missingProjectRecoveryPromisesRef.current.get(project.id);
     if (inFlightRecovery) {
@@ -339,13 +339,15 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return false;
     }
 
-    const confirmRemove = await confirmAction(
-      `${getProjectFilename(project)} is missing. Remove it from recent projects?`,
-      { confirmLabel: "Remove", tone: "danger" },
-    );
-    if (!confirmRemove) {
-      showToast(message);
-      return false;
+    if (!options?.skipConfirm) {
+      const confirmRemove = await confirmAction(
+        `${getProjectFilename(project)} is missing. Remove it from recent projects?`,
+        { confirmLabel: "Remove", tone: "danger" },
+      );
+      if (!confirmRemove) {
+        showToast(message);
+        return false;
+      }
     }
 
     let nextProjects: Project[] = [];
@@ -365,7 +367,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         await applyActiveProject(nextProject);
       } catch (applyError) {
         if (nextProject) {
-          return recoverMissingProject(nextProject, applyError, { activateFallback: true });
+          return recoverMissingProject(nextProject, applyError, { activateFallback: true, skipConfirm: true });
         }
         showToast(applyError instanceof Error ? applyError.message : "Worldie could not load the next available project.");
         return false;
