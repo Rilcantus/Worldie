@@ -166,6 +166,13 @@ test("combined italic underline markers round-trip through editor display mappin
   assert.deepEqual(displaySelectionToSource(text, { start: 0, end: 4 }), { start: 3, end: 7 });
 });
 
+test("triple-asterisk bold italic markers round-trip through editor display mapping", () => {
+  const representation = buildEditorDisplayRepresentation("***Text***");
+  assert.equal(representation.html, "<strong><em>Text</em></strong>");
+  assert.deepEqual(sourceSelectionToDisplay("***Text***", { start: 3, end: 7 }), { start: 0, end: 4 });
+  assert.deepEqual(displaySelectionToSource("***Text***", { start: 0, end: 4 }), { start: 3, end: 7 });
+});
+
 test("serializeFormattedInlineContent preserves semantic and inline-style combinations", () => {
   assert.equal(
     serializeFormattedInlineContent("Text", { tagName: "SPAN", style: { fontWeight: "700", fontStyle: "italic" } }),
@@ -182,7 +189,7 @@ test("serializeFormattedInlineContent preserves semantic and inline-style combin
 });
 
 test("renderPreviewContent preserves nested inline formatting structure", () => {
-  const preview = renderPreviewContent("**_Text_**\n*__Lore__*", new Map(), () => {});
+  const preview = renderPreviewContent("**_Text_**\n*__Lore__*\n***Both***", new Map(), () => {});
   assert.deepEqual(
     summarizePreviewNode(preview[0]),
     {
@@ -227,6 +234,32 @@ test("renderPreviewContent preserves nested inline formatting structure", () => 
                   type: "span",
                   className: null,
                   children: ["Lore"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+  assert.deepEqual(
+    summarizePreviewNode(preview[2]),
+    {
+      type: "p",
+      className: "editor-preview-paragraph",
+      children: [
+        {
+          type: "strong",
+          className: null,
+          children: [
+            {
+              type: "em",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["Both"],
                 },
               ],
             },

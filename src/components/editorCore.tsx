@@ -98,10 +98,13 @@ export function buildEditorDisplayRepresentation(text: string): EditorDisplayRep
       continue;
     }
 
-    const markerDef = FORMAT_MARKERS.find(({ marker }) => text.startsWith(marker, index));
+    const lastOpenMarker = openMarkers[openMarkers.length - 1];
+    const closingMarkerDef = lastOpenMarker
+      ? FORMAT_MARKERS.find(({ marker }) => marker === lastOpenMarker && text.startsWith(marker, index))
+      : undefined;
+    const markerDef = closingMarkerDef ?? FORMAT_MARKERS.find(({ marker }) => text.startsWith(marker, index));
     if (markerDef) {
       const { marker, tag } = markerDef;
-      const lastOpenMarker = openMarkers[openMarkers.length - 1];
       const hasClosingMarkerAhead = text.indexOf(marker, index + marker.length) !== -1;
 
       if (lastOpenMarker === marker) {
@@ -822,7 +825,7 @@ function renderInlinePreview(
   keyPrefix: string,
 ): ReactNode[] {
   const parts: ReactNode[] = [];
-  const pattern = /(\[\[[^\]]+\]\]|\*\*\*__[^*]+__\*\*\*|\*\*_[^*]+_\*\*|\*\*__[^*]+__\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
+  const pattern = /(\[\[[^\]]+\]\]|\*\*\*__[^*]+__\*\*\*|\*\*\*[^*]+\*\*\*|\*\*_[^*]+_\*\*|\*\*__[^*]+__\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -859,6 +862,12 @@ function renderInlinePreview(
               {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-biu-${match.index}`)}
             </span>
           </em>
+        </strong>,
+      );
+    } else if (token.startsWith("***") && token.endsWith("***")) {
+      parts.push(
+        <strong key={`${keyPrefix}-bold-italic-star-${match.index}`}>
+          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bis-${match.index}`)}</em>
         </strong>,
       );
     } else if (token.startsWith("**_") && token.endsWith("_**")) {
