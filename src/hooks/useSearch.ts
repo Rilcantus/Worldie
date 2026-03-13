@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Document, LorePage } from "../lib/data";
 
 export type SearchResult = {
@@ -76,6 +76,21 @@ export function useSearch({
   const [activeQuickOpenIndex, setActiveQuickOpenIndex] = useState(0);
   const documentsById = useMemo(() => new Map(documents.map((item) => [item.id, item])), [documents]);
   const lorePagesById = useMemo(() => new Map(allLorePages.map((item) => [item.id, item])), [allLorePages]);
+  const enabledRef = useRef(enabled);
+  const documentsByIdRef = useRef(documentsById);
+  const lorePagesByIdRef = useRef(lorePagesById);
+
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+
+  useEffect(() => {
+    documentsByIdRef.current = documentsById;
+  }, [documentsById]);
+
+  useEffect(() => {
+    lorePagesByIdRef.current = lorePagesById;
+  }, [lorePagesById]);
 
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -192,16 +207,17 @@ export function useSearch({
   const selectSearchResult = useCallback(
     async (result: SearchResult) => {
       if (!(await canLeaveCurrentView())) return;
+      if (!enabledRef.current) return;
       if (result.kind === "Document") {
-        const doc = documentsById.get(result.id);
+        const doc = documentsByIdRef.current.get(result.id);
         if (doc) onOpenDocument(doc, { skipGuard: true });
       } else {
-        const page = lorePagesById.get(result.id);
+        const page = lorePagesByIdRef.current.get(result.id);
         if (page) onOpenLore(page, { skipGuard: true });
       }
       setIsQuickOpenOpen((current) => (current ? false : current));
     },
-    [canLeaveCurrentView, documentsById, lorePagesById, onOpenDocument, onOpenLore],
+    [canLeaveCurrentView, onOpenDocument, onOpenLore],
   );
 
   return useMemo(
