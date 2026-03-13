@@ -43,6 +43,11 @@ export function useWorkspaceNavigation({
   );
   const documentsById = useMemo(() => new Map(documents.map((doc) => [doc.id, doc])), [documents]);
   const lorePagesById = useMemo(() => new Map(allLorePages.map((page) => [page.id, page])), [allLorePages]);
+  const activeWorldIdRef = useRef(activeWorldId);
+  const activeDocumentIdRef = useRef(activeDocumentId);
+  const activeLoreIdRef = useRef(activeLoreId);
+  const documentsByIdRef = useRef(documentsById);
+  const lorePagesByIdRef = useRef(lorePagesById);
   const firstLorePageByWorld = useMemo(() => {
     const map = new Map<string, LorePage>();
     for (const page of allLorePages) {
@@ -64,6 +69,26 @@ export function useWorkspaceNavigation({
     }
     return map;
   }, [allLorePages, resolveLoreTypeId]);
+
+  useEffect(() => {
+    activeWorldIdRef.current = activeWorldId;
+  }, [activeWorldId]);
+
+  useEffect(() => {
+    activeDocumentIdRef.current = activeDocumentId;
+  }, [activeDocumentId]);
+
+  useEffect(() => {
+    activeLoreIdRef.current = activeLoreId;
+  }, [activeLoreId]);
+
+  useEffect(() => {
+    documentsByIdRef.current = documentsById;
+  }, [documentsById]);
+
+  useEffect(() => {
+    lorePagesByIdRef.current = lorePagesById;
+  }, [lorePagesById]);
 
   useEffect(() => {
     if (!activeWorldId) {
@@ -94,40 +119,45 @@ export function useWorkspaceNavigation({
   }, [activeWorldId, firstLorePageByWorld, firstLorePageByWorldAndType, loreLoadedWorldId, openLoreCreateTab, openLoreTab]);
 
   const openEditorForWorld = useCallback(async (worldId: string) => {
+    const startingWorldId = activeWorldId;
     if (worldId !== activeWorldId) {
       if (!(await canLeaveCurrentView())) return;
+      if (activeWorldIdRef.current !== startingWorldId) return;
       pendingOpen.current = { kind: "editor", worldId };
       setActiveWorldId(worldId);
       return;
     }
-    const nextDoc = (activeDocumentId ? documentsById.get(activeDocumentId) : undefined) ?? documents[0];
+    const nextDoc =
+      (activeDocumentIdRef.current ? documentsByIdRef.current.get(activeDocumentIdRef.current) : undefined) ??
+      documents[0];
     if (nextDoc) void openDocumentTab(nextDoc);
     else void openNewTab();
-  }, [activeDocumentId, activeWorldId, canLeaveCurrentView, documents, documentsById, openDocumentTab, openNewTab, setActiveWorldId]);
+  }, [activeWorldId, canLeaveCurrentView, documents, openDocumentTab, openNewTab, setActiveWorldId]);
 
   const openLoreRootForWorld = useCallback(async (worldId: string) => {
+    const startingWorldId = activeWorldId;
     if (worldId !== activeWorldId) {
       if (!(await canLeaveCurrentView())) return;
+      if (activeWorldIdRef.current !== startingWorldId) return;
       setActiveLoreTypeId((current) => (current ? null : current));
       pendingOpen.current = { kind: "loreRoot", worldId };
       setActiveWorldId(worldId);
       return;
     }
     if (!(await canLeaveCurrentView())) return;
+    if (activeWorldIdRef.current !== startingWorldId) return;
     setActiveLoreTypeId((current) => (current ? null : current));
     const nextPage =
-      ((activeLoreId ? lorePagesById.get(activeLoreId) : null)?.worldId === worldId
-        ? lorePagesById.get(activeLoreId!)
+      ((activeLoreIdRef.current ? lorePagesByIdRef.current.get(activeLoreIdRef.current) : null)?.worldId === worldId
+        ? lorePagesByIdRef.current.get(activeLoreIdRef.current!)
         : null) ??
       firstLorePageByWorld.get(worldId) ??
       null;
     if (nextPage) void openLoreTab(nextPage, { skipGuard: true });
     else void openLoreCreateTab({ skipGuard: true });
   }, [
-    activeLoreId,
     activeWorldId,
     firstLorePageByWorld,
-    lorePagesById,
     openLoreCreateTab,
     openLoreTab,
     setActiveLoreTypeId,
@@ -136,14 +166,17 @@ export function useWorkspaceNavigation({
   ]);
 
   const openLoreCategoryForWorld = useCallback(async (worldId: string, loreTypeId: string) => {
+    const startingWorldId = activeWorldId;
     if (worldId !== activeWorldId) {
       if (!(await canLeaveCurrentView())) return;
+      if (activeWorldIdRef.current !== startingWorldId) return;
       setActiveLoreTypeId((current) => (current === loreTypeId ? current : loreTypeId));
       pendingOpen.current = { kind: "loreCategory", worldId, loreTypeId };
       setActiveWorldId(worldId);
       return;
     }
     if (!(await canLeaveCurrentView())) return;
+    if (activeWorldIdRef.current !== startingWorldId) return;
     setActiveLoreTypeId((current) => (current === loreTypeId ? current : loreTypeId));
     const nextPage = firstLorePageByWorldAndType.get(`${worldId}:${loreTypeId}`) ?? null;
     if (nextPage) void openLoreTab(nextPage, { skipGuard: true });
