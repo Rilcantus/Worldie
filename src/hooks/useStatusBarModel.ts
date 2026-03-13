@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { TabKind, WorldUI } from "../types/ui";
+import { buildStatusBarModel } from "./statusBarState";
 
 type UseStatusBarModelArgs = {
   hasActiveProject: boolean;
@@ -22,53 +23,14 @@ export function useStatusBarModel({
   saveState,
   saveTimestamp,
 }: UseStatusBarModelArgs) {
-  const activeWorldName = activeWorld?.name ?? "No world selected";
-
-  return useMemo(() => {
-    if (!hasActiveProject) {
-      return {
-        projectTitle: "No Project Open",
-        worldName: "No world selected",
-        sectionLabel: "Launcher",
-        detailLabel: "Open Project",
-        saveState: "saved" as const,
-        saveTimestamp: null,
-      };
-    }
-
-    const sectionLabel =
-      activeNav === "workbench"
-        ? "Workbench"
-        : activeNav === "editor"
-          ? "Editor"
-          : activeNav === "lore"
-            ? "Lore"
-            : activeNav === "rels"
-              ? "Relationships"
-              : activeNav === "timeline"
-                ? "Timeline"
-                : "New Tab";
-
-    const detailLabel =
-      activeNav === "workbench"
-        ? projectTitle
-        : activeNav === "editor"
-          ? documentTitle || "Untitled"
-          : activeNav === "lore"
-            ? loreTitle || "Untitled"
-            : activeNav === "new"
-              ? "Open Page"
-              : activeNav === "rels"
-                ? "Relationships"
-                : "Timeline";
-
-    return {
-      projectTitle,
-      worldName: activeWorldName,
-      sectionLabel,
-      detailLabel,
-      saveState,
-      saveTimestamp,
-    };
-  }, [hasActiveProject, activeNav, projectTitle, activeWorldName, documentTitle, loreTitle, saveState, saveTimestamp]);
+  return useMemo(() => buildStatusBarModel({
+    hasActiveProject,
+    activeNav,
+    projectTitle,
+    activeWorld,
+    documentTitle,
+    loreTitle,
+    saveState,
+    saveTimestamp,
+  }), [hasActiveProject, activeNav, projectTitle, activeWorld, documentTitle, loreTitle, saveState, saveTimestamp]);
 }

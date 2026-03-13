@@ -16,6 +16,7 @@
     "src/hooks/projectRecovery.ts",
     "src/hooks/projectWorldState.ts",
     "src/hooks/searchState.ts",
+    "src/hooks/statusBarState.ts",
     "src/hooks/tabState.ts",
     "src/hooks/worldStructureState.ts",
     "src/hooks/workspaceTargets.ts",
