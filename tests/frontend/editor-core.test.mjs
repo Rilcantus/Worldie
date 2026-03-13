@@ -60,12 +60,22 @@ function withFakeHtmlDocument(childNodes, callback) {
   }
 
   class FakeElement extends FakeNode {
-    constructor(tagName, nodeChildren = [], elementChildren = nodeChildren.filter((child) => child instanceof FakeElement)) {
+    constructor(
+      tagName,
+      nodeChildren = [],
+      elementChildren = nodeChildren.filter((child) => child instanceof FakeElement),
+      attributes = {},
+    ) {
       super();
       this.nodeType = 1;
       this.tagName = tagName;
       this.childNodes = nodeChildren;
       this.children = elementChildren;
+      this.attributes = attributes;
+    }
+
+    getAttribute(name) {
+      return this.attributes[name] ?? null;
     }
   }
 
@@ -264,6 +274,21 @@ test("extractEditorTextFromHtml preserves nested html list structure", () => {
     assert.equal(
       extractEditorTextFromHtml("<ul><li>Parent<ul><li>Child bullet</li></ul><ol><li>Child step</li></ol></li></ul>"),
       "- Parent\n  - Child bullet\n  1. Child step",
+    );
+  });
+});
+
+test("extractEditorTextFromHtml preserves ordered list start and item values", () => {
+  withFakeHtmlDocument((FakeElement, FakeTextNode) => [
+    new FakeElement("OL", [], [
+      new FakeElement("LI", [new FakeTextNode("Third")]),
+      new FakeElement("LI", [new FakeTextNode("Seventh")], [], { value: "7" }),
+      new FakeElement("LI", [new FakeTextNode("Eighth")]),
+    ], { start: "3" }),
+  ], () => {
+    assert.equal(
+      extractEditorTextFromHtml("<ol start=\"3\"><li>Third</li><li value=\"7\">Seventh</li><li>Eighth</li></ol>"),
+      "3. Third\n7. Seventh\n8. Eighth",
     );
   });
 });

@@ -636,6 +636,12 @@ function serializeBlockPasteNode(node: Node): string {
     const [firstLine, ...rest] = normalized.split("\n");
     return `${prefix}${firstLine}${rest.map((line) => `\n  ${line}`).join("")}`;
   };
+  const getNumericAttribute = (element: Element, name: string) => {
+    const value = element.getAttribute(name);
+    if (!value) return null;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
 
   if (tag === "BR") return "\n";
   if (tag === "HR") return "* * *\n\n";
@@ -659,9 +665,15 @@ function serializeBlockPasteNode(node: Node): string {
   }
 
   if (tag === "OL") {
+    let nextIndex = getNumericAttribute(node, "start") ?? 1;
     const items = Array.from(node.children)
       .filter((child) => child.tagName === "LI")
-      .map((child, index) => formatListItem(`${index + 1}. `, buildListItemContent(child)));
+      .map((child) => {
+        const explicitValue = getNumericAttribute(child, "value");
+        const currentIndex = explicitValue ?? nextIndex;
+        nextIndex = currentIndex + 1;
+        return formatListItem(`${currentIndex}. `, buildListItemContent(child));
+      });
     return items.join("\n") + (items.length > 0 ? "\n\n" : "");
   }
 
