@@ -599,6 +599,10 @@ function serializeBlockPasteNode(node: Node): string {
   if (tag === "HR") return "* * *\n\n";
   if (tag === "H1") return `# ${clean(inlineContent())}\n\n`;
   if (tag === "H2" || tag === "H3") return `## ${clean(inlineContent())}\n\n`;
+  if (tag === "PRE") {
+    const content = normalizeEditorText(inlineContent()).replace(/\s+$/g, "");
+    return content ? `${content}\n\n` : "";
+  }
 
   if (tag === "UL") {
     const items = Array.from(node.children)
@@ -625,7 +629,7 @@ function serializeBlockPasteNode(node: Node): string {
     );
   }
 
-  if (["P", "DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER", "PRE"].includes(tag)) {
+  if (["P", "DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER"].includes(tag)) {
     const content = clean(childBlocks());
     return content ? `${content}\n\n` : "";
   }
