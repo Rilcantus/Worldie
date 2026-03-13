@@ -175,7 +175,9 @@ export function useTabs({
     const next = loadProjectTabs(activeProjectId);
     if (next?.tabs?.length) {
       setTabs(next.tabs);
-      const nextActiveTabId = next.activeTabId ?? next.tabs[0].id;
+      const nextActiveTabId =
+        (next.activeTabId && next.tabs.some((tab) => tab.id === next.activeTabId) ? next.activeTabId : null) ??
+        next.tabs[0].id;
       setActiveTabId((current) => (current === nextActiveTabId ? current : nextActiveTabId));
     } else {
       setTabs((current) => (isWorkbenchOnlyTabState(current) ? current : [WORKBENCH_TAB]));
