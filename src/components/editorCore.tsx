@@ -392,6 +392,12 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
   const isBulletPrefix = prefix === "- ";
   const isQuotePrefix = prefix === "> ";
   const firstNoteLineIndex = isQuotePrefix ? lines.findIndex((line) => /^>\s*Note:\s*/i.test(line)) : -1;
+  let runningOffset = lineStart;
+  const lineStarts = lines.map((line) => {
+    const absoluteStart = runningOffset;
+    runningOffset += line.length + 1;
+    return absoluteStart;
+  });
   const everyLineHasPrefix = lines.every((line, index) =>
     isOrderedPrefix
       ? isOrderedListLine(line)
@@ -405,10 +411,7 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
   const updatedLines = lines
     .map((line, index) => {
       const normalized = stripKnownLinePrefix(line);
-      const absoluteLineStart =
-        lineStart +
-        lines.slice(0, index).reduce((total, currentLine) => total + currentLine.length + 1, 0);
-      const lineWithinNoteBlock = isQuotePrefix && isOffsetWithinNoteBlock(text, absoluteLineStart);
+      const lineWithinNoteBlock = isQuotePrefix && isOffsetWithinNoteBlock(text, lineStarts[index] ?? lineStart);
       if (everyLineHasPrefix) {
         if (isQuotePrefix && (lineWithinNoteBlock || (firstNoteLineIndex !== -1 && index >= firstNoteLineIndex))) {
           return normalized.length > 0 ? `> ${normalized}` : ">";

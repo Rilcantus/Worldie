@@ -138,6 +138,7 @@ test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {
 
   const preservedNoteContinuationQuote = toggleLinePrefix("> Note: Reminder\n> detail", { start: 18, end: 25 }, "> ");
   assert.equal(preservedNoteContinuationQuote.text, "> Note: Reminder\n> detail");
+  assert.deepEqual(preservedNoteContinuationQuote.selection, { start: 18, end: 25 });
 });
 
 test("toggleLinePrefix normalizes ordered list prefixes", () => {
