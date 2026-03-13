@@ -537,12 +537,21 @@ export function normalizePastedText(text: string) {
     .replace(/\u2022|\u25cf|\u25e6/g, "- ")
     .replace(/^[ \t]*[-*][ \t]+/gm, "- ")
     .replace(/^[ \t]*(\d+)[\.\)][ \t]+/gm, "$1. ")
+    .replace(/^[ \t]*\u00e2(?!\u201d\u201a)/gm, "__WORLDIE_PASTE_PROTECT_A__")
+    .replace(/^[ \t]*\u201d(?!\u201a)/gm, "__WORLDIE_PASTE_PROTECT_RDQUOTE__")
+    .replace(/^[ \t]*\u201a/gm, "__WORLDIE_PASTE_PROTECT_SQUOTE__")
     .replace(/^[ \t]*[>│|][ \t]?/gm, "> ")
     .replace(/^[ \t]*(?:---|___|\*\*\*)[ \t]*$/gm, "* * *")
     .replace(/\u00a0/g, " ")
     .replace(/^[ \t]*(?:>|\||\u2502|â”‚)[ \t]*/gm, "> ");
 
-  return normalized
+  const repaired = normalized
+    .replace(/^[ \t]*\u2503[ \t]*/gm, "> ")
+    .replace(/__WORLDIE_PASTE_PROTECT_A__/gm, "\u00e2")
+    .replace(/__WORLDIE_PASTE_PROTECT_RDQUOTE__/gm, "\u201d")
+    .replace(/__WORLDIE_PASTE_PROTECT_SQUOTE__/gm, "\u201a");
+
+  return repaired
     .split("\n")
     .map((line) => line.replace(/\s+$/g, ""))
     .join("\n")

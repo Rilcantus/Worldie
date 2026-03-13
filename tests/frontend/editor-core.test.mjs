@@ -151,6 +151,11 @@ test("normalizePastedText standardizes quote prefixes and list markers", () => {
   assert.equal(normalizePastedText("│ quoted\n| also quoted"), "> quoted\n> also quoted");
   assert.equal(normalizePastedText("  1) First\n  * Second"), "1. First\n- Second");
 });
+test("normalizePastedText avoids false quote matches and supports heavy bars", () => {
+  assert.equal(normalizePastedText("\u00e2lpha"), "\u00e2lpha");
+  assert.equal(normalizePastedText("\u2503 quoted"), "> quoted");
+});
+
 test("isBoldElement detects semantic and inline-style bold markup", () => {
   assert.equal(isBoldElement({ tagName: "STRONG" }), true);
   assert.equal(isBoldElement({ tagName: "SPAN", style: { fontWeight: "bold" } }), true);
