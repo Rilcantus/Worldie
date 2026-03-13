@@ -137,7 +137,6 @@ async function invokeProjectStore<T>(action: string, data?: Record<string, unkno
     })) as T;
   } catch (error) {
     const message = resolveProjectStoreErrorMessage(action, error);
-    reportProjectStoreError(message);
     throw new ProjectStoreError(message);
   }
 }
