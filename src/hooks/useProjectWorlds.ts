@@ -215,6 +215,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     }
   }, [setProjectActionStateIfChanged]);
 
+  const invalidateWorldHydration = useCallback(() => {
+    hydrateRequestId.current += 1;
+  }, []);
+
   const hydrateWorlds = useCallback(async (projectId: string) => {
     const requestId = ++hydrateRequestId.current;
     const storedWorlds = await listWorlds(projectId);
@@ -251,6 +255,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setEditingWorldId((current) => (current === null ? current : null));
     setWorldDraft((current) => (current === "" ? current : ""));
     if (!project) {
+      invalidateWorldHydration();
       setActiveProjectId((current) => (current === null ? current : null));
       setProjectTitle((current) => (current === "No Project Open" ? current : "No Project Open"));
       setProjectDraft((current) => (current === "" ? current : ""));
@@ -272,7 +277,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setProjectTitle((current) => (current === project.title ? current : project.title));
     setProjectDraft((current) => (current === project.title ? current : project.title));
     return true;
-  }, [hydrateWorlds, setWorldsIfChanged]);
+  }, [hydrateWorlds, invalidateWorldHydration, setWorldsIfChanged]);
 
   const syncLoreTypes = useCallback((loreTypes: LoreType[]) => {
     currentLoreTypesRef.current = loreTypes;
