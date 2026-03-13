@@ -356,8 +356,13 @@ function getSelectedLineBlockRange(text: string, selection: SelectionOffsets) {
   return { start, end };
 }
 
-function stripKnownLinePrefix(line: string) {
-  return line
+function getLineIndentation(line: string) {
+  return line.match(/^\s*/)?.[0] ?? "";
+}
+
+function stripKnownLinePrefixContent(line: string) {
+  const body = line.slice(getLineIndentation(line).length);
+  return body
     .replace(/^>\s*Note:\s*/i, "")
     .replace(/^\d+[\.\)]\s+/, "")
     .replace(/^##\s+/, "")
@@ -366,20 +371,27 @@ function stripKnownLinePrefix(line: string) {
     .replace(/^>\s?/, "");
 }
 
+function stripKnownLinePrefix(line: string) {
+  return `${getLineIndentation(line)}${stripKnownLinePrefixContent(line)}`;
+}
+
 function getCurrentLinePrefix(line: string) {
-  const noteMatch = line.match(/^>\s*Note:\s*/i);
-  if (noteMatch) return noteMatch[0];
+  const indentation = getLineIndentation(line);
+  const body = line.slice(indentation.length);
+  const noteMatch = body.match(/^>\s*Note:\s*/i);
+  if (noteMatch) return `${indentation}${noteMatch[0]}`;
 
-  const orderedMatch = line.match(/^\d+[\.\)]\s+/);
-  if (orderedMatch) return orderedMatch[0];
+  const orderedMatch = body.match(/^\d+[\.\)]\s+/);
+  if (orderedMatch) return `${indentation}${orderedMatch[0]}`;
 
-  const bulletMatch = line.match(/^(?:-|[*\u2022\u25cf\u25e6])\s+/);
-  if (bulletMatch) return bulletMatch[0];
+  const bulletMatch = body.match(/^(?:-|[*\u2022\u25cf\u25e6])\s+/);
+  if (bulletMatch) return `${indentation}${bulletMatch[0]}`;
 
-  const quoteMatch = line.match(/^>\s?/);
-  if (quoteMatch) return quoteMatch[0];
+  const quoteMatch = body.match(/^>\s?/);
+  if (quoteMatch) return `${indentation}${quoteMatch[0]}`;
 
-  return ["## ", "# "].find((prefix) => line.startsWith(prefix)) ?? "";
+  const headingPrefix = ["## ", "# "].find((prefix) => body.startsWith(prefix)) ?? "";
+  return headingPrefix ? `${indentation}${headingPrefix}` : "";
 }
 
 export function toggleLinePrefix(text: string, selection: SelectionOffsets, prefix: string) {
@@ -410,21 +422,22 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
 
   const updatedLines = lines
     .map((line, index) => {
-      const normalized = stripKnownLinePrefix(line);
+      const indentation = getLineIndentation(line);
+      const normalized = stripKnownLinePrefixContent(line);
       const lineWithinNoteBlock = isQuotePrefix && isOffsetWithinNoteBlock(text, lineStarts[index] ?? lineStart);
       if (everyLineHasPrefix) {
         if (isQuotePrefix && (lineWithinNoteBlock || (firstNoteLineIndex !== -1 && index >= firstNoteLineIndex))) {
-          return normalized.length > 0 ? `> ${normalized}` : ">";
+          return normalized.length > 0 ? `${indentation}> ${normalized}` : `${indentation}>`;
         }
-        if (isQuotePrefix && /^>\s*Note:\s*/i.test(line)) {
-          return normalized.length > 0 ? `> ${normalized}` : ">";
+        if (isQuotePrefix && /^>\s*Note:\s*/i.test(line.trimStart())) {
+          return normalized.length > 0 ? `${indentation}> ${normalized}` : `${indentation}>`;
         }
-        return normalized;
+        return `${indentation}${normalized}`;
       }
       if (isOrderedPrefix) {
-        return `${index + 1}. ${normalized}`;
+        return `${indentation}${index + 1}. ${normalized}`;
       }
-      return `${prefix}${normalized}`;
+      return `${indentation}${prefix}${normalized}`;
     });
   const updated = updatedLines.join("\n");
 
@@ -500,9 +513,9 @@ export function continueBlockPrefix(text: string, selection: SelectionOffsets) {
   const currentLine = text.slice(lineStart, lineEnd);
   const currentPrefix = getCurrentLinePrefix(currentLine);
 
-  const orderedMatch = currentLine.match(/^(\d+)([\.\)])\s+/);
+  const orderedMatch = currentLine.match(/^(\s*)(\d+)([\.\)])\s+/);
   const blockPrefix = orderedMatch
-    ? `${Number.parseInt(orderedMatch[1], 10) + 1}${orderedMatch[2]} `
+    ? `${orderedMatch[1]}${Number.parseInt(orderedMatch[2], 10) + 1}${orderedMatch[3]} `
     : /^>\s*Note:\s*/i.test(currentLine)
       ? "> "
       : isQuoteLine(currentLine)
@@ -551,8 +564,11 @@ export function clearCurrentLinePrefix(text: string, selection: SelectionOffsets
     };
   }
 
-  const normalized = currentLine.slice(currentPrefix.length);
-  const nextLine = isNotePrefix ? (normalized.length > 0 ? `> ${normalized}` : ">") : normalized;
+  const indentation = getLineIndentation(currentLine);
+  const normalized = stripKnownLinePrefixContent(currentLine);
+  const nextLine = isNotePrefix
+    ? (normalized.length > 0 ? `${indentation}> ${normalized}` : `${indentation}>`)
+    : `${indentation}${normalized}`;
   const nextText = replaceRange(text, lineStart, lineEnd, nextLine);
   const delta = nextLine.length - currentLine.length;
   const nextStart = Math.max(lineStart, selection.start + delta);

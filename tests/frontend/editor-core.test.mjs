@@ -139,6 +139,12 @@ test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {
   const preservedNoteContinuationQuote = toggleLinePrefix("> Note: Reminder\n> detail", { start: 18, end: 25 }, "> ");
   assert.equal(preservedNoteContinuationQuote.text, "> Note: Reminder\n> detail");
   assert.deepEqual(preservedNoteContinuationQuote.selection, { start: 18, end: 25 });
+
+  const indentedBullet = toggleLinePrefix("  Child", { start: 2, end: 7 }, "- ");
+  assert.equal(indentedBullet.text, "  - Child");
+
+  const removedIndentedBullet = toggleLinePrefix("  * Child", { start: 2, end: 9 }, "- ");
+  assert.equal(removedIndentedBullet.text, "  Child");
 });
 
 test("toggleLinePrefix normalizes ordered list prefixes", () => {
@@ -200,6 +206,10 @@ test("continueBlockPrefix advances lists and clears empty prefixes", () => {
   const alternateOrdered = continueBlockPrefix("3) Alpha", { start: 8, end: 8 });
   assert.equal(alternateOrdered.text, "3) Alpha\n4) ");
   assert.deepEqual(alternateOrdered.selection, { start: 12, end: 12 });
+
+  const indentedOrdered = continueBlockPrefix("  3) Alpha", { start: 10, end: 10 });
+  assert.equal(indentedOrdered.text, "  3) Alpha\n  4) ");
+  assert.deepEqual(indentedOrdered.selection, { start: 16, end: 16 });
 
   const alternateBullet = continueBlockPrefix("* Alpha", { start: 7, end: 7 });
   assert.equal(alternateBullet.text, "* Alpha\n* ");
@@ -274,6 +284,11 @@ test("clearCurrentLinePrefix removes active list prefixes and preserves selectio
   assert.equal(alternateOrdered?.text, "Alpha");
   assert.deepEqual(alternateOrdered?.selection, { start: 0, end: 5 });
   assert.equal(alternateOrdered?.prefix, "3) ");
+
+  const indentedOrdered = clearCurrentLinePrefix("  3) Alpha", { start: 5, end: 10 });
+  assert.equal(indentedOrdered?.text, "  Alpha");
+  assert.deepEqual(indentedOrdered?.selection, { start: 2, end: 7 });
+  assert.equal(indentedOrdered?.prefix, "  3) ");
 
   const downgradedNote = clearCurrentLinePrefix("> Note: Reminder", { start: 8, end: 16 });
   assert.equal(downgradedNote?.text, "> Reminder");
