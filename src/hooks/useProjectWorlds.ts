@@ -19,6 +19,7 @@ import {
 } from "../lib/data";
 import type { LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
+import { getProjectByFilepath, isMissingProjectFileError, removeItemWithFallback } from "./projectRecovery";
 
 const WORLD_COLORS = ["#9d7de8", "#4caf7d", "#c9a84c", "#7c5cbf"];
 
@@ -83,50 +84,6 @@ const areWorldsEqual = (left: WorldUI[], right: WorldUI[]) =>
       })
     );
   });
-
-const getProjectByFilepath = (projects: Project[], filepath: string) => {
-  for (const project of projects) {
-    if (project.filepath === filepath) {
-      return project;
-    }
-  }
-  return null;
-};
-
-const normalizeProjectPathText = (value: string) => value.split("\\").join("/").toLowerCase();
-
-const isMissingProjectFileError = (project: Project, error: unknown) => {
-  if (!(error instanceof Error) || !project.filepath) return false;
-  const message = error.message.trim();
-  if (!message) return false;
-  const normalizedMessage = normalizeProjectPathText(message);
-  const normalizedPath = normalizeProjectPathText(project.filepath);
-  const normalizedFilename = normalizeProjectPathText(getProjectFilename(project));
-  return (
-    normalizedMessage.includes(normalizedPath) ||
-    normalizedMessage.includes(normalizedFilename) ||
-    normalizedMessage.includes("project file not found")
-  );
-};
-
-function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
-  const next: T[] = [];
-  let removed = false;
-
-  for (const item of items) {
-    if (item.id === itemId) {
-      removed = true;
-      continue;
-    }
-    next.push(item);
-  }
-
-  return {
-    next,
-    first: next[0] ?? null,
-    removed,
-  };
-}
 
 type UseProjectWorldsArgs = {
   confirmAction: (
