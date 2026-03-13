@@ -160,6 +160,12 @@ export function useTabs({
   const worldIdsSet = useMemo(() => new Set(worldIds), [worldIds]);
   const documentsById = useMemo(() => new Map(documents.map((item) => [item.id, item])), [documents]);
   const lorePagesById = useMemo(() => new Map(allLorePages.map((item) => [item.id, item])), [allLorePages]);
+  const activeProjectIdRef = useRef(activeProjectId);
+  const activeWorldIdRef = useRef(activeWorldId);
+  const activeTabIdRef = useRef(activeTabId);
+  const documentsByIdRef = useRef(documentsById);
+  const lorePagesByIdRef = useRef(lorePagesById);
+  const tabsByIdRef = useRef(tabsById);
 
   const clearPendingTabRefs = useCallback((tabId?: string) => {
     if (!tabId || pendingTabOpenId.current === tabId) {
@@ -169,6 +175,30 @@ export function useTabs({
       pendingWorldScopedTabId.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    activeProjectIdRef.current = activeProjectId;
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    activeWorldIdRef.current = activeWorldId;
+  }, [activeWorldId]);
+
+  useEffect(() => {
+    activeTabIdRef.current = activeTabId;
+  }, [activeTabId]);
+
+  useEffect(() => {
+    documentsByIdRef.current = documentsById;
+  }, [documentsById]);
+
+  useEffect(() => {
+    lorePagesByIdRef.current = lorePagesById;
+  }, [lorePagesById]);
+
+  useEffect(() => {
+    tabsByIdRef.current = tabsById;
+  }, [tabsById]);
 
   useEffect(() => {
     if (!activeProjectId) {
@@ -381,19 +411,23 @@ export function useTabs({
   }, [activeTabId]);
 
   const openWorkbenchTab = useCallback(async (options?: NavigationOptions) => {
+    const actionProjectId = activeProjectId;
     if (activeTabId === WORKBENCH_TAB.id) return;
     if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+    if (activeProjectIdRef.current !== actionProjectId) return;
     openTab(WORKBENCH_TAB);
-  }, [activeTabId, canLeaveCurrentView, openTab]);
+  }, [activeProjectId, activeTabId, canLeaveCurrentView, openTab]);
 
   const openSpecialTab = useCallback(
     async (kind: "rels" | "timeline", worldId = activeWorldId, options?: NavigationOptions) => {
+      const actionProjectId = activeProjectId;
       const nextTabId = kind;
       const isAlreadyActive =
         activeTabId === nextTabId &&
         (!worldId || worldId === activeWorldId);
       if (isAlreadyActive) return;
       if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      if (activeProjectIdRef.current !== actionProjectId) return;
       openTab({
         id: kind,
         kind,
@@ -402,43 +436,52 @@ export function useTabs({
         worldId,
       });
     },
-    [activeTabId, activeWorldId, canLeaveCurrentView, openTab],
+    [activeProjectId, activeTabId, activeWorldId, canLeaveCurrentView, openTab],
   );
 
   const openTemplatesTab = useCallback(
     async (options?: NavigationOptions) => {
+      const actionProjectId = activeProjectId;
       if (activeTabId === "templates") return;
       if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      if (activeProjectIdRef.current !== actionProjectId) return;
       openTab({ id: "templates", kind: "templates", label: "Templates", icon: "S" });
     },
-    [activeTabId, canLeaveCurrentView, openTab],
+    [activeProjectId, activeTabId, canLeaveCurrentView, openTab],
   );
   const openLoreTypesTab = useCallback(
     async (options?: NavigationOptions) => {
+      const actionProjectId = activeProjectId;
       if (activeTabId === "loretypes") return;
       if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      if (activeProjectIdRef.current !== actionProjectId) return;
       openTab({ id: "loretypes", kind: "ltypes", label: "Lore Types", icon: "Y" });
     },
-    [activeTabId, canLeaveCurrentView, openTab],
+    [activeProjectId, activeTabId, canLeaveCurrentView, openTab],
   );
   const openLoreCreateTab = useCallback(
     async (options?: NavigationOptions) => {
+      const actionProjectId = activeProjectId;
       if (activeTabId === "lore:create") return;
       if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      if (activeProjectIdRef.current !== actionProjectId) return;
       openTab({ id: "lore:create", kind: "lcreate", label: "New Lore Item", icon: "+" });
     },
-    [activeTabId, canLeaveCurrentView, openTab],
+    [activeProjectId, activeTabId, canLeaveCurrentView, openTab],
   );
 
   const openNewTab = useCallback(
     async (options?: NavigationOptions) => {
+      const actionProjectId = activeProjectId;
       if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      if (activeProjectIdRef.current !== actionProjectId) return;
       openTab({ id: `new:${crypto.randomUUID()}`, kind: "new", label: "New Tab", icon: "+" });
     },
-    [canLeaveCurrentView, openTab],
+    [activeProjectId, canLeaveCurrentView, openTab],
   );
 
   const openDocumentTab = useCallback(async (doc: Document, options?: NavigationOptions) => {
+    const actionProjectId = activeProjectId;
     const nextTabId = `doc:${doc.id}`;
     const isAlreadyActive =
       activeTabId === nextTabId &&
@@ -446,18 +489,22 @@ export function useTabs({
       (!doc.worldId || doc.worldId === activeWorldId);
     if (isAlreadyActive) return;
     if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
-    onSelectDocument(doc);
+    if (activeProjectIdRef.current !== actionProjectId) return;
+    const currentDoc = documentsByIdRef.current.get(doc.id);
+    if (!currentDoc) return;
+    onSelectDocument(currentDoc);
     openTab({
       id: nextTabId,
       kind: "editor",
-      label: doc.title || "Untitled Document",
+      label: currentDoc.title || "Untitled Document",
       icon: "D",
-      refId: doc.id,
-      worldId: doc.worldId,
+      refId: currentDoc.id,
+      worldId: currentDoc.worldId,
     });
-  }, [activeDocumentId, activeTabId, activeWorldId, canLeaveCurrentView, onSelectDocument, openTab]);
+  }, [activeDocumentId, activeProjectId, activeTabId, activeWorldId, canLeaveCurrentView, onSelectDocument, openTab]);
 
   const openLoreTab = useCallback(async (page: LorePage, options?: NavigationOptions) => {
+    const actionProjectId = activeProjectId;
     const nextTabId = `lore:${page.id}`;
     const isAlreadyActive =
       activeTabId === nextTabId &&
@@ -465,18 +512,22 @@ export function useTabs({
       (!page.worldId || page.worldId === activeWorldId);
     if (isAlreadyActive) return;
     if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
-    onSelectLorePage(page, resolveLoreTypeId(page));
+    if (activeProjectIdRef.current !== actionProjectId) return;
+    const currentPage = lorePagesByIdRef.current.get(page.id);
+    if (!currentPage) return;
+    onSelectLorePage(currentPage, resolveLoreTypeId(currentPage));
     openTab({
       id: nextTabId,
       kind: "lore",
-      label: page.title || "Untitled Lore",
+      label: currentPage.title || "Untitled Lore",
       icon: "L",
-      refId: page.id,
-      worldId: page.worldId,
+      refId: currentPage.id,
+      worldId: currentPage.worldId,
     });
-  }, [activeLoreId, activeTabId, activeWorldId, canLeaveCurrentView, onSelectLorePage, openTab, resolveLoreTypeId]);
+  }, [activeLoreId, activeProjectId, activeTabId, activeWorldId, canLeaveCurrentView, onSelectLorePage, openTab, resolveLoreTypeId]);
 
   const handleTabSelect = useCallback(async (tab: TabItem) => {
+    const actionProjectId = activeProjectId;
     const isAlreadyActiveTab = tab.id === activeTabId;
     if (
       isAlreadyActiveTab &&
@@ -515,38 +566,40 @@ export function useTabs({
     }
 
     if (!(await canLeaveCurrentView())) return;
+    if (activeProjectIdRef.current !== actionProjectId) return;
+    const currentTab = tabsByIdRef.current.get(tab.id);
+    if (!currentTab) return;
 
-    setActiveTabId(tab.id);
-    if ((tab.kind === "rels" || tab.kind === "timeline") && tab.worldId && tab.worldId !== activeWorldId) {
-      pendingWorldScopedTabId.current = tab.id;
-      setActiveWorldId(tab.worldId);
+    setActiveTabId(currentTab.id);
+    if ((currentTab.kind === "rels" || currentTab.kind === "timeline") && currentTab.worldId && currentTab.worldId !== activeWorldIdRef.current) {
+      pendingWorldScopedTabId.current = currentTab.id;
+      setActiveWorldId(currentTab.worldId);
       return;
     }
-    if (tab.kind === "editor" && tab.refId) {
-      if (tab.worldId && tab.worldId !== activeWorldId) {
-        pendingTabOpenId.current = tab.id;
-        setActiveWorldId(tab.worldId);
+    if (currentTab.kind === "editor" && currentTab.refId) {
+      if (currentTab.worldId && currentTab.worldId !== activeWorldIdRef.current) {
+        pendingTabOpenId.current = currentTab.id;
+        setActiveWorldId(currentTab.worldId);
         return;
       }
-      const doc = documentsById.get(tab.refId);
+      const doc = documentsByIdRef.current.get(currentTab.refId);
       if (doc) onSelectDocument(doc);
     }
-    if (tab.kind === "lore" && tab.refId) {
-      if (tab.worldId && tab.worldId !== activeWorldId) {
-        pendingTabOpenId.current = tab.id;
-        setActiveWorldId(tab.worldId);
+    if (currentTab.kind === "lore" && currentTab.refId) {
+      if (currentTab.worldId && currentTab.worldId !== activeWorldIdRef.current) {
+        pendingTabOpenId.current = currentTab.id;
+        setActiveWorldId(currentTab.worldId);
         return;
       }
-      const page = lorePagesById.get(tab.refId);
+      const page = lorePagesByIdRef.current.get(currentTab.refId);
       if (page) onSelectLorePage(page, resolveLoreTypeId(page));
     }
   }, [
     activeDocumentId,
     activeLoreId,
+    activeProjectId,
     activeTabId,
     activeWorldId,
-    documentsById,
-    lorePagesById,
     onSelectDocument,
     onSelectLorePage,
     resolveLoreTypeId,
