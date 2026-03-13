@@ -9,6 +9,7 @@
   "include": [
     "src/hooks/projectRecovery.ts",
     "src/hooks/tabState.ts",
+    "src/hooks/workspaceTargets.ts",
     "src/types/ui.ts"
   ]
 }

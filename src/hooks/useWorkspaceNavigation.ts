@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react";
 import type { Document, LorePage } from "../lib/data";
+import {
+  getEditorTargetForWorld,
+  getFirstLorePageByWorld,
+  getFirstLorePageByWorldAndType,
+  getLoreCategoryTargetForWorld,
+  getLoreRootTargetForWorld,
+} from "./workspaceTargets";
 
 type UseWorkspaceNavigationArgs = {
   activeWorldId: string | null;
@@ -48,27 +55,11 @@ export function useWorkspaceNavigation({
   const activeLoreIdRef = useRef(activeLoreId);
   const documentsByIdRef = useRef(documentsById);
   const lorePagesByIdRef = useRef(lorePagesById);
-  const firstLorePageByWorld = useMemo(() => {
-    const map = new Map<string, LorePage>();
-    for (const page of allLorePages) {
-      if (!map.has(page.worldId)) {
-        map.set(page.worldId, page);
-      }
-    }
-    return map;
-  }, [allLorePages]);
-  const firstLorePageByWorldAndType = useMemo(() => {
-    const map = new Map<string, LorePage>();
-    for (const page of allLorePages) {
-      const loreTypeId = resolveLoreTypeId(page);
-      if (!loreTypeId) continue;
-      const key = `${page.worldId}:${loreTypeId}`;
-      if (!map.has(key)) {
-        map.set(key, page);
-      }
-    }
-    return map;
-  }, [allLorePages, resolveLoreTypeId]);
+  const firstLorePageByWorld = useMemo(() => getFirstLorePageByWorld(allLorePages), [allLorePages]);
+  const firstLorePageByWorldAndType = useMemo(
+    () => getFirstLorePageByWorldAndType(allLorePages, resolveLoreTypeId),
+    [allLorePages, resolveLoreTypeId],
+  );
 
   useEffect(() => {
     activeWorldIdRef.current = activeWorldId;
@@ -127,9 +118,7 @@ export function useWorkspaceNavigation({
       setActiveWorldId(worldId);
       return;
     }
-    const nextDoc =
-      (activeDocumentIdRef.current ? documentsByIdRef.current.get(activeDocumentIdRef.current) : undefined) ??
-      documents[0];
+    const nextDoc = getEditorTargetForWorld(worldId, activeDocumentIdRef.current, documents, documentsByIdRef.current);
     if (nextDoc) void openDocumentTab(nextDoc);
     else void openNewTab();
   }, [activeWorldId, canLeaveCurrentView, documents, openDocumentTab, openNewTab, setActiveWorldId]);
@@ -147,12 +136,12 @@ export function useWorkspaceNavigation({
     if (!(await canLeaveCurrentView())) return;
     if (activeWorldIdRef.current !== startingWorldId) return;
     setActiveLoreTypeId((current) => (current ? null : current));
-    const nextPage =
-      ((activeLoreIdRef.current ? lorePagesByIdRef.current.get(activeLoreIdRef.current) : null)?.worldId === worldId
-        ? lorePagesByIdRef.current.get(activeLoreIdRef.current!)
-        : null) ??
-      firstLorePageByWorld.get(worldId) ??
-      null;
+    const nextPage = getLoreRootTargetForWorld(
+      worldId,
+      activeLoreIdRef.current,
+      lorePagesByIdRef.current,
+      firstLorePageByWorld,
+    );
     if (nextPage) void openLoreTab(nextPage, { skipGuard: true });
     else void openLoreCreateTab({ skipGuard: true });
   }, [
@@ -178,7 +167,7 @@ export function useWorkspaceNavigation({
     if (!(await canLeaveCurrentView())) return;
     if (activeWorldIdRef.current !== startingWorldId) return;
     setActiveLoreTypeId((current) => (current === loreTypeId ? current : loreTypeId));
-    const nextPage = firstLorePageByWorldAndType.get(`${worldId}:${loreTypeId}`) ?? null;
+    const nextPage = getLoreCategoryTargetForWorld(worldId, loreTypeId, firstLorePageByWorldAndType);
     if (nextPage) void openLoreTab(nextPage, { skipGuard: true });
     else void openLoreCreateTab({ skipGuard: true });
   }, [
