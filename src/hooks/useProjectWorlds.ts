@@ -57,6 +57,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const hydrateRequestId = useRef(0);
   const currentLoreTypesRef = useRef(initialLoreTypes);
   const activeProjectIdRef = useRef<string | null>(null);
+  const activeWorldIdRef = useRef<string | null>(null);
   const worldsLengthRef = useRef(0);
   const projectActionRequestIdRef = useRef(0);
   const currentProjectRenameVersionRef = useRef(0);
@@ -87,6 +88,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   useEffect(() => {
     activeProjectIdRef.current = activeProjectId;
   }, [activeProjectId]);
+
+  useEffect(() => {
+    activeWorldIdRef.current = activeWorldId;
+  }, [activeWorldId]);
 
   useEffect(() => {
     currentScopeRef.current = {
@@ -334,6 +339,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const addWorld = useCallback(() => {
     if (!activeProjectId) return;
     const actionProjectId = activeProjectId;
+    const startedActiveWorldId = activeWorldId;
     const index = worlds.length + 1;
     const title = `New World ${index}`;
     const requestId = ++worldCreateRequestIdRef.current;
@@ -365,13 +371,14 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
           return (changed ? closed : prev).concat(nextWorld);
         });
         if (worldCreateRequestIdRef.current !== requestId) return;
+        if (activeWorldIdRef.current !== startedActiveWorldId) return;
         setActiveWorldId((current) => (current === created.id ? current : created.id));
       })
       .catch((error) => {
         if (currentScopeRef.current.projectId !== actionProjectId) return;
         void recoverActiveProjectError(error, "Worldie could not create a new world.");
       });
-  }, [activeProjectId, recoverActiveProjectError, worlds.length]);
+  }, [activeProjectId, activeWorldId, recoverActiveProjectError, worlds.length]);
 
   const addProject = useCallback(async () => {
     return runProjectAction("creating", "Creating project file...", async (requestId) => {
@@ -719,6 +726,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     if (!confirmDelete) return;
     if (!activeProjectId) return;
     const actionProjectId = activeProjectId;
+    const startedActiveWorldId = activeWorldId;
     try {
       await deleteWorld(actionProjectId, worldId);
     } catch (error) {
@@ -732,7 +740,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       setWorldDraft((current) => (current === "" ? current : ""));
     }
     setWorlds(nextWorlds);
-    if (activeWorldId === worldId) {
+    if (startedActiveWorldId === worldId && activeWorldIdRef.current === worldId) {
       setActiveWorldId((current) => {
         const nextActiveWorldId = nextWorld?.id ?? null;
         return current === nextActiveWorldId ? current : nextActiveWorldId;
