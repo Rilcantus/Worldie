@@ -34,6 +34,25 @@ type CreateLoreItemArgs = {
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
+function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
+  const next: T[] = [];
+  let removed = false;
+
+  for (const item of items) {
+    if (item.id === itemId) {
+      removed = true;
+      continue;
+    }
+    next.push(item);
+  }
+
+  return {
+    next,
+    first: next[0] ?? null,
+    removed,
+  };
+}
+
 function buildInitialLoreFields(loreTypeId: string | null, template: LoreTemplate | null) {
   return stringifyLoreItemFields({
     loreTypeId,
@@ -580,15 +599,14 @@ export function useContentManager({
       showToast(error instanceof Error ? error.message : "Worldie could not delete the document.");
       return false;
     }
-    const nextDocs = documents.filter((doc) => doc.id !== docId);
+    const { next: nextDocs, first: nextDocument } = removeItemWithFallback(documents, docId);
     setDocuments(nextDocs);
     if (activeDocumentId === docId) {
-      const next = nextDocs[0] ?? null;
-      setActiveDocumentId(next?.id ?? null);
-      setDocumentTitle(next?.title ?? "");
-      setDocumentContent(next?.contentJson ?? "");
-      setDocumentFolderPath(next?.folderPath ?? "");
-      if (next) {
+      setActiveDocumentId(nextDocument?.id ?? null);
+      setDocumentTitle(nextDocument?.title ?? "");
+      setDocumentContent(nextDocument?.contentJson ?? "");
+      setDocumentFolderPath(nextDocument?.folderPath ?? "");
+      if (nextDocument) {
         markDocumentSaved();
       } else {
         setDocumentSaveState("idle");
@@ -747,18 +765,17 @@ export function useContentManager({
       showToast(error instanceof Error ? error.message : "Worldie could not delete the lore item.");
       return false;
     }
-    const nextPages = lorePages.filter((page) => page.id !== loreId);
-    const nextAll = allLorePages.filter((page) => page.id !== loreId);
+    const { next: nextPages, first: nextPage } = removeItemWithFallback(lorePages, loreId);
+    const { next: nextAll } = removeItemWithFallback(allLorePages, loreId);
     setLorePages(nextPages);
     setAllLorePages(nextAll);
     if (activeLoreId === loreId) {
-      const next = nextPages[0] ?? null;
-      setActiveLoreId(next?.id ?? null);
-      setLoreTitle(next?.title ?? "");
-      setLoreTags(next?.tagsJson ?? "");
-      setLoreFields(next?.fieldsJson ?? "");
-      setLorePageTypeId(next ? resolveLoreTypeId(next) : defaultLoreTypeId);
-      if (next) {
+      setActiveLoreId(nextPage?.id ?? null);
+      setLoreTitle(nextPage?.title ?? "");
+      setLoreTags(nextPage?.tagsJson ?? "");
+      setLoreFields(nextPage?.fieldsJson ?? "");
+      setLorePageTypeId(nextPage ? resolveLoreTypeId(nextPage) : defaultLoreTypeId);
+      if (nextPage) {
         markLoreSaved();
       } else {
         setLoreSaveState("idle");
