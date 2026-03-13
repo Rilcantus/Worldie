@@ -703,6 +703,9 @@ export const EditorView = memo(function EditorView({
   };
 
   const handleEditorBlur = () => {
+    updateSelectionSnapshot(null);
+    clearSlashSession();
+
     if (isTypewriterMode) {
       const editor = editorRef.current;
       if (!editor) return;
