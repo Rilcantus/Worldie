@@ -211,6 +211,9 @@ test("getFormattingState reports inline and block formatting flags", () => {
   assert.equal(getFormattingState("__Under__", { start: 4, end: 4 }).underline, true);
   assert.equal(getFormattingState("> Note: Reminder", { start: 8, end: 8 }).noteBlock, true);
   assert.equal(getFormattingState("* * *", { start: 5, end: 5 }).sceneBreak, true);
+  assert.equal(getFormattingState("---", { start: 1, end: 1 }).sceneBreak, true);
+  assert.equal(getFormattingState("* Bullet", { start: 3, end: 3 }).list, true);
+  assert.equal(getFormattingState("3) Step", { start: 3, end: 3 }).orderedList, true);
 });
 
 test("normalizePastedText standardizes quote prefixes and list markers", () => {
@@ -788,6 +791,27 @@ test("renderPreviewContent accepts alternate typed list markers", () => {
       ],
     },
   );
+});
+
+test("renderPreviewContent accepts alternate scene break markers", () => {
+  const preview = renderPreviewContent("---\n___\n***", new Map(), () => {});
+  assert.deepEqual(preview.map((node) => summarizePreviewNode(node)), [
+    {
+      type: "div",
+      className: "editor-preview-scene-break",
+      children: [],
+    },
+    {
+      type: "div",
+      className: "editor-preview-scene-break",
+      children: [],
+    },
+    {
+      type: "div",
+      className: "editor-preview-scene-break",
+      children: [],
+    },
+  ]);
 });
 
 test("renderPreviewContent preserves multiline quote spacing and indentation", () => {

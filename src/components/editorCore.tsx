@@ -788,6 +788,18 @@ function getCurrentLine(text: string, selection: SelectionOffsets | null) {
   return text.slice(lineStart, lineEnd);
 }
 
+function isBulletListLine(line: string) {
+  return /^[-*\u2022\u25cf\u25e6]\s+/.test(line.trimStart());
+}
+
+function isOrderedListLine(line: string) {
+  return /^\d+[\.\)]\s+/.test(line.trimStart());
+}
+
+function isSceneBreakLine(line: string) {
+  return /^(\* \* \*|---|___|\*\*\*)$/.test(line.trim());
+}
+
 export function getFormattingState(text: string, selection: SelectionOffsets | null): EditorFormattingState {
   const line = getCurrentLine(text, selection);
   return {
@@ -798,11 +810,11 @@ export function getFormattingState(text: string, selection: SelectionOffsets | n
     underline: isMarkerActiveAcrossSelection(text, selection, "__"),
     heading1: line.startsWith("# "),
     heading2: line.startsWith("## "),
-    list: line.startsWith("- "),
-    orderedList: /^\d+\.\s+/.test(line),
+    list: isBulletListLine(line),
+    orderedList: isOrderedListLine(line),
     quote: line.startsWith("> "),
     noteBlock: /^>\s*Note:\s*/i.test(line),
-    sceneBreak: line.trim() === "* * *",
+    sceneBreak: isSceneBreakLine(line),
   };
 }
 
@@ -1264,7 +1276,7 @@ export function renderPreviewContent(
       return;
     }
 
-    if (line.trim() === "* * *") {
+    if (isSceneBreakLine(line)) {
       blocks.push(<div key={`break-${index}`} className="editor-preview-scene-break" />);
       return;
     }
