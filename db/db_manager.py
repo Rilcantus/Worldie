@@ -226,6 +226,10 @@ def _resolve_project_db_path(project_uuid, title, filepath):
     return os.path.abspath(resolved)
 
 
+def _normalize_filepath_for_match(filepath):
+    return os.path.normcase(os.path.abspath(filepath))
+
+
 def _get_project_filepath(project_uuid):
     conn = _registry_conn()
     c = conn.cursor()
@@ -238,11 +242,9 @@ def _get_project_filepath(project_uuid):
 def _get_project_by_filepath(filepath):
     conn = _registry_conn()
     c = conn.cursor()
-    c.execute(
-        "SELECT uuid, title, filepath, last_edited, created_at FROM projects WHERE filepath = ?",
-        (os.path.abspath(filepath),),
-    )
-    row = c.fetchone()
+    c.execute("SELECT uuid, title, filepath, last_edited, created_at FROM projects")
+    target = _normalize_filepath_for_match(filepath)
+    row = next((item for item in c.fetchall() if _normalize_filepath_for_match(item[2]) == target), None)
     conn.close()
     return row
 

@@ -290,6 +290,20 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(registry_projects[0][0], reopened_uuid)
         self.assertEqual(registry_projects[0][1], "ashen-sky")
 
+    def test_open_project_reuses_registry_entry_for_windows_case_variant_path(self):
+        if os.name != "nt":
+            self.skipTest("Windows path normalization behavior only applies on nt")
+
+        project_path = self.temp_path / "manual" / "mistvale.worldie"
+        created_uuid, _ = self.db_manager.add_project("Mistvale", str(project_path))
+
+        reopened_uuid, reopened_title, reopened_path = self.db_manager.open_project(str(project_path).upper())
+
+        self.assertEqual(reopened_uuid, created_uuid)
+        self.assertEqual(reopened_title, "Mistvale")
+        self.assertEqual(Path(reopened_path), project_path.resolve())
+        self.assertEqual(len(self.db_manager.get_all_projects()), 1)
+
     def test_sidecar_returns_structured_error_for_missing_project_file(self):
         missing_path = self.temp_path / "missing" / "does-not-exist.worldie"
         response = self.sidecar._handle_request(
