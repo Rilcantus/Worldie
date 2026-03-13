@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test:python": "python -m unittest discover -s tests -p \"test_*.py\"",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview",
-    "verify": "npm run typecheck && npm run build",
+    "verify": "npm run test:python && npm run typecheck && npm run build",
     "tauri": "tauri"
   },
   "dependencies": {

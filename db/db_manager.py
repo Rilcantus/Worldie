@@ -271,6 +271,15 @@ def _set_project_meta_title(db_path, title):
     conn.close()
 
 
+def _rebind_project_entities(db_path, project_uuid):
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    c.execute("UPDATE worlds SET project_id = ?", (project_uuid,))
+    conn.commit()
+    conn.close()
+
+
 def _touch_project(project_uuid):
     conn = _registry_conn()
     c = conn.cursor()
@@ -352,6 +361,7 @@ def open_project(filepath):
         )
     conn.commit()
     conn.close()
+    _rebind_project_entities(resolved_path, project_uuid)
     return project_uuid, title, resolved_path
 
 
