@@ -36,7 +36,11 @@ function removeTraitDefinitionWithOrder(traits: TraitDefinition[], traitId: stri
   return removed ? next : traits;
 }
 
-export function useLoreTemplates(activeProjectId: string | null, loreTypes: LoreType[]) {
+export function useLoreTemplates(
+  activeProjectId: string | null,
+  loreTypes: LoreType[],
+  recoverActiveProjectError: (error: unknown, fallbackMessage: string) => Promise<boolean>,
+) {
   const [templates, setTemplates] = useState<LoreTemplate[]>([]);
   const templatesById = useMemo(
     () => new Map(templates.map((template) => [template.id, template])),
@@ -74,17 +78,20 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
         setTemplates(loaded);
         setHasLoaded((current) => (current ? current : true));
       })
-      .catch(() => {
+      .catch(async (error) => {
         if (requestId !== loadRequestId.current) return;
         setTemplates((current) => (current.length === 0 ? current : []));
         setHasLoaded((current) => (current ? false : current));
+        await recoverActiveProjectError(error, "Worldie could not load lore templates for this project.");
       });
-  }, [activeProjectId, loreTypes]);
+  }, [activeProjectId, loreTypes, recoverActiveProjectError]);
 
   useEffect(() => {
     if (!activeProjectId || !hasLoaded) return;
-    void saveProjectLoreTemplates(activeProjectId, templates).catch(() => undefined);
-  }, [activeProjectId, hasLoaded, templates]);
+    void saveProjectLoreTemplates(activeProjectId, templates).catch(async (error) => {
+      await recoverActiveProjectError(error, "Worldie could not save lore templates for this project.");
+    });
+  }, [activeProjectId, hasLoaded, templates, recoverActiveProjectError]);
 
   useEffect(() => {
     if (selectedTemplateId && templatesById.has(selectedTemplateId)) {

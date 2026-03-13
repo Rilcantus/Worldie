@@ -25,8 +25,12 @@ export function useAppController() {
     showToast: feedback.showToast,
     initialLoreTypes: seededLoreTypes,
   });
-  const loreTypes = useLoreTypes(projectWorlds.activeProjectId);
-  const loreTemplates = useLoreTemplates(projectWorlds.activeProjectId, loreTypes.loreTypes);
+  const loreTypes = useLoreTypes(projectWorlds.activeProjectId, projectWorlds.recoverActiveProjectError);
+  const loreTemplates = useLoreTemplates(
+    projectWorlds.activeProjectId,
+    loreTypes.loreTypes,
+    projectWorlds.recoverActiveProjectError,
+  );
 
   const content = useContentManager({
     activeProjectId: projectWorlds.activeProjectId,

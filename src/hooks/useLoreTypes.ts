@@ -22,7 +22,10 @@ function removeLoreTypeWithOrder(types: LoreType[], loreTypeId: string) {
   return removed ? next : types;
 }
 
-export function useLoreTypes(activeProjectId: string | null) {
+export function useLoreTypes(
+  activeProjectId: string | null,
+  recoverActiveProjectError: (error: unknown, fallbackMessage: string) => Promise<boolean>,
+) {
   const [loreTypes, setLoreTypes] = useState<LoreType[]>([]);
   const sortedLoreTypes = useMemo(() => sortLoreTypes(loreTypes), [loreTypes]);
   const loreTypesById = useMemo(
@@ -48,17 +51,20 @@ export function useLoreTypes(activeProjectId: string | null) {
         setLoreTypes(loaded);
         setHasLoaded((current) => (current ? current : true));
       })
-      .catch(() => {
+      .catch(async (error) => {
         if (requestId !== loadRequestId.current) return;
         setLoreTypes((current) => (current.length === 0 ? current : []));
         setHasLoaded((current) => (current ? false : current));
+        await recoverActiveProjectError(error, "Worldie could not load lore types for this project.");
       });
-  }, [activeProjectId]);
+  }, [activeProjectId, recoverActiveProjectError]);
 
   useEffect(() => {
     if (!activeProjectId || !hasLoaded) return;
-    void saveProjectLoreTypes(activeProjectId, loreTypes).catch(() => undefined);
-  }, [activeProjectId, hasLoaded, loreTypes]);
+    void saveProjectLoreTypes(activeProjectId, loreTypes).catch(async (error) => {
+      await recoverActiveProjectError(error, "Worldie could not save lore types for this project.");
+    });
+  }, [activeProjectId, hasLoaded, loreTypes, recoverActiveProjectError]);
 
   useEffect(() => {
     if (selectedLoreTypeId && loreTypesById.has(selectedLoreTypeId)) return;
