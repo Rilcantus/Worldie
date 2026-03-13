@@ -102,6 +102,10 @@ export function useContentManager({
     projectId: activeProjectId,
     loreId: null,
   });
+  const currentDocumentSaveVersionRef = useRef(0);
+  const currentLoreSaveVersionRef = useRef(0);
+  const currentDocumentSaveRequestIdRef = useRef(0);
+  const currentLoreSaveRequestIdRef = useRef(0);
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsLoadedWorldId, setDocumentsLoadedWorldId] = useState<string | null>(null);
@@ -261,6 +265,7 @@ export function useContentManager({
       projectId: activeProjectId,
       documentId: activeDocumentId,
     };
+    currentDocumentSaveVersionRef.current += 1;
   }, [activeDocumentId, activeProjectId]);
 
   useEffect(() => {
@@ -268,7 +273,18 @@ export function useContentManager({
       projectId: activeProjectId,
       loreId: activeLoreId,
     };
+    currentLoreSaveVersionRef.current += 1;
   }, [activeLoreId, activeProjectId]);
+
+  useEffect(() => {
+    if (!activeDocumentId) return;
+    currentDocumentSaveVersionRef.current += 1;
+  }, [activeDocumentId, documentContent, documentFolderPath, documentTitle]);
+
+  useEffect(() => {
+    if (!activeLoreId) return;
+    currentLoreSaveVersionRef.current += 1;
+  }, [activeLoreId, loreFields, lorePageTypeId, loreTags, loreTitle]);
 
   useEffect(() => {
     if (!activeProjectId || allLorePages.length === 0 || orderedLoreTypes.length === 0) return;
@@ -370,6 +386,8 @@ export function useContentManager({
     );
     const handle = window.setTimeout(() => {
       if (!saveProjectId) return;
+      const saveVersion = currentDocumentSaveVersionRef.current;
+      const saveRequestId = ++currentDocumentSaveRequestIdRef.current;
       setDocumentSaveState("saving");
       void updateDocument(saveProjectId, saveDocumentId, {
         title: documentTitle,
@@ -378,11 +396,15 @@ export function useContentManager({
       })
         .then(() => {
           const currentTarget = currentDocumentSaveTargetRef.current;
+          if (currentDocumentSaveRequestIdRef.current !== saveRequestId) return;
+          if (currentDocumentSaveVersionRef.current !== saveVersion) return;
           if (currentTarget.projectId !== saveProjectId || currentTarget.documentId !== saveDocumentId) return;
           markDocumentSaved();
         })
         .catch((error) => {
           const currentTarget = currentDocumentSaveTargetRef.current;
+          if (currentDocumentSaveRequestIdRef.current !== saveRequestId) return;
+          if (currentDocumentSaveVersionRef.current !== saveVersion) return;
           if (currentTarget.projectId !== saveProjectId || currentTarget.documentId !== saveDocumentId) return;
           setDocumentSaveState("error");
           void recoverActiveProjectError(error, "Worldie could not save the current document.");
@@ -503,6 +525,8 @@ export function useContentManager({
         setLoreFields(nextFieldsJson);
       }
       if (!saveProjectId) return;
+      const saveVersion = currentLoreSaveVersionRef.current;
+      const saveRequestId = ++currentLoreSaveRequestIdRef.current;
       setLoreSaveState("saving");
       void updateLorePage(saveProjectId, saveLoreId, {
         title: loreTitle,
@@ -512,11 +536,15 @@ export function useContentManager({
       })
         .then(() => {
           const currentTarget = currentLoreSaveTargetRef.current;
+          if (currentLoreSaveRequestIdRef.current !== saveRequestId) return;
+          if (currentLoreSaveVersionRef.current !== saveVersion) return;
           if (currentTarget.projectId !== saveProjectId || currentTarget.loreId !== saveLoreId) return;
           markLoreSaved();
         })
         .catch((error) => {
           const currentTarget = currentLoreSaveTargetRef.current;
+          if (currentLoreSaveRequestIdRef.current !== saveRequestId) return;
+          if (currentLoreSaveVersionRef.current !== saveVersion) return;
           if (currentTarget.projectId !== saveProjectId || currentTarget.loreId !== saveLoreId) return;
           setLoreSaveState("error");
           void recoverActiveProjectError(error, "Worldie could not save the current lore item.");
@@ -588,6 +616,8 @@ export function useContentManager({
     if (!activeProjectId || !activeDocumentId) return;
     const saveProjectId = activeProjectId;
     const saveDocumentId = activeDocumentId;
+    const saveVersion = currentDocumentSaveVersionRef.current;
+    const saveRequestId = ++currentDocumentSaveRequestIdRef.current;
     try {
       setDocumentSaveState("saving");
       await updateDocument(saveProjectId, saveDocumentId, {
@@ -596,10 +626,14 @@ export function useContentManager({
         folderPath: documentFolderPath,
       });
       const currentTarget = currentDocumentSaveTargetRef.current;
+      if (currentDocumentSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentDocumentSaveVersionRef.current !== saveVersion) return;
       if (currentTarget.projectId !== saveProjectId || currentTarget.documentId !== saveDocumentId) return;
       markDocumentSaved();
     } catch (error) {
       const currentTarget = currentDocumentSaveTargetRef.current;
+      if (currentDocumentSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentDocumentSaveVersionRef.current !== saveVersion) return;
       if (currentTarget.projectId !== saveProjectId || currentTarget.documentId !== saveDocumentId) return;
       setDocumentSaveState("error");
       await recoverActiveProjectError(error, "Worldie could not save the document.");
@@ -824,6 +858,8 @@ export function useContentManager({
     if (!activeProjectId || !activeLoreId) return;
     const saveProjectId = activeProjectId;
     const saveLoreId = activeLoreId;
+    const saveVersion = currentLoreSaveVersionRef.current;
+    const saveRequestId = ++currentLoreSaveRequestIdRef.current;
     const nextType = selectedLorePageType;
     const parsedFields = parseLoreItemFields(loreFields);
     const nextFieldsJson = stringifyLoreItemFields({
@@ -839,10 +875,14 @@ export function useContentManager({
         fieldsJson: nextFieldsJson,
       });
       const currentTarget = currentLoreSaveTargetRef.current;
+      if (currentLoreSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentLoreSaveVersionRef.current !== saveVersion) return;
       if (currentTarget.projectId !== saveProjectId || currentTarget.loreId !== saveLoreId) return;
       markLoreSaved();
     } catch (error) {
       const currentTarget = currentLoreSaveTargetRef.current;
+      if (currentLoreSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentLoreSaveVersionRef.current !== saveVersion) return;
       if (currentTarget.projectId !== saveProjectId || currentTarget.loreId !== saveLoreId) return;
       setLoreSaveState("error");
       await recoverActiveProjectError(error, "Worldie could not save the lore item.");
