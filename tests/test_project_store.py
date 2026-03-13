@@ -303,6 +303,14 @@ class ProjectStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Choose a different project filepath for Save As."):
             self.db_manager.save_project_as(project_uuid, project_path)
 
+    def test_save_project_as_rejects_existing_destination_filepath(self):
+        project_uuid, _ = self.db_manager.add_project("Source Project", "")
+        existing_path = self.temp_path / "existing-copy.worldie"
+        self.db_manager.add_project("Existing Destination", str(existing_path))
+
+        with self.assertRaisesRegex(ValueError, "Choose a new filepath for Save As."):
+            self.db_manager.save_project_as(project_uuid, str(existing_path))
+
     def test_open_project_uses_filename_when_project_meta_is_untitled(self):
         manual_path = self.temp_path / "manual" / "ashen-sky.worldie"
         self.db_manager._init_project_db(str(manual_path))
@@ -348,6 +356,17 @@ class ProjectStoreTests(unittest.TestCase):
 
         self.assertEqual(response["status"], "error")
         self.assertEqual(response["message"], "Choose a different project filepath for Save As.")
+
+    def test_sidecar_returns_structured_error_for_existing_save_as_destination(self):
+        project_uuid, _ = self.db_manager.add_project("Source Copy", "")
+        existing_path = self.temp_path / "existing-sidecar-copy.worldie"
+        self.db_manager.add_project("Existing Copy", str(existing_path))
+        response = self.sidecar._handle_request(
+            {"action": "save_project_as", "data": {"projectId": project_uuid, "filepath": str(existing_path)}}
+        )
+
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], "Choose a new filepath for Save As.")
 
     def test_sidecar_main_returns_error_payload_when_request_read_fails(self):
         with patch.object(self.sidecar, "_read_request", side_effect=ValueError("bad request payload")):
