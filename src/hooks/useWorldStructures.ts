@@ -17,6 +17,7 @@ type UseWorldStructuresArgs = {
   activeProjectId: string | null;
   activeWorldId: string | null;
   allLorePages: LorePage[];
+  recoverActiveProjectError: (error: unknown, fallbackMessage: string) => Promise<boolean>;
   confirmAction: (
     message: string,
     options?: { confirmLabel?: string; tone?: "default" | "danger" },
@@ -53,6 +54,7 @@ export function useWorldStructures({
   activeProjectId,
   activeWorldId,
   allLorePages,
+  recoverActiveProjectError,
   confirmAction,
   showToast,
 }: UseWorldStructuresArgs) {
@@ -211,7 +213,7 @@ export function useWorldStructures({
       } catch (error) {
         if (requestId !== loadRequestId.current) return;
         resetRelationshipState("error");
-        showToast(error instanceof Error ? error.message : "Worldie could not load relationships for this world.");
+        await recoverActiveProjectError(error, "Worldie could not load relationships for this world.");
       }
     };
 
@@ -231,13 +233,13 @@ export function useWorldStructures({
       } catch (error) {
         if (requestId !== loadRequestId.current) return;
         resetTimelineState("error");
-        showToast(error instanceof Error ? error.message : "Worldie could not load timeline events for this world.");
+        await recoverActiveProjectError(error, "Worldie could not load timeline events for this world.");
       }
     };
 
     void loadRelationships();
     void loadTimeline();
-  }, [activeProjectId, activeWorldId]);
+  }, [activeProjectId, activeWorldId, recoverActiveProjectError]);
 
   const selectRelationship = useCallback(async (relationship: Relationship, options?: SelectionOptions) => {
     if (!options?.skipGuard && !(await canLeaveRelationshipDraft(relationship.id))) return;

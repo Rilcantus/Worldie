@@ -21,6 +21,7 @@ type UseContentManagerArgs = {
   activeWorldId: string | null;
   loreTypes: LoreType[];
   setWorlds: Dispatch<SetStateAction<WorldUI[]>>;
+  recoverActiveProjectError: (error: unknown, fallbackMessage: string) => Promise<boolean>;
   confirmAction: (
     message: string,
     options?: { confirmLabel?: string; tone?: "default" | "danger" },
@@ -75,6 +76,7 @@ export function useContentManager({
   activeWorldId,
   loreTypes,
   setWorlds,
+  recoverActiveProjectError,
   confirmAction,
   showToast,
 }: UseContentManagerArgs) {
@@ -336,11 +338,11 @@ export function useContentManager({
             world.id === activeWorldId ? { ...world, editorCount: 0 } : world,
           ),
         );
-        showToast(error instanceof Error ? error.message : "Worldie could not load documents for this world.");
+        await recoverActiveProjectError(error, "Worldie could not load documents for this world.");
       }
     };
     void loadDocs();
-  }, [activeProjectId, activeWorldId, setWorlds]);
+  }, [activeProjectId, activeWorldId, recoverActiveProjectError, setWorlds]);
 
   useEffect(() => {
     if (!activeDocumentId) return;
@@ -437,11 +439,11 @@ export function useContentManager({
               : world,
           ),
         );
-        showToast(error instanceof Error ? error.message : "Worldie could not load lore for this world.");
+        await recoverActiveProjectError(error, "Worldie could not load lore for this world.");
       }
     };
     void loadLore();
-  }, [activeProjectId, activeWorldId, activeLoreTypeId, defaultLoreTypeId, orderedLoreTypes, setWorlds]);
+  }, [activeProjectId, activeWorldId, activeLoreTypeId, defaultLoreTypeId, orderedLoreTypes, recoverActiveProjectError, setWorlds]);
 
   useEffect(() => {
     if (!activeLoreId) return;

@@ -751,6 +751,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       commitWorldTitle,
       removeProject,
       removeWorld,
+      recoverActiveProjectError,
       syncLoreTypes,
     }),
     [
@@ -782,6 +783,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       commitWorldTitle,
       removeProject,
       removeWorld,
+      recoverActiveProjectError,
       syncLoreTypes,
     ],
   );

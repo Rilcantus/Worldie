@@ -33,6 +33,7 @@ export function useAppController() {
     activeWorldId: projectWorlds.activeWorldId,
     loreTypes: loreTypes.loreTypes,
     setWorlds: projectWorlds.setWorlds,
+    recoverActiveProjectError: projectWorlds.recoverActiveProjectError,
     confirmAction: feedback.confirmAction,
     showToast: feedback.showToast,
   });
@@ -41,6 +42,7 @@ export function useAppController() {
     activeProjectId: projectWorlds.activeProjectId,
     activeWorldId: projectWorlds.activeWorldId,
     allLorePages: content.allLorePages,
+    recoverActiveProjectError: projectWorlds.recoverActiveProjectError,
     confirmAction: feedback.confirmAction,
     showToast: feedback.showToast,
   });
