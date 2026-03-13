@@ -352,6 +352,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setProjectsIfChanged(nextProjects);
     const shouldActivateFallback = options?.activateFallback || activeProjectIdRef.current === project.id;
     if (shouldActivateFallback) {
+      await applyActiveProject(null);
       const nextProject = nextProjects[0] ?? null;
       try {
         await applyActiveProject(nextProject);
