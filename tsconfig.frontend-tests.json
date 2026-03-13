@@ -12,6 +12,7 @@
     "src/lib/loreTemplates.ts",
     "src/lib/loreTypes.ts",
     "src/hooks/contentState.ts",
+    "src/hooks/contextPanelState.ts",
     "src/hooks/projectRecovery.ts",
     "src/hooks/projectWorldState.ts",
     "src/hooks/searchState.ts",
