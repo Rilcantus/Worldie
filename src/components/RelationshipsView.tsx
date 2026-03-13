@@ -37,9 +37,9 @@ type RelationshipsViewProps = {
   onOpenLore: (page: LorePage) => void;
 };
 
-const relationLabel = (relationship: Relationship, lorePages: LorePage[]) => {
-  const source = lorePages.find((page) => page.id === relationship.sourcePageId)?.title ?? "Unknown";
-  const target = lorePages.find((page) => page.id === relationship.targetPageId)?.title ?? "Unknown";
+const relationLabel = (relationship: Relationship, loreTitleById: Map<string, string>) => {
+  const source = loreTitleById.get(relationship.sourcePageId) ?? "Unknown";
+  const target = loreTitleById.get(relationship.targetPageId) ?? "Unknown";
   return `${source} -> ${target}`;
 };
 
@@ -100,6 +100,11 @@ export const RelationshipsView = memo(function RelationshipsView({
   const loreTitleById = useMemo(
     () => new Map(lorePages.map((page) => [page.id, page.title])),
     [lorePages],
+  );
+  const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
+  const relationshipsById = useMemo(
+    () => new Map(relationships.map((relationship) => [relationship.id, relationship])),
+    [relationships],
   );
 
   const filteredRelationships = useMemo(() => {
@@ -167,17 +172,17 @@ export const RelationshipsView = memo(function RelationshipsView({
 
   const focusedPage = useMemo(() => {
     if (relationshipPageFilter !== "all") {
-      return lorePages.find((page) => page.id === relationshipPageFilter) ?? null;
+      return lorePagesById.get(relationshipPageFilter) ?? null;
     }
     if (activeRelationshipId) {
       return (
-        lorePages.find((page) => page.id === relationshipSourceId) ??
-        lorePages.find((page) => page.id === relationshipTargetId) ??
+        lorePagesById.get(relationshipSourceId) ??
+        lorePagesById.get(relationshipTargetId) ??
         null
       );
     }
     return keyPages[0]?.page ?? null;
-  }, [activeRelationshipId, keyPages, lorePages, relationshipPageFilter, relationshipSourceId, relationshipTargetId]);
+  }, [activeRelationshipId, keyPages, lorePagesById, relationshipPageFilter, relationshipSourceId, relationshipTargetId]);
 
   const focusedConnections = useMemo(() => {
     if (!focusedPage) return [];
@@ -189,11 +194,11 @@ export const RelationshipsView = memo(function RelationshipsView({
       .map((relationship) => {
         const counterpartId =
           relationship.sourcePageId === focusedPage.id ? relationship.targetPageId : relationship.sourcePageId;
-        const counterpart = lorePages.find((page) => page.id === counterpartId) ?? null;
+        const counterpart = lorePagesById.get(counterpartId) ?? null;
         return { relationship, counterpart };
       })
       .sort((left, right) => left.relationship.relationType.localeCompare(right.relationship.relationType));
-  }, [filteredRelationships, focusedPage, lorePages]);
+  }, [filteredRelationships, focusedPage, lorePagesById]);
 
   const focusedConnectionCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -251,26 +256,26 @@ export const RelationshipsView = memo(function RelationshipsView({
       };
     });
   }, [graphPages, graphRelationships, graphScope]);
+  const networkNodesById = useMemo(() => new Map(networkNodes.map((node) => [node.id, node])), [networkNodes]);
 
   const networkEdges = useMemo(
     () =>
       graphRelationships
         .map((relationship) => {
-          const source = networkNodes.find((node) => node.id === relationship.sourcePageId);
-          const target = networkNodes.find((node) => node.id === relationship.targetPageId);
+          const source = networkNodesById.get(relationship.sourcePageId);
+          const target = networkNodesById.get(relationship.targetPageId);
           if (!source || !target) {
             return null;
           }
           return { relationship, source, target };
         })
         .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
-    [graphRelationships, networkNodes],
+    [graphRelationships, networkNodesById],
   );
 
-  const activeRelationship =
-    relationships.find((relationship) => relationship.id === activeRelationshipId) ?? null;
-  const activeSource = lorePages.find((page) => page.id === relationshipSourceId) ?? null;
-  const activeTarget = lorePages.find((page) => page.id === relationshipTargetId) ?? null;
+  const activeRelationship = (activeRelationshipId ? relationshipsById.get(activeRelationshipId) : null) ?? null;
+  const activeSource = lorePagesById.get(relationshipSourceId) ?? null;
+  const activeTarget = lorePagesById.get(relationshipTargetId) ?? null;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -380,7 +385,7 @@ export const RelationshipsView = memo(function RelationshipsView({
                       onClick={() => onSelectRelationship(relationship)}
                     >
                       <div className="doc-item-info">
-                        <div className="doc-item-title">{relationLabel(relationship, lorePages)}</div>
+                        <div className="doc-item-title">{relationLabel(relationship, loreTitleById)}</div>
                         <div className="doc-item-meta">{relationship.relationType}</div>
                       </div>
                     </button>
@@ -615,7 +620,7 @@ export const RelationshipsView = memo(function RelationshipsView({
                     }}
                     onClick={() => onSelectRelationship(relationship)}
                   >
-                    {relationship.relationType || relationLabel(relationship, lorePages)}
+                    {relationship.relationType || relationLabel(relationship, loreTitleById)}
                   </button>
                 ))}
                 {networkNodes.map((node) => (
