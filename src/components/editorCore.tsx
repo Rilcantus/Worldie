@@ -446,15 +446,15 @@ export function applyNoteBlockPrefix(text: string, selection: SelectionOffsets) 
   const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
   const segment = text.slice(lineStart, lineEnd);
   const lines = segment.split("\n");
-  if (isOffsetWithinNoteBlock(text, selection.start)) {
-    return {
-      text,
-      selection,
-    };
-  }
-  const everyLineAlreadyNote = lines.every((line, index) =>
-    index === 0 ? /^>\s*Note:\s*/i.test(line) : isQuoteLine(line),
-  );
+  let runningOffset = lineStart;
+  const lineStarts = lines.map((line) => {
+    const absoluteStart = runningOffset;
+    runningOffset += line.length + 1;
+    return absoluteStart;
+  });
+  const lineInExistingNote = lineStarts.map((absoluteStart) => isOffsetWithinNoteBlock(text, absoluteStart));
+  const selectionStartsInNote = lineInExistingNote[0] ?? false;
+  const everyLineAlreadyNote = lineInExistingNote.every(Boolean);
 
   if (everyLineAlreadyNote) {
     return {
@@ -464,8 +464,11 @@ export function applyNoteBlockPrefix(text: string, selection: SelectionOffsets) 
   }
 
   const updatedLines = lines.map((line, index) => {
+    if (lineInExistingNote[index]) {
+      return line;
+    }
     const normalized = stripKnownLinePrefix(line);
-    const nextPrefix = index === 0 ? "> Note: " : "> ";
+    const nextPrefix = selectionStartsInNote || index > 0 ? "> " : "> Note: ";
     return normalized.length > 0 ? `${nextPrefix}${normalized}` : nextPrefix.trimEnd();
   });
   const updated = updatedLines.join("\n");
