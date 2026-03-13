@@ -84,8 +84,14 @@ const areWorldsEqual = (left: WorldUI[], right: WorldUI[]) =>
     );
   });
 
-const getProjectByFilepath = (projects: Project[], filepath: string) =>
-  projects.find((project) => project.filepath === filepath) ?? projects[0];
+const getProjectByFilepath = (projects: Project[], filepath: string) => {
+  for (const project of projects) {
+    if (project.filepath === filepath) {
+      return project;
+    }
+  }
+  return projects[0];
+};
 
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
   const next: T[] = [];
