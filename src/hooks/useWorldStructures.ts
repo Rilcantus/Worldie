@@ -354,7 +354,7 @@ export function useWorldStructures({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return created;
+      return null;
     }
     setRelationships((prev) => [created, ...prev]);
     void selectRelationship(created, { skipGuard: true });
@@ -428,7 +428,7 @@ export function useWorldStructures({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return true;
+      return false;
     }
     const { next, first } = removeItemWithFallback(relationships, relationshipId);
     setRelationships(next);
@@ -511,7 +511,7 @@ export function useWorldStructures({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return created;
+      return null;
     }
     setTimelineEvents((prev) => [created, ...prev]);
     void selectTimelineEvent(created, { skipGuard: true });
@@ -595,7 +595,7 @@ export function useWorldStructures({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return true;
+      return false;
     }
     const { next, first } = removeItemWithFallback(timelineEvents, eventId);
     setTimelineEvents(next);

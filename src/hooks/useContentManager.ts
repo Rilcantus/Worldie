@@ -594,7 +594,7 @@ export function useContentManager({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return created;
+      return null;
     }
     const nextDocs = [created, ...documents];
     setDocuments(nextDocs);
@@ -654,7 +654,7 @@ export function useContentManager({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return created;
+      return null;
     }
     const duplicated = {
       ...created,
@@ -694,7 +694,7 @@ export function useContentManager({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return true;
+      return false;
     }
     const { next: nextDocs, first: nextDocument } = removeItemWithFallback(documents, docId);
     setDocuments(nextDocs);
@@ -814,7 +814,7 @@ export function useContentManager({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return created;
+      return null;
     }
     const createdItem = {
       ...created,
@@ -893,7 +893,7 @@ export function useContentManager({
       currentScopeRef.current.projectId !== actionProjectId ||
       currentScopeRef.current.worldId !== actionWorldId
     ) {
-      return true;
+      return false;
     }
     const { next: nextPages, first: nextPage } = removeItemWithFallback(lorePages, loreId);
     const { next: nextAll } = removeItemWithFallback(allLorePages, loreId);
