@@ -826,6 +826,7 @@ function isSceneBreakLine(line: string) {
 
 export function getFormattingState(text: string, selection: SelectionOffsets | null): EditorFormattingState {
   const line = getCurrentLine(text, selection);
+  const noteBlock = /^>\s*Note:\s*/i.test(line);
   return {
     bold: isMarkerActiveAcrossSelection(text, selection, "**"),
     italic:
@@ -836,8 +837,8 @@ export function getFormattingState(text: string, selection: SelectionOffsets | n
     heading2: line.startsWith("## "),
     list: isBulletListLine(line),
     orderedList: isOrderedListLine(line),
-    quote: isQuoteLine(line),
-    noteBlock: /^>\s*Note:\s*/i.test(line),
+    quote: isQuoteLine(line) && !noteBlock,
+    noteBlock,
     sceneBreak: isSceneBreakLine(line),
   };
 }
