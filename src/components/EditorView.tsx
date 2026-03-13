@@ -535,11 +535,12 @@ export const EditorView = memo(function EditorView({
     });
   };
 
-  const commitTypewriterDraft = () => {
+  const commitTypewriterDraft = (options?: { restoreFocus?: boolean }) => {
     if (!isTypewriterMode) return;
 
     const editor = editorRef.current;
     if (!editor) return;
+    const shouldRestoreFocus = options?.restoreFocus ?? true;
 
     const currentDraft = trimTypewriterCommit(serializeEditorDom(editor));
     clearSlashSession();
@@ -549,10 +550,12 @@ export const EditorView = memo(function EditorView({
       pendingSelectionRef.current = { start: 0, end: 0 };
       updateSelectionSnapshot({ start: 0, end: 0 });
       editor.innerHTML = "";
-      window.requestAnimationFrame(() => {
-        editor.focus();
-        setSelectionOffsets(editor, 0, 0);
-      });
+      if (shouldRestoreFocus) {
+        window.requestAnimationFrame(() => {
+          editor.focus();
+          setSelectionOffsets(editor, 0, 0);
+        });
+      }
       return;
     }
 
@@ -561,10 +564,12 @@ export const EditorView = memo(function EditorView({
     pendingSelectionRef.current = { start: 0, end: 0 };
     updateSelectionSnapshot({ start: 0, end: 0 });
     editor.innerHTML = "";
-    window.requestAnimationFrame(() => {
-      editor.focus();
-      setSelectionOffsets(editor, 0, 0);
-    });
+    if (shouldRestoreFocus) {
+      window.requestAnimationFrame(() => {
+        editor.focus();
+        setSelectionOffsets(editor, 0, 0);
+      });
+    }
   };
 
   const applySlashCommand = (commandId: string) => {
@@ -640,7 +645,7 @@ export const EditorView = memo(function EditorView({
       if (!editor) return;
       const currentDraft = trimTypewriterCommit(serializeEditorDom(editor));
       if (currentDraft) {
-        commitTypewriterDraft();
+        commitTypewriterDraft({ restoreFocus: false });
       }
       return;
     }
