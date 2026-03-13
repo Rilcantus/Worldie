@@ -276,6 +276,12 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(len(copied_templates), 1)
         self.assertEqual(copied_templates[0][1], "Guild")
 
+    def test_save_project_as_rejects_same_filepath(self):
+        project_uuid, project_path = self.db_manager.add_project("Same Path", "")
+
+        with self.assertRaisesRegex(ValueError, "Choose a different project filepath for Save As."):
+            self.db_manager.save_project_as(project_uuid, project_path)
+
     def test_open_project_uses_filename_when_project_meta_is_untitled(self):
         manual_path = self.temp_path / "manual" / "ashen-sky.worldie"
         self.db_manager._init_project_db(str(manual_path))
@@ -312,6 +318,15 @@ class ProjectStoreTests(unittest.TestCase):
 
         self.assertEqual(response["status"], "error")
         self.assertIn("does-not-exist.worldie", response["message"])
+
+    def test_sidecar_returns_structured_error_for_same_path_save_as(self):
+        project_uuid, project_path = self.db_manager.add_project("Duplicate Path", "")
+        response = self.sidecar._handle_request(
+            {"action": "save_project_as", "data": {"projectId": project_uuid, "filepath": project_path}}
+        )
+
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], "Choose a different project filepath for Save As.")
 
     def test_sidecar_main_returns_error_payload_when_request_read_fails(self):
         with patch.object(self.sidecar, "_read_request", side_effect=ValueError("bad request payload")):

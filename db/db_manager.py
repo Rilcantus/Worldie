@@ -377,6 +377,8 @@ def save_project_as(project_uuid, filepath):
 
     title = _get_project_meta_title(source_path) or "Untitled Project"
     resolved_path = os.path.abspath(filepath)
+    if _normalize_filepath_for_match(source_path) == _normalize_filepath_for_match(resolved_path):
+        raise ValueError("Choose a different project filepath for Save As.")
     _ensure_parent_dir(resolved_path)
     shutil.copy2(source_path, resolved_path)
     _init_project_db(resolved_path)
