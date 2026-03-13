@@ -152,6 +152,7 @@ type MainContentProps = {
   onSelectSearchResult: (result: SearchResult) => void;
   onStartDocListResize: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onStartRightPanelResize: (event: ReactMouseEvent<HTMLDivElement>) => void;
+  onPendingEditorDraftChange: (hasPendingDraft: boolean) => void;
 };
 
 export const MainContent = memo(function MainContent(props: MainContentProps) {
@@ -264,6 +265,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onTitleChange={props.onDocumentTitleChange}
               onContentChange={props.onDocumentContentChange}
               onFolderPathChange={props.onDocumentFolderPathChange}
+              onPendingDraftChange={props.onPendingEditorDraftChange}
             />
           ) : null}
 

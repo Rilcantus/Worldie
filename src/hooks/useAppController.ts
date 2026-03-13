@@ -16,7 +16,11 @@ import { useWorldStructures } from "./useWorldStructures";
 import { getSeededLoreTypes } from "../lib/loreTypes";
 import { setProjectStoreErrorHandler } from "../lib/data";
 
-export function useAppController() {
+type UseAppControllerArgs = {
+  hasPendingEditorDraft?: boolean;
+};
+
+export function useAppController({ hasPendingEditorDraft = false }: UseAppControllerArgs = {}) {
   const feedback = useAppFeedback();
   const panelLayout = usePanelLayout();
   const seededLoreTypes = useMemo(() => getSeededLoreTypes(), []);
@@ -64,7 +68,8 @@ export function useAppController() {
     [content.selectLorePage, content.setActiveLoreTypeId],
   );
 
-  const hasUnsavedProjectChanges = content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+  const hasUnsavedProjectChanges =
+    hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
   const activeProjectIdRef = useRef(projectWorlds.activeProjectId);
 
   useEffect(() => {
@@ -221,7 +226,9 @@ export function useAppController() {
     loreTitle: content.loreTitle,
     saveState:
       tabs.activeNav === "editor"
-        ? content.documentSaveState
+        ? hasPendingEditorDraft && content.documentSaveState !== "saving"
+          ? "dirty"
+          : content.documentSaveState
         : tabs.activeNav === "lore"
           ? content.loreSaveState
           : tabs.activeNav === "rels"

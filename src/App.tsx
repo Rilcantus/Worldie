@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityBar } from "./components/ActivityBar";
 import { Sidebar } from "./components/Sidebar";
 import { MainContent } from "./components/MainContent";
@@ -9,6 +9,7 @@ import { useAppController } from "./hooks/useAppController";
 
 export default function App() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [hasPendingEditorDraft, setHasPendingEditorDraft] = useState(false);
 
   const {
     feedback,
@@ -26,7 +27,7 @@ export default function App() {
     sidebarActions,
     mainContentActions,
     statusBarModel,
-  } = useAppController();
+  } = useAppController({ hasPendingEditorDraft });
 
   const loreItemsInUse = useMemo(
     () => {
@@ -93,7 +94,8 @@ export default function App() {
     ({ title, loreTypeId, templateId, tags }: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => {
       const template = templateId ? loreTemplatesById.get(templateId) ?? null : null;
       void (async () => {
-        const hasUnsavedChanges = content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+        const hasUnsavedChanges =
+          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
         if (hasUnsavedChanges) {
           const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
             confirmLabel: "Continue",
@@ -107,7 +109,15 @@ export default function App() {
         }
       })();
     },
-    [content.createLoreItem, content.hasUnsavedChanges, feedback.confirmAction, loreTemplatesById, tabs.openLoreTab, worldStructures.hasUnsavedChanges],
+    [
+      content.createLoreItem,
+      content.hasUnsavedChanges,
+      feedback.confirmAction,
+      hasPendingEditorDraft,
+      loreTemplatesById,
+      tabs.openLoreTab,
+      worldStructures.hasUnsavedChanges,
+    ],
   );
 
   const handleCreateTemplate = useCallback(() => {
@@ -360,6 +370,7 @@ export default function App() {
           onSelectSearchResult={search.selectSearchResult}
           onStartDocListResize={handleStartDocListResize}
           onStartRightPanelResize={handleStartRightPanelResize}
+          onPendingEditorDraftChange={setHasPendingEditorDraft}
         />
         ) : (
           <div className="main-content">

@@ -79,6 +79,7 @@ type EditorViewProps = {
   onTitleChange: (value: string) => void;
   onContentChange: (value: string) => void;
   onFolderPathChange: (value: string) => void;
+  onPendingDraftChange: (hasPendingDraft: boolean) => void;
 };
 
 type EditorWidth = "narrow" | "standard" | "wide";
@@ -121,6 +122,7 @@ export const EditorView = memo(function EditorView({
   onTitleChange,
   onContentChange,
   onFolderPathChange,
+  onPendingDraftChange,
 }: EditorViewProps) {
   const areSelectionsEqual = (left: SelectionOffsets | null, right: SelectionOffsets | null) =>
     left?.start === right?.start && left?.end === right?.end;
@@ -154,6 +156,7 @@ export const EditorView = memo(function EditorView({
   const [editorMode, setEditorMode] = useState<EditorPresentationMode>("standard");
   const [typewriterDraft, setTypewriterDraft] = useState("");
   const isTypewriterMode = editorMode === "typewriter";
+  const hasPendingTypewriterDraft = isTypewriterMode && trimTypewriterCommit(typewriterDraft).length > 0;
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
   const editorDisplay = useMemo(() => buildEditorDisplayRepresentation(activeEditorText), [activeEditorText]);
   const availableLorePagesById = useMemo(
@@ -233,6 +236,16 @@ export const EditorView = memo(function EditorView({
       clearSlashSession();
     }
   }, [activeDocumentId]);
+
+  useEffect(() => {
+    onPendingDraftChange(hasPendingTypewriterDraft);
+  }, [hasPendingTypewriterDraft, onPendingDraftChange]);
+
+  useEffect(() => {
+    return () => {
+      onPendingDraftChange(false);
+    };
+  }, [onPendingDraftChange]);
 
   useEffect(() => {
     if (selectionSnapshot !== null) {
@@ -1218,7 +1231,7 @@ export const EditorView = memo(function EditorView({
           ) : null}
           <EditorToolbar
             editorFormattingState={editorFormattingState}
-            saveState={documentSaveState}
+            saveState={hasPendingTypewriterDraft && documentSaveState !== "saving" ? "dirty" : documentSaveState}
             saveTimestamp={documentSaveTimestamp}
             onSave={requestDocumentSave}
             onApplyHistoryCommand={applyEditorCommand}
