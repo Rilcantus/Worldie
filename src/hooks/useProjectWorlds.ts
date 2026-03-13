@@ -321,6 +321,61 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     });
   }, []);
 
+  const recoverMissingProject = useCallback(async (
+    project: Project,
+    error: unknown,
+    options?: { activateFallback?: boolean },
+  ) => {
+    const message = error instanceof Error ? error.message : "Worldie could not load that project file.";
+    if (!isMissingProjectFileError(project, error)) {
+      showToast(message);
+      return false;
+    }
+
+    const confirmRemove = await confirmAction(
+      `${getProjectFilename(project)} is missing. Remove it from recent projects?`,
+      { confirmLabel: "Remove", tone: "danger" },
+    );
+    if (!confirmRemove) {
+      showToast(message);
+      return false;
+    }
+
+    let nextProjects: Project[] = [];
+    try {
+      nextProjects = await deleteProject(project.id);
+    } catch (deleteError) {
+      showToast(deleteError instanceof Error ? deleteError.message : "Worldie could not remove the missing project.");
+      return false;
+    }
+
+    setProjectsIfChanged(nextProjects);
+    const shouldActivateFallback = options?.activateFallback || activeProjectIdRef.current === project.id;
+    if (shouldActivateFallback) {
+      const nextProject = nextProjects[0] ?? null;
+      try {
+        await applyActiveProject(nextProject);
+      } catch (applyError) {
+        if (nextProject) {
+          return recoverMissingProject(nextProject, applyError, { activateFallback: true });
+        }
+        showToast(applyError instanceof Error ? applyError.message : "Worldie could not load the next available project.");
+        return false;
+      }
+    }
+
+    showToast(`${getProjectFilename(project)} was removed from recent projects.`);
+    return shouldActivateFallback;
+  }, [applyActiveProject, confirmAction, setProjectsIfChanged, showToast]);
+
+  const recoverActiveProjectError = useCallback(async (error: unknown, fallbackMessage: string) => {
+    if (activeProject) {
+      return recoverMissingProject(activeProject, error, { activateFallback: true });
+    }
+    showToast(error instanceof Error ? error.message : fallbackMessage);
+    return false;
+  }, [activeProject, recoverMissingProject, showToast]);
+
   const addWorld = useCallback(() => {
     if (!activeProjectId) return;
     const index = worlds.length + 1;
@@ -349,9 +404,9 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         setActiveWorldId((current) => (current === newWorld.id ? current : newWorld.id));
       })
       .catch((error) => {
-        showToast(error instanceof Error ? error.message : "Worldie could not create a new world.");
+        void recoverActiveProjectError(error, "Worldie could not create a new world.");
       });
-  }, [activeProjectId, showToast, worlds.length]);
+  }, [activeProjectId, recoverActiveProjectError, worlds.length]);
 
   const addProject = useCallback(async () => {
     return runProjectAction("creating", "Creating project file...", async () => {
@@ -408,53 +463,6 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return true;
     });
   }, [applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
-
-  const recoverMissingProject = useCallback(async (
-    project: Project,
-    error: unknown,
-    options?: { activateFallback?: boolean },
-  ) => {
-    const message = error instanceof Error ? error.message : "Worldie could not load that project file.";
-    if (!isMissingProjectFileError(project, error)) {
-      showToast(message);
-      return false;
-    }
-
-    const confirmRemove = await confirmAction(
-      `${getProjectFilename(project)} is missing. Remove it from recent projects?`,
-      { confirmLabel: "Remove", tone: "danger" },
-    );
-    if (!confirmRemove) {
-      showToast(message);
-      return false;
-    }
-
-    let nextProjects: Project[] = [];
-    try {
-      nextProjects = await deleteProject(project.id);
-    } catch (deleteError) {
-      showToast(deleteError instanceof Error ? deleteError.message : "Worldie could not remove the missing project.");
-      return false;
-    }
-
-    setProjectsIfChanged(nextProjects);
-    const shouldActivateFallback = options?.activateFallback || activeProjectIdRef.current === project.id;
-    if (shouldActivateFallback) {
-      const nextProject = nextProjects[0] ?? null;
-      try {
-        await applyActiveProject(nextProject);
-      } catch (applyError) {
-        if (nextProject) {
-          return recoverMissingProject(nextProject, applyError, { activateFallback: true });
-        }
-        showToast(applyError instanceof Error ? applyError.message : "Worldie could not load the next available project.");
-        return false;
-      }
-    }
-
-    showToast(`${getProjectFilename(project)} was removed from recent projects.`);
-    return shouldActivateFallback;
-  }, [applyActiveProject, confirmAction, setProjectsIfChanged, showToast]);
 
   useEffect(() => {
     const load = async () => {
@@ -573,8 +581,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         nextProjects = result.projects;
         savedProject = result.project;
       } catch (error) {
-        showToast(error instanceof Error ? error.message : "Worldie could not save a copy of this project.");
-        return false;
+        return recoverActiveProjectError(error, "Worldie could not save a copy of this project.");
       }
       setProjectsIfChanged(nextProjects);
       savedProject ??= getProjectByFilepath(nextProjects, filepath);
@@ -590,7 +597,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       }
       return true;
     });
-  }, [activeProject, activeProjectId, applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
+  }, [activeProject, activeProjectId, applyActiveProject, recoverActiveProjectError, runProjectAction, setProjectsIfChanged, showToast]);
 
   const switchProject = useCallback(async (projectId: string) => {
     return runProjectAction("switching", "Switching project...", async () => {
@@ -619,13 +626,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     try {
       nextProjects = await updateProjectTitle(activeProjectId, nextTitle);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not rename the project.");
+      await recoverActiveProjectError(error, "Worldie could not rename the project.");
       return;
     }
     setProjectsIfChanged(nextProjects);
     setProjectTitle((current) => (current === nextTitle ? current : nextTitle));
     setIsEditingProject((current) => (current ? false : current));
-  }, [activeProjectId, projectDraft, projectTitle, setProjectsIfChanged, showToast]);
+  }, [activeProjectId, projectDraft, projectTitle, recoverActiveProjectError, setProjectsIfChanged]);
 
   const startWorldEdit = useCallback((world: WorldUI) => {
     setEditingWorldId((current) => (current === world.id ? current : world.id));
@@ -649,7 +656,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     try {
       await updateWorldTitle(activeProjectId, editingWorldId, nextTitle);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not rename the world.");
+      await recoverActiveProjectError(error, "Worldie could not rename the world.");
       return;
     }
     setWorlds((prev) =>
@@ -658,7 +665,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       ),
     );
     setEditingWorldId((current) => (current === null ? current : null));
-  }, [activeProjectId, editingWorldId, showToast, worldDraft, worldsById]);
+  }, [activeProjectId, editingWorldId, recoverActiveProjectError, worldDraft, worldsById]);
 
   const removeProject = useCallback(async () => {
     if (!activeProjectId) return false;
@@ -696,7 +703,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     try {
       await deleteWorld(activeProjectId, worldId);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not delete the world.");
+      await recoverActiveProjectError(error, "Worldie could not delete the world.");
       return;
     }
     const { next: nextWorlds, first: nextWorld } = removeItemWithFallback(worlds, worldId);
@@ -711,7 +718,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return current === nextActiveWorldId ? current : nextActiveWorldId;
       });
     }
-  }, [activeProjectId, activeWorldId, confirmAction, editingWorldId, showToast, worlds]);
+  }, [activeProjectId, activeWorldId, confirmAction, editingWorldId, recoverActiveProjectError, worlds]);
 
   return useMemo(
     () => ({
