@@ -26,7 +26,6 @@ import {
   countCharacters,
   countWords,
   displaySelectionToSource,
-  extractEditorTextFromHtml,
   findActiveInlinePairExit,
   findEmptyInlinePairAtCursor,
   findInlinePairAutoInsert,
@@ -35,10 +34,10 @@ import {
   getSelectionText,
   getSlashCommandMatch,
   normalizeEditorText,
-  normalizePastedText,
   moveSelectedLineBlock,
   renderPreviewContent,
   replaceRange,
+  resolvePastedEditorText,
   serializeEditorDom,
   setSelectionOffsets,
   sourceSelectionToDisplay,
@@ -751,16 +750,17 @@ export const EditorView = memo(function EditorView({
   const handleEditorPaste = (event: ReactClipboardEvent<HTMLDivElement>) => {
     event.preventDefault();
     const html = event.clipboardData.getData("text/html");
-    let text = html ? extractEditorTextFromHtml(html) : "";
-    if (!text) {
-      text = event.clipboardData.getData("text/plain");
-    }
-    if (!text && html) {
+    let fallbackPlainText = "";
+    if (html) {
       const temp = document.createElement("div");
       temp.innerHTML = html;
-      text = temp.innerText || temp.textContent || "";
+      fallbackPlainText = temp.innerText || temp.textContent || "";
     }
-    const normalizedText = normalizePastedText(text);
+    const normalizedText = resolvePastedEditorText({
+      html,
+      plainText: event.clipboardData.getData("text/plain"),
+      fallbackPlainText,
+    });
     applyEditorUpdate((content, selection) => {
       const nextText = replaceRange(content, selection.start, selection.end, normalizedText);
       const cursor = selection.start + normalizedText.length;

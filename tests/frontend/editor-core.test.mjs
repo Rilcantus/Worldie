@@ -19,6 +19,7 @@ import {
   isUnderlineElement,
   moveSelectedLineBlock,
   normalizePastedText,
+  resolvePastedEditorText,
   serializeFormattedInlineContent,
   sourceSelectionToDisplay,
   toggleLinePrefix,
@@ -241,6 +242,22 @@ test("extractEditorTextFromHtml preserves indentation inside pasted pre blocks",
     assert.equal(
       extractEditorTextFromHtml("<pre>  first line\n\n* literal bullet\n> literal quote\n1) literal step\n    second line\n</pre>"),
       "  first line\n\n* literal bullet\n> literal quote\n1) literal step\n    second line",
+    );
+  });
+});
+
+test("resolvePastedEditorText keeps extracted preformatted html from being renormalized", () => {
+  withFakeHtmlDocument((FakeElement, FakeTextNode) => [
+    new FakeElement("PRE", [
+      new FakeTextNode("* literal bullet\n> literal quote\n1) literal step\n"),
+    ]),
+  ], () => {
+    assert.equal(
+      resolvePastedEditorText({
+        html: "<pre>* literal bullet\n> literal quote\n1) literal step\n</pre>",
+        plainText: "* literal bullet\n> literal quote\n1) literal step\n",
+      }),
+      "* literal bullet\n> literal quote\n1) literal step",
     );
   });
 });

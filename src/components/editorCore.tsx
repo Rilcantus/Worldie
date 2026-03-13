@@ -654,6 +654,22 @@ export function extractEditorTextFromHtml(html: string) {
   return normalizePastedText(serialized).replace(new RegExp(`^${PRE_LINE_PROTECTOR}`, "gm"), "").trimEnd();
 }
 
+export function resolvePastedEditorText(options: {
+  html?: string;
+  plainText?: string;
+  fallbackPlainText?: string;
+}) {
+  if (options.html) {
+    const extracted = extractEditorTextFromHtml(options.html);
+    if (extracted) {
+      return extracted;
+    }
+  }
+
+  const fallbackText = options.plainText || options.fallbackPlainText || "";
+  return normalizePastedText(fallbackText);
+}
+
 export function getSelectionText(text: string, selection: SelectionOffsets | null) {
   if (!selection || selection.start === selection.end) return "";
   return text.slice(selection.start, selection.end);
