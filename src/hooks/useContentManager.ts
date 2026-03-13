@@ -98,6 +98,10 @@ export function useContentManager({
   const defaultLoreTypeId = orderedLoreTypes[0]?.id ?? null;
   const docsLoadRequestId = useRef(0);
   const loreLoadRequestId = useRef(0);
+  const currentScopeRef = useRef<{ projectId: string | null; worldId: string | null }>({
+    projectId: activeProjectId,
+    worldId: activeWorldId,
+  });
   const currentDocumentSaveTargetRef = useRef<{ projectId: string | null; documentId: string | null }>({
     projectId: activeProjectId,
     documentId: null,
@@ -273,6 +277,13 @@ export function useContentManager({
   }, [defaultLoreTypeId, loreTypesById]);
 
   useEffect(() => {
+    currentScopeRef.current = {
+      projectId: activeProjectId,
+      worldId: activeWorldId,
+    };
+  }, [activeProjectId, activeWorldId]);
+
+  useEffect(() => {
     currentDocumentSaveTargetRef.current = {
       projectId: activeProjectId,
       documentId: activeDocumentId,
@@ -288,6 +299,7 @@ export function useContentManager({
 
   useEffect(() => {
     if (!activeProjectId || allLorePages.length === 0 || orderedLoreTypes.length === 0) return;
+    const syncProjectId = activeProjectId;
 
     const renamedPages: LorePage[] = [];
     for (const page of allLorePages) {
@@ -318,11 +330,12 @@ export function useContentManager({
 
     void Promise.all(
       renamedPages.map((page) =>
-        updateLorePage(activeProjectId, page.id, {
+        updateLorePage(syncProjectId, page.id, {
           type: page.type,
         }),
       ),
     ).catch(async (error) => {
+      if (currentScopeRef.current.projectId !== syncProjectId) return;
       await recoverActiveProjectError(error, "Worldie could not sync renamed lore type labels.");
     });
   }, [activeLoreId, activeProjectId, allLorePages, loreTypesById, recoverActiveProjectError, resolveLoreTypeId]);
@@ -567,13 +580,21 @@ export function useContentManager({
 
   const addDocument = async () => {
     if (!activeProjectId || !activeWorldId) return null;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     const title = `New Document ${documents.length + 1}`;
     let created: Document;
     try {
-      created = await createDocument(activeProjectId, activeWorldId, title);
+      created = await createDocument(actionProjectId, actionWorldId, title);
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not create a new document.");
       return null;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return created;
     }
     const nextDocs = [created, ...documents];
     setDocuments(nextDocs);
@@ -584,7 +605,7 @@ export function useContentManager({
     markDocumentSaved();
     setWorlds((prev) =>
       prev.map((world) =>
-        world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
+        world.id === actionWorldId ? { ...world, editorCount: nextDocs.length } : world,
       ),
     );
     return created;
@@ -614,11 +635,13 @@ export function useContentManager({
 
   const duplicateDocument = async () => {
     if (!activeProjectId || !activeWorldId || !activeDocument) return null;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     const duplicateTitle = `${activeDocument.title} Copy`;
     let created: Document;
     try {
-      created = await createDocument(activeProjectId, activeWorldId, duplicateTitle);
-      await updateDocument(activeProjectId, created.id, {
+      created = await createDocument(actionProjectId, actionWorldId, duplicateTitle);
+      await updateDocument(actionProjectId, created.id, {
         title: duplicateTitle,
         contentJson: activeDocument.contentJson ?? "",
         folderPath: activeDocument.folderPath ?? "",
@@ -626,6 +649,12 @@ export function useContentManager({
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not duplicate the document.");
       return null;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return created;
     }
     const duplicated = {
       ...created,
@@ -642,7 +671,7 @@ export function useContentManager({
     markDocumentSaved();
     setWorlds((prev) =>
       prev.map((world) =>
-        world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
+        world.id === actionWorldId ? { ...world, editorCount: nextDocs.length } : world,
       ),
     );
     return duplicated;
@@ -653,11 +682,19 @@ export function useContentManager({
     if (!confirmDelete) return false;
     const deleted = documentsById.get(docId);
     if (!activeProjectId) return false;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     try {
-      await deleteDocument(activeProjectId, docId);
+      await deleteDocument(actionProjectId, docId);
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not delete the document.");
       return false;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return true;
     }
     const { next: nextDocs, first: nextDocument } = removeItemWithFallback(documents, docId);
     setDocuments(nextDocs);
@@ -673,21 +710,27 @@ export function useContentManager({
         setDocumentLastSavedAt(null);
       }
     }
-    if (activeWorldId) {
+    if (actionWorldId) {
       setWorlds((prev) =>
         prev.map((world) =>
-          world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
+          world.id === actionWorldId ? { ...world, editorCount: nextDocs.length } : world,
         ),
       );
     }
-    if (deleted && activeWorldId) {
+    if (deleted && actionWorldId) {
       showToast("Document deleted", () => {
-        void createDocument(activeProjectId, activeWorldId, deleted.title)
+        void createDocument(actionProjectId, actionWorldId, deleted.title)
           .then((restored) =>
-            updateDocument(activeProjectId, restored.id, {
+            updateDocument(actionProjectId, restored.id, {
               contentJson: deleted.contentJson ?? "",
               folderPath: deleted.folderPath ?? "",
             }).then(() => {
+              if (
+                currentScopeRef.current.projectId !== actionProjectId ||
+                currentScopeRef.current.worldId !== actionWorldId
+              ) {
+                return;
+              }
               setDocuments((prev) => {
                 const restoredDocument = {
                   ...restored,
@@ -697,7 +740,7 @@ export function useContentManager({
                 const nextDocs = [restoredDocument, ...prev];
                 setWorlds((worldsPrev) =>
                   worldsPrev.map((world) =>
-                    world.id === activeWorldId ? { ...world, editorCount: nextDocs.length } : world,
+                    world.id === actionWorldId ? { ...world, editorCount: nextDocs.length } : world,
                   ),
                 );
                 return nextDocs;
@@ -705,6 +748,7 @@ export function useContentManager({
             }),
           )
           .catch(async (error) => {
+            if (currentScopeRef.current.projectId !== actionProjectId) return;
             await recoverActiveProjectError(error, "Worldie could not restore the deleted document.");
           });
       });
@@ -748,13 +792,15 @@ export function useContentManager({
 
   const createLoreItem = async ({ title, loreTypeId, template, tags }: CreateLoreItemArgs) => {
     if (!activeProjectId || !activeWorldId) return null;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     const loreType = getLoreType(loreTypeId);
     if (!loreType) return null;
     let created: LorePage;
     const fieldsJson = buildInitialLoreFields(loreType.id, template);
     try {
-      created = await createLorePage(activeProjectId, activeWorldId, title.trim() || `New ${loreType.name}`, loreType.name);
-      await updateLorePage(activeProjectId, created.id, {
+      created = await createLorePage(actionProjectId, actionWorldId, title.trim() || `New ${loreType.name}`, loreType.name);
+      await updateLorePage(actionProjectId, created.id, {
         title: title.trim() || created.title,
         type: loreType.name,
         tagsJson: tags,
@@ -763,6 +809,12 @@ export function useContentManager({
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not create the lore item.");
       return null;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return created;
     }
     const createdItem = {
       ...created,
@@ -780,7 +832,7 @@ export function useContentManager({
     markLoreSaved();
     setWorlds((prev) =>
       prev.map((world) =>
-        world.id === activeWorldId
+        world.id === actionWorldId
           ? {
               ...world,
               loreCount: nextAll.length,
@@ -829,11 +881,19 @@ export function useContentManager({
     if (!confirmDelete) return false;
     const deleted = allLorePagesById.get(loreId);
     if (!activeProjectId) return false;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     try {
-      await deleteLorePage(activeProjectId, loreId);
+      await deleteLorePage(actionProjectId, loreId);
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not delete the lore item.");
       return false;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return true;
     }
     const { next: nextPages, first: nextPage } = removeItemWithFallback(lorePages, loreId);
     const { next: nextAll } = removeItemWithFallback(allLorePages, loreId);
@@ -852,11 +912,11 @@ export function useContentManager({
         setLoreLastSavedAt(null);
       }
     }
-    if (activeWorldId) {
+    if (actionWorldId) {
         const counts = buildLoreTypeCounts(nextAll);
         setWorlds((prev) =>
         prev.map((world) =>
-          world.id === activeWorldId
+          world.id === actionWorldId
             ? {
                 ...world,
                 loreCount: nextAll.length,
@@ -871,17 +931,23 @@ export function useContentManager({
         ),
       );
     }
-    if (deleted && activeWorldId) {
+    if (deleted && actionWorldId) {
       showToast("Lore page deleted", () => {
         const deletedFields = parseLoreItemFields(deleted.fieldsJson);
-        void createLorePage(activeProjectId, activeWorldId, deleted.title, deleted.type)
+        void createLorePage(actionProjectId, actionWorldId, deleted.title, deleted.type)
           .then((restored) =>
-            updateLorePage(activeProjectId, restored.id, {
+            updateLorePage(actionProjectId, restored.id, {
               title: deleted.title,
               type: deleted.type,
               tagsJson: deleted.tagsJson ?? "",
               fieldsJson: stringifyLoreItemFields(deletedFields),
             }).then(() => {
+              if (
+                currentScopeRef.current.projectId !== actionProjectId ||
+                currentScopeRef.current.worldId !== actionWorldId
+              ) {
+                return;
+              }
               const restoredPage = {
                 ...restored,
                 title: deleted.title,
@@ -895,7 +961,7 @@ export function useContentManager({
                 const counts = buildLoreTypeCounts(nextAll);
                 setWorlds((worldsPrev) =>
                   worldsPrev.map((world) =>
-                    world.id === activeWorldId
+                    world.id === actionWorldId
                       ? {
                           ...world,
                           loreCount: nextAll.length,
@@ -917,6 +983,7 @@ export function useContentManager({
             }),
           )
           .catch(async (error) => {
+            if (currentScopeRef.current.projectId !== actionProjectId) return;
             await recoverActiveProjectError(error, "Worldie could not restore the deleted lore page.");
           });
       });
@@ -926,6 +993,8 @@ export function useContentManager({
 
   const reassignLoreType = async (fromLoreTypeId: string, toLoreTypeId: string) => {
     if (!activeProjectId) return;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
     const nextLoreType = getLoreType(toLoreTypeId);
     if (!nextLoreType) return;
     const updates: LorePage[] = [];
@@ -945,14 +1014,21 @@ export function useContentManager({
     try {
       await Promise.all(
         updates.map((page) =>
-          updateLorePage(activeProjectId, page.id, {
+          updateLorePage(actionProjectId, page.id, {
             type: page.type,
             fieldsJson: page.fieldsJson,
           }),
         ),
       );
     } catch (error) {
+      if (currentScopeRef.current.projectId !== actionProjectId) return;
       await recoverActiveProjectError(error, "Worldie could not reassign lore items to the new type.");
+      return;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
       return;
     }
 
@@ -967,10 +1043,10 @@ export function useContentManager({
       setActiveLoreTypeId(toLoreTypeId);
     }
 
-    if (activeWorldId) {
+    if (actionWorldId) {
       setWorlds((prev) =>
         prev.map((world) =>
-          world.id === activeWorldId
+          world.id === actionWorldId
             ? {
                 ...world,
                 loreCount: nextAll.length,
