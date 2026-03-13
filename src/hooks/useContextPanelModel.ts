@@ -4,6 +4,18 @@ import type { LoreType } from "../lib/loreTypes";
 import type { SearchResult } from "./useSearch";
 import type { TabKind, WorldUI } from "../types/ui";
 
+function countNonEmptyWords(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+function splitCommaTokens(value: string) {
+  return value
+    .split(",")
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
 type UseContextPanelModelArgs = {
   activeNav: TabKind;
   activeWorld?: WorldUI;
@@ -124,16 +136,13 @@ export function useContextPanelModel({
 
     const activeWordCount =
       activeNav === "editor"
-        ? documentContent.trim().split(/\s+/).filter(Boolean).length
+        ? countNonEmptyWords(documentContent)
         : activeNav === "lore"
-          ? loreFields.trim().split(/\s+/).filter(Boolean).length
+          ? countNonEmptyWords(loreFields)
           : activeNav === "timeline"
-            ? `${timelineTitle} ${timelineDescription}`.trim().split(/\s+/).filter(Boolean).length
+            ? countNonEmptyWords(`${timelineTitle} ${timelineDescription}`)
             : activeNav === "rels"
-              ? `${activeRelationship?.relationType ?? ""} ${activeRelationship?.notes ?? ""}`
-                  .trim()
-                  .split(/\s+/)
-                  .filter(Boolean).length
+              ? countNonEmptyWords(`${activeRelationship?.relationType ?? ""} ${activeRelationship?.notes ?? ""}`)
               : 0;
 
     const linkedPages =
@@ -161,11 +170,7 @@ export function useContextPanelModel({
 
     const tags =
       activeNav === "lore" && loreTags.trim()
-        ? loreTags
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-            .map((label) => ({
+        ? splitCommaTokens(loreTags).map((label) => ({
               key: label,
               label,
               style: {
