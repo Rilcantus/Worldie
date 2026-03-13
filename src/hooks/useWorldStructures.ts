@@ -23,6 +23,25 @@ type UseWorldStructuresArgs = {
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
+function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
+  const next: T[] = [];
+  let removed = false;
+
+  for (const item of items) {
+    if (item.id === itemId) {
+      removed = true;
+      continue;
+    }
+    next.push(item);
+  }
+
+  return {
+    next,
+    first: next[0] ?? null,
+    removed,
+  };
+}
+
 export function useWorldStructures({
   activeProjectId,
   activeWorldId,
@@ -320,10 +339,9 @@ export function useWorldStructures({
       showToast(error instanceof Error ? error.message : "Worldie could not delete the relationship.");
       return false;
     }
-    const next = relationships.filter((item) => item.id !== relationshipId);
+    const { next, first } = removeItemWithFallback(relationships, relationshipId);
     setRelationships(next);
     if (activeRelationshipId === relationshipId) {
-      const first = next[0] ?? null;
       setActiveRelationshipId(first?.id ?? null);
       setRelationshipSourceId(first?.sourcePageId ?? "");
       setRelationshipTargetId(first?.targetPageId ?? "");
@@ -463,10 +481,9 @@ export function useWorldStructures({
       showToast(error instanceof Error ? error.message : "Worldie could not delete the timeline event.");
       return false;
     }
-    const next = timelineEvents.filter((item) => item.id !== eventId);
+    const { next, first } = removeItemWithFallback(timelineEvents, eventId);
     setTimelineEvents(next);
     if (activeTimelineEventId === eventId) {
-      const first = next[0] ?? null;
       setActiveTimelineEventId(first?.id ?? null);
       setTimelineTitle(first?.title ?? "");
       setTimelineDate(first?.eventDate ?? "");
