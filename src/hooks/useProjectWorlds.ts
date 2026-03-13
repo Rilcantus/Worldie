@@ -143,6 +143,8 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const [worldDraft, setWorldDraft] = useState("");
   const hydrateRequestId = useRef(0);
   const currentLoreTypesRef = useRef(initialLoreTypes);
+  const activeProjectIdRef = useRef<string | null>(null);
+  const worldsLengthRef = useRef(0);
   const [projectActionState, setProjectActionState] = useState<ProjectActionState>(IDLE_PROJECT_ACTION_STATE);
   const worldsById = useMemo(() => new Map(worlds.map((world) => [world.id, world])), [worlds]);
   const projectsById = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
@@ -157,6 +159,14 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   );
   const recentProjects = useMemo(() => projects.slice(0, 6), [projects]);
   const isProjectActionPending = projectActionState.status !== "idle";
+
+  useEffect(() => {
+    activeProjectIdRef.current = activeProjectId;
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    worldsLengthRef.current = worlds.length;
+  }, [worlds.length]);
 
   const setProjectActionStateIfChanged = useCallback((nextState: ProjectActionState) => {
     setProjectActionState((current) =>
@@ -228,7 +238,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       setActiveWorldId((current) => (current === null ? current : null));
       return false;
     }
-    const isSameProjectActive = activeProjectId === project.id && worlds.length > 0;
+    const isSameProjectActive = activeProjectIdRef.current === project.id && worldsLengthRef.current > 0;
     setActiveProjectId((current) => (current === project.id ? current : project.id));
     setProjectTitle((current) => (current === project.title ? current : project.title));
     setProjectDraft((current) => (current === project.title ? current : project.title));
@@ -239,7 +249,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     setActiveWorldId((current) => (current === null ? current : null));
     await hydrateWorlds(project.id);
     return true;
-  }, [activeProjectId, hydrateWorlds, setWorldsIfChanged, worlds.length]);
+  }, [hydrateWorlds, setWorldsIfChanged]);
 
   useEffect(() => {
     const load = async () => {
