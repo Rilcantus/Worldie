@@ -325,6 +325,8 @@ test("getFormattingState reports inline and block formatting flags", () => {
   assert.equal(getFormattingState("> Note: Reminder\n> detail", { start: 19, end: 19 }).noteBlock, true);
   assert.equal(getFormattingState("> Note: Reminder\n> detail", { start: 19, end: 19 }).quote, false);
   assert.equal(getFormattingState("> Note: Reminder\n>\n> detail", { start: 20, end: 20 }).noteBlock, true);
+  assert.equal(getFormattingState("  > Note: Reminder\n  > detail", { start: 23, end: 23 }).noteBlock, true);
+  assert.equal(getFormattingState("  > detail", { start: 4, end: 4 }).quote, true);
   assert.equal(getFormattingState(">Quote", { start: 2, end: 2 }).quote, true);
   assert.equal(getFormattingState(">", { start: 1, end: 1 }).quote, true);
   assert.equal(getFormattingState("* * *", { start: 5, end: 5 }).sceneBreak, true);
@@ -990,6 +992,14 @@ test("renderPreviewContent preserves multiline quote spacing and indentation", (
       ],
     },
   );
+});
+
+test("renderPreviewContent accepts indented quote and note markers", () => {
+  const quotePreview = renderPreviewContent("  > Quoted line", new Map(), () => {});
+  assert.equal(quotePreview[0].type, "blockquote");
+
+  const notePreview = renderPreviewContent("  > Note: Reminder\n  > detail", new Map(), () => {});
+  assert.equal(notePreview[0].props.className, "editor-preview-note");
 });
 
 test("renderPreviewContent preserves multiline note block spacing and indentation", () => {

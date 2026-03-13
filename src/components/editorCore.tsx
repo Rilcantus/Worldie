@@ -909,14 +909,14 @@ function isOffsetWithinNoteBlock(text: string, offset: number) {
   const currentLine = text.slice(lineStart, lineEnd);
 
   if (!isQuoteLine(currentLine)) return false;
-  if (/^>\s*Note:\s*/i.test(currentLine)) return true;
+  if (/^\s*>\s*Note:\s*/i.test(currentLine)) return true;
 
   let previousLineEnd = Math.max(0, lineStart - 1);
   while (previousLineEnd >= 0) {
     const previousLineStart = text.lastIndexOf("\n", Math.max(0, previousLineEnd - 1)) + 1;
     const previousLine = text.slice(previousLineStart, previousLineEnd);
     if (!isQuoteLine(previousLine)) return false;
-    if (/^>\s*Note:\s*/i.test(previousLine)) return true;
+    if (/^\s*>\s*Note:\s*/i.test(previousLine)) return true;
     if (previousLineStart === 0) return false;
     previousLineEnd = previousLineStart - 1;
   }
@@ -938,7 +938,7 @@ function isOrderedListLine(line: string) {
 }
 
 function isQuoteLine(line: string) {
-  return /^>\s?.*$/.test(line);
+  return /^\s*>\s?.*$/.test(line);
 }
 
 function isSceneBreakLine(line: string) {
@@ -1383,7 +1383,7 @@ export function renderPreviewContent(
   };
 
   lines.forEach((line, index) => {
-    const noteMatch = line.match(/^>\s*Note:\s*(.*)$/i);
+    const noteMatch = line.match(/^\s*>\s*Note:\s*(.*)$/i);
     if (noteMatch) {
       flushLists();
       flushQuotes();
@@ -1392,7 +1392,7 @@ export function renderPreviewContent(
       return;
     }
 
-    const quoteMatch = line.match(/^>\s?(.*)$/);
+    const quoteMatch = line.match(/^\s*>\s?(.*)$/);
     if (quoteMatch) {
       flushLists();
       if (noteLineBuffer.length > 0) {
