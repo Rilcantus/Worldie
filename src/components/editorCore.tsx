@@ -598,8 +598,40 @@ function isSelectionWrapped(text: string, selection: SelectionOffsets | null, ma
   return before === marker && after === marker;
 }
 
+function isSelectionInsideWrappedRange(text: string, selection: SelectionOffsets | null, marker: string) {
+  if (!selection) return false;
+
+  let searchIndex = 0;
+  while (true) {
+    const openIndex = text.indexOf(marker, searchIndex);
+    if (openIndex === -1) return false;
+    if (marker.length === 1 && !isStandaloneInlineMarker(text, openIndex, marker)) {
+      searchIndex = openIndex + 1;
+      continue;
+    }
+
+    const closeIndex = text.indexOf(marker, openIndex + marker.length);
+    if (closeIndex === -1) return false;
+    if (marker.length === 1 && !isStandaloneInlineMarker(text, closeIndex, marker)) {
+      searchIndex = closeIndex + 1;
+      continue;
+    }
+
+    const contentStart = openIndex + marker.length;
+    if (
+      contentStart <= selection.start &&
+      closeIndex >= selection.end &&
+      closeIndex > contentStart
+    ) {
+      return true;
+    }
+
+    searchIndex = closeIndex + marker.length;
+  }
+}
+
 function isSelectionWrappedWithAny(text: string, selection: SelectionOffsets | null, markers: string[]) {
-  return markers.some((marker) => isSelectionWrapped(text, selection, marker));
+  return markers.some((marker) => isSelectionWrapped(text, selection, marker) || isSelectionInsideWrappedRange(text, selection, marker));
 }
 
 function getCurrentLine(text: string, selection: SelectionOffsets | null) {
@@ -613,9 +645,9 @@ function getCurrentLine(text: string, selection: SelectionOffsets | null) {
 export function getFormattingState(text: string, selection: SelectionOffsets | null): EditorFormattingState {
   const line = getCurrentLine(text, selection);
   return {
-    bold: isSelectionWrapped(text, selection, "**"),
+    bold: isSelectionWrapped(text, selection, "**") || isSelectionInsideWrappedRange(text, selection, "**"),
     italic: isSelectionWrappedWithAny(text, selection, ["_", "*"]),
-    underline: isSelectionWrapped(text, selection, "__"),
+    underline: isSelectionWrapped(text, selection, "__") || isSelectionInsideWrappedRange(text, selection, "__"),
     heading1: line.startsWith("# "),
     heading2: line.startsWith("## "),
     list: line.startsWith("- "),

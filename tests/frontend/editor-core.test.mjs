@@ -102,7 +102,10 @@ test("clearCurrentLinePrefix removes active list prefixes and preserves selectio
 
 test("getFormattingState reports inline and block formatting flags", () => {
   assert.equal(getFormattingState("**Bold**", { start: 2, end: 6 }).bold, true);
+  assert.equal(getFormattingState("**Bold**", { start: 4, end: 4 }).bold, true);
   assert.equal(getFormattingState("_Italic_", { start: 1, end: 7 }).italic, true);
+  assert.equal(getFormattingState("_Italic_", { start: 3, end: 3 }).italic, true);
+  assert.equal(getFormattingState("__Under__", { start: 4, end: 4 }).underline, true);
   assert.equal(getFormattingState("> Note: Reminder", { start: 8, end: 8 }).noteBlock, true);
   assert.equal(getFormattingState("* * *", { start: 5, end: 5 }).sceneBreak, true);
 });
