@@ -223,6 +223,11 @@ test("clearCurrentLinePrefix removes active list prefixes and preserves selectio
   assert.equal(alternateOrdered?.text, "Alpha");
   assert.deepEqual(alternateOrdered?.selection, { start: 0, end: 5 });
   assert.equal(alternateOrdered?.prefix, "3) ");
+
+  const downgradedNote = clearCurrentLinePrefix("> Note: Reminder", { start: 8, end: 16 });
+  assert.equal(downgradedNote?.text, "> Reminder");
+  assert.deepEqual(downgradedNote?.selection, { start: 2, end: 10 });
+  assert.equal(downgradedNote?.prefix, "> Note: ");
 });
 
 test("getFormattingState reports inline and block formatting flags", () => {

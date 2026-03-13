@@ -473,15 +473,18 @@ export function clearCurrentLinePrefix(text: string, selection: SelectionOffsets
   const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
   const currentLine = text.slice(lineStart, lineEnd);
   const currentPrefix = getCurrentLinePrefix(currentLine);
+  const isNotePrefix = /^>\s*Note:\s*/i.test(currentLine);
 
   if (!currentPrefix) {
     return null;
   }
 
-  const nextLine = currentLine.slice(currentPrefix.length);
+  const normalized = currentLine.slice(currentPrefix.length);
+  const nextLine = isNotePrefix ? (normalized.length > 0 ? `> ${normalized}` : ">") : normalized;
   const nextText = replaceRange(text, lineStart, lineEnd, nextLine);
-  const nextStart = Math.max(lineStart, selection.start - currentPrefix.length);
-  const nextEnd = Math.max(nextStart, selection.end - currentPrefix.length);
+  const delta = nextLine.length - currentLine.length;
+  const nextStart = Math.max(lineStart, selection.start + delta);
+  const nextEnd = Math.max(nextStart, selection.end + delta);
 
   return {
     text: nextText,
