@@ -14,7 +14,10 @@ def _now_iso():
 
 
 def _ensure_parent_dir(path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    parent_dir = os.path.dirname(path)
+    if not parent_dir:
+        return
+    os.makedirs(parent_dir, exist_ok=True)
 
 
 def _registry_conn():

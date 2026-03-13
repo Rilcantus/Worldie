@@ -1,6 +1,7 @@
 import importlib
 import io
 import json
+import os
 import shutil
 import unittest
 import uuid
@@ -277,6 +278,22 @@ class ProjectStoreTests(unittest.TestCase):
         response = json.loads(stdout.getvalue())
         self.assertEqual(response["status"], "error")
         self.assertEqual(response["message"], "bad request payload")
+
+    def test_db_init_supports_paths_without_parent_directory_components(self):
+        original_cwd = Path.cwd()
+        try:
+            os.chdir(self.temp_path)
+            self.db_manager.REGISTRY_DB_PATH = "projects_registry.db"
+            registry_path = Path(self.db_manager.REGISTRY_DB_PATH).resolve()
+            project_path = Path("local.worldie").resolve()
+
+            self.db_manager.init_db()
+            self.db_manager._init_project_db("local.worldie")
+
+            self.assertTrue(registry_path.exists())
+            self.assertTrue(project_path.exists())
+        finally:
+            os.chdir(original_cwd)
 
 
 if __name__ == "__main__":
