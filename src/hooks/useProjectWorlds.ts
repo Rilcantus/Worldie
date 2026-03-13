@@ -59,6 +59,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const activeProjectIdRef = useRef<string | null>(null);
   const worldsLengthRef = useRef(0);
   const projectActionRequestIdRef = useRef(0);
+  const currentProjectRenameVersionRef = useRef(0);
+  const currentProjectRenameRequestIdRef = useRef(0);
+  const currentWorldRenameVersionRef = useRef(0);
+  const currentWorldRenameRequestIdRef = useRef(0);
   const currentScopeRef = useRef<{ projectId: string | null; worldId: string | null }>({
     projectId: null,
     worldId: null,
@@ -89,6 +93,14 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       worldId: activeWorldId,
     };
   }, [activeProjectId, activeWorldId]);
+
+  useEffect(() => {
+    currentProjectRenameVersionRef.current += 1;
+  }, [activeProjectId, projectDraft]);
+
+  useEffect(() => {
+    currentWorldRenameVersionRef.current += 1;
+  }, [editingWorldId, worldDraft]);
 
   useEffect(() => {
     worldsLengthRef.current = worlds.length;
@@ -596,6 +608,8 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     if (!activeProjectId) return;
     const actionProjectId = activeProjectId;
     const nextTitle = projectDraft.trim();
+    const renameVersion = currentProjectRenameVersionRef.current;
+    const renameRequestId = ++currentProjectRenameRequestIdRef.current;
     if (!nextTitle || nextTitle === projectTitle) {
       setProjectDraft((current) => (current === projectTitle ? current : projectTitle));
       setIsEditingProject((current) => (current ? false : current));
@@ -605,9 +619,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     try {
       nextProjects = await updateProjectTitle(actionProjectId, nextTitle);
     } catch (error) {
+      if (currentProjectRenameRequestIdRef.current !== renameRequestId) return;
+      if (currentProjectRenameVersionRef.current !== renameVersion) return;
       await recoverActiveProjectError(error, "Worldie could not rename the project.");
       return;
     }
+    if (currentProjectRenameRequestIdRef.current !== renameRequestId) return;
+    if (currentProjectRenameVersionRef.current !== renameVersion) return;
     setProjectsIfChanged(nextProjects);
     if (currentScopeRef.current.projectId !== actionProjectId) return;
     setProjectTitle((current) => (current === nextTitle ? current : nextTitle));
@@ -624,6 +642,8 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     const actionProjectId = activeProjectId;
     const actionWorldId = editingWorldId;
     const nextTitle = worldDraft.trim();
+    const renameVersion = currentWorldRenameVersionRef.current;
+    const renameRequestId = ++currentWorldRenameRequestIdRef.current;
     const currentWorldName = worldsById.get(editingWorldId)?.name ?? "";
     if (!nextTitle) {
       setEditingWorldId((current) => (current === null ? current : null));
@@ -638,9 +658,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     try {
       await updateWorldTitle(actionProjectId, actionWorldId, nextTitle);
     } catch (error) {
+      if (currentWorldRenameRequestIdRef.current !== renameRequestId) return;
+      if (currentWorldRenameVersionRef.current !== renameVersion) return;
       await recoverActiveProjectError(error, "Worldie could not rename the world.");
       return;
     }
+    if (currentWorldRenameRequestIdRef.current !== renameRequestId) return;
+    if (currentWorldRenameVersionRef.current !== renameVersion) return;
     if (currentScopeRef.current.projectId !== actionProjectId) return;
     setWorlds((prev) =>
       prev.map((world) =>
