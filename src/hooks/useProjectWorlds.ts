@@ -406,7 +406,11 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     });
   }, [applyActiveProject, runProjectAction, setProjectsIfChanged, showToast]);
 
-  const recoverMissingProject = useCallback(async (project: Project, error: unknown) => {
+  const recoverMissingProject = useCallback(async (
+    project: Project,
+    error: unknown,
+    options?: { activateFallback?: boolean },
+  ) => {
     const message = error instanceof Error ? error.message : "Worldie could not load that project file.";
     if (!isMissingProjectFileError(project, error)) {
       showToast(message);
@@ -431,14 +435,16 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     }
 
     setProjectsIfChanged(nextProjects);
-    if (activeProjectIdRef.current === project.id) {
+    const shouldActivateFallback = options?.activateFallback || activeProjectIdRef.current === project.id;
+    if (shouldActivateFallback) {
       const nextProject = nextProjects[0] ?? null;
       try {
         await applyActiveProject(nextProject);
       } catch (applyError) {
-        showToast(
-          applyError instanceof Error ? applyError.message : "Worldie could not load the next available project.",
-        );
+        if (nextProject) {
+          return recoverMissingProject(nextProject, applyError, { activateFallback: true });
+        }
+        showToast(applyError instanceof Error ? applyError.message : "Worldie could not load the next available project.");
         return false;
       }
     }
@@ -468,7 +474,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       try {
         await applyActiveProject(project);
       } catch (error) {
-        await recoverMissingProject(project, error);
+        await recoverMissingProject(project, error, { activateFallback: true });
       }
       setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
     };
