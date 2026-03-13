@@ -594,6 +594,36 @@ export const EditorView = memo(function EditorView({
     window.requestAnimationFrame(action);
   };
 
+  const requestDocumentSave = () => {
+    runAfterTypewriterDraftCommit(() => {
+      onSave();
+    });
+  };
+
+  const requestAddDocument = () => {
+    runAfterTypewriterDraftCommit(onAddDocument);
+  };
+
+  const requestDuplicateDocument = () => {
+    runAfterTypewriterDraftCommit(onDuplicateDocument);
+  };
+
+  const requestOpenDocument = (doc: Document) => {
+    if (doc.id === activeDocumentId) {
+      onOpenDocument(doc);
+      return;
+    }
+    runAfterTypewriterDraftCommit(() => onOpenDocument(doc));
+  };
+
+  const requestRemoveDocument = (docId: string) => {
+    if (docId === activeDocumentId) {
+      runAfterTypewriterDraftCommit(() => onRemoveDocument(docId));
+      return;
+    }
+    onRemoveDocument(docId);
+  };
+
   const changeEditorMode = (nextMode: EditorPresentationMode) => {
     if (nextMode === editorMode) return;
     if (editorMode === "typewriter" && nextMode === "standard") {
@@ -684,7 +714,7 @@ export const EditorView = memo(function EditorView({
     }
 
     if (documentSaveState === "dirty") {
-      onSave();
+      requestDocumentSave();
     }
   };
 
@@ -764,7 +794,7 @@ export const EditorView = memo(function EditorView({
       }
       if (key === "s") {
         event.preventDefault();
-        onSave();
+        requestDocumentSave();
         return;
       }
       if (key === "z") {
@@ -793,12 +823,12 @@ export const EditorView = memo(function EditorView({
       const key = event.key.toLowerCase();
       if (key === "n") {
         event.preventDefault();
-        runAfterTypewriterDraftCommit(onAddDocument);
+        requestAddDocument();
         return;
       }
       if (key === "d") {
         event.preventDefault();
-        runAfterTypewriterDraftCommit(onDuplicateDocument);
+        requestDuplicateDocument();
         return;
       }
       if (key === "r") {
@@ -1075,7 +1105,7 @@ export const EditorView = memo(function EditorView({
     const nextIndex = (baseIndex + offset + orderedDocuments.length) % orderedDocuments.length;
     const nextDocument = orderedDocuments[nextIndex];
     if (nextDocument) {
-      runAfterTypewriterDraftCommit(() => onOpenDocument(nextDocument));
+      requestOpenDocument(nextDocument);
     }
   };
 
@@ -1120,9 +1150,9 @@ export const EditorView = memo(function EditorView({
         documents={documents}
         documentsByFolder={documentsByFolder}
         onCollapseDocList={onCollapseDocList}
-        onAddDocument={onAddDocument}
-        onOpenDocument={onOpenDocument}
-        onRemoveDocument={onRemoveDocument}
+        onAddDocument={requestAddDocument}
+        onOpenDocument={requestOpenDocument}
+        onRemoveDocument={requestRemoveDocument}
       />
 
       {!isDocListCollapsed ? <div className="resizer resizer-vertical" onMouseDown={onResizeStart} /> : null}
@@ -1187,7 +1217,7 @@ export const EditorView = memo(function EditorView({
             editorFormattingState={editorFormattingState}
             saveState={documentSaveState}
             saveTimestamp={documentSaveTimestamp}
-            onSave={onSave}
+            onSave={requestDocumentSave}
             onApplyHistoryCommand={applyEditorCommand}
             onApplyRichFormat={applyRichFormat}
             onApplyLinePrefix={applyLinePrefix}
@@ -1200,7 +1230,7 @@ export const EditorView = memo(function EditorView({
             onSelectLorePageId={setSelectedLorePageId}
             activeDocumentId={activeDocumentId}
             orderedDocuments={orderedDocuments}
-            onOpenDocument={onOpenDocument}
+            onOpenDocument={requestOpenDocument}
             isPreviewOpen={isPreviewOpen}
             onTogglePreview={() => setIsPreviewOpen((current) => !current)}
             isDetailsOpen={isDetailsOpen}
@@ -1211,12 +1241,12 @@ export const EditorView = memo(function EditorView({
             documentMenuRef={documentMenuRef}
             onToggleDocumentMenu={() => setIsDocumentMenuOpen((current) => !current)}
             onCloseDocumentMenu={() => setIsDocumentMenuOpen(false)}
-            onAddDocument={onAddDocument}
+            onAddDocument={requestAddDocument}
             onRenameDocument={() => {
               setIsDocumentMenuOpen(false);
               focusTitleInput();
             }}
-            onDuplicateDocument={onDuplicateDocument}
+            onDuplicateDocument={requestDuplicateDocument}
             editorWidth={editorWidth}
             onSetEditorWidth={setEditorWidth}
             editorMode={editorMode}
