@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   appendTypewriterCommit,
+  applyNoteBlockPrefix,
   buildEditorDisplayRepresentation,
   clearCurrentLinePrefix,
   continueBlockPrefix,
@@ -145,6 +146,20 @@ test("toggleLinePrefix normalizes ordered list prefixes", () => {
 
   const removedAlternate = toggleLinePrefix("3) Alpha\n4) Beta", { start: 0, end: 15 }, "1. ");
   assert.equal(removedAlternate.text, "Alpha\nBeta");
+});
+
+test("applyNoteBlockPrefix converts the current line into a note block", () => {
+  const fromQuote = applyNoteBlockPrefix("> Reminder", { start: 2, end: 10 });
+  assert.equal(fromQuote.text, "> Note: Reminder");
+  assert.deepEqual(fromQuote.selection, { start: 8, end: 16 });
+
+  const fromBullet = applyNoteBlockPrefix("- Reminder", { start: 2, end: 10 });
+  assert.equal(fromBullet.text, "> Note: Reminder");
+  assert.deepEqual(fromBullet.selection, { start: 8, end: 16 });
+
+  const alreadyNote = applyNoteBlockPrefix("> Note: Reminder", { start: 8, end: 16 });
+  assert.equal(alreadyNote.text, "> Note: Reminder");
+  assert.deepEqual(alreadyNote.selection, { start: 8, end: 16 });
 });
 
 test("continueBlockPrefix advances lists and clears empty prefixes", () => {

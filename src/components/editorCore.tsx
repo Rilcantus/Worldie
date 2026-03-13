@@ -440,6 +440,38 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
   };
 }
 
+export function applyNoteBlockPrefix(text: string, selection: SelectionOffsets) {
+  const lineStart = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
+  const lineEndCandidate = text.indexOf("\n", selection.end);
+  const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
+  const currentLine = text.slice(lineStart, lineEnd);
+
+  if (/^>\s*Note:\s*/i.test(currentLine)) {
+    return {
+      text,
+      selection,
+    };
+  }
+
+  const currentPrefix = getCurrentLinePrefix(currentLine);
+  const normalized = stripKnownLinePrefix(currentLine);
+  const nextPrefix = "> Note: ";
+  const nextLine = `${nextPrefix}${normalized}`;
+  const nextText = replaceRange(text, lineStart, lineEnd, nextLine);
+  const currentContentStart = lineStart + currentPrefix.length;
+  const nextContentStart = lineStart + nextPrefix.length;
+  const nextStart = Math.max(nextContentStart, selection.start + (nextContentStart - currentContentStart));
+  const nextEnd = Math.max(nextStart, selection.end + (nextContentStart - currentContentStart));
+
+  return {
+    text: nextText,
+    selection: {
+      start: nextStart,
+      end: nextEnd,
+    },
+  };
+}
+
 export function continueBlockPrefix(text: string, selection: SelectionOffsets) {
   const lineStart = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
   const lineEndCandidate = text.indexOf("\n", selection.start);

@@ -19,6 +19,7 @@ import { EditorSurface } from "./EditorSurface";
 import { EditorToolbar } from "./EditorToolbar";
 import {
   appendTypewriterCommit,
+  applyNoteBlockPrefix,
   buildEditorDisplayRepresentation,
   clearCurrentLinePrefix,
   continueBlockPrefix,
@@ -1129,12 +1130,7 @@ export const EditorView = memo(function EditorView({
   };
 
   const insertNoteBlock = () => {
-    applyEditorUpdate((content, selection) => {
-      const insertion = selection.start > 0 && content[selection.start - 1] !== "\n" ? "\n> Note: " : "> Note: ";
-      const nextText = replaceRange(content, selection.start, selection.end, insertion);
-      const cursor = selection.start + insertion.length;
-      return { text: nextText, selection: { start: cursor, end: cursor } };
-    });
+    applyEditorUpdate((content, selection) => applyNoteBlockPrefix(content, selection));
   };
 
   const openDocumentByOffset = (offset: -1 | 1) => {
