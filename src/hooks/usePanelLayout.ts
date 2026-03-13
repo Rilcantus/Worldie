@@ -1,35 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-type ResizeTarget = "sidebar" | "doclist" | "right";
+import {
+  clampPanelWidths,
+  getPanelBounds,
+  resolveResizedPanelWidth,
+  type ResizeTarget,
+} from "./panelLayoutState";
 
 const getViewportWidth = () => (typeof window === "undefined" ? 1440 : window.innerWidth);
-
-const getPanelBounds = (viewportWidth: number) => {
-  if (viewportWidth >= 1720) {
-    return {
-      sidebar: { min: 220, max: 320, initial: 248 },
-      doclist: { min: 240, max: 340, initial: 272 },
-      right: { min: 220, max: 320, initial: 252 },
-      collapseRightByDefault: false,
-    };
-  }
-
-  if (viewportWidth >= 1440) {
-    return {
-      sidebar: { min: 210, max: 280, initial: 232 },
-      doclist: { min: 228, max: 300, initial: 252 },
-      right: { min: 210, max: 280, initial: 228 },
-      collapseRightByDefault: false,
-    };
-  }
-
-  return {
-    sidebar: { min: 200, max: 240, initial: 216 },
-    doclist: { min: 220, max: 260, initial: 236 },
-    right: { min: 200, max: 236, initial: 216 },
-    collapseRightByDefault: true,
-  };
-};
 
 export function usePanelLayout() {
   const initialBounds = getPanelBounds(getViewportWidth());
@@ -53,22 +30,32 @@ export function usePanelLayout() {
   useEffect(() => {
     const handleMove = (event: MouseEvent) => {
       if (!dragState.current.target) return;
-      const delta = event.clientX - dragState.current.startX;
-      const bounds = getPanelBounds(getViewportWidth());
       if (dragState.current.target === "sidebar") {
-        setSidebarWidth(
-          Math.min(bounds.sidebar.max, Math.max(bounds.sidebar.min, dragState.current.startWidth + delta)),
-        );
+        setSidebarWidth(resolveResizedPanelWidth(
+          "sidebar",
+          dragState.current.startWidth,
+          dragState.current.startX,
+          event.clientX,
+          getViewportWidth(),
+        ));
       }
       if (dragState.current.target === "doclist") {
-        setDocListWidth(
-          Math.min(bounds.doclist.max, Math.max(bounds.doclist.min, dragState.current.startWidth + delta)),
-        );
+        setDocListWidth(resolveResizedPanelWidth(
+          "doclist",
+          dragState.current.startWidth,
+          dragState.current.startX,
+          event.clientX,
+          getViewportWidth(),
+        ));
       }
       if (dragState.current.target === "right") {
-        setRightPanelWidth(
-          Math.min(bounds.right.max, Math.max(bounds.right.min, dragState.current.startWidth - delta)),
-        );
+        setRightPanelWidth(resolveResizedPanelWidth(
+          "right",
+          dragState.current.startWidth,
+          dragState.current.startX,
+          event.clientX,
+          getViewportWidth(),
+        ));
       }
     };
     const handleUp = () => {
@@ -84,24 +71,31 @@ export function usePanelLayout() {
 
   useEffect(() => {
     const handleResize = () => {
-      const bounds = getPanelBounds(getViewportWidth());
+      const nextWidths = clampPanelWidths(
+        {
+          sidebarWidth,
+          docListWidth,
+          rightPanelWidth,
+        },
+        getViewportWidth(),
+      );
       setSidebarWidth((current) => {
-        const next = Math.min(bounds.sidebar.max, Math.max(bounds.sidebar.min, current));
+        const next = nextWidths.sidebarWidth;
         return next === current ? current : next;
       });
       setDocListWidth((current) => {
-        const next = Math.min(bounds.doclist.max, Math.max(bounds.doclist.min, current));
+        const next = nextWidths.docListWidth;
         return next === current ? current : next;
       });
       setRightPanelWidth((current) => {
-        const next = Math.min(bounds.right.max, Math.max(bounds.right.min, current));
+        const next = nextWidths.rightPanelWidth;
         return next === current ? current : next;
       });
     };
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [docListWidth, rightPanelWidth, sidebarWidth]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
