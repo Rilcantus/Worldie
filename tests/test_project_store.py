@@ -355,6 +355,25 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIn(Path(project_path).name, response["message"])
         self.assertFalse(Path(project_path).exists())
 
+    def test_delete_project_removes_registry_entry_even_if_project_file_is_missing(self):
+        project_uuid, project_path = self.db_manager.add_project("Deleted Missing File", "")
+        os.remove(project_path)
+
+        self.db_manager.delete_project(project_uuid)
+
+        self.assertEqual(self.db_manager.get_all_projects(), [])
+
+    def test_sidecar_delete_project_succeeds_when_project_file_is_missing(self):
+        project_uuid, project_path = self.db_manager.add_project("Sidecar Missing Delete", "")
+        os.remove(project_path)
+
+        response = self.sidecar._handle_request(
+            {"action": "delete_project", "data": {"projectId": project_uuid}}
+        )
+
+        self.assertEqual(response["status"], "ok")
+        self.assertEqual(response["projects"], [])
+
     def test_sidecar_returns_structured_error_for_unknown_project_id(self):
         response = self.sidecar._handle_request(
             {"action": "list_worlds", "data": {"projectId": "missing-project"}}
