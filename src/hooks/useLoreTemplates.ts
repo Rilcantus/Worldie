@@ -6,6 +6,36 @@ import {
 } from "../lib/loreTemplates";
 import { getDefaultLoreTypeId, type LoreType } from "../lib/loreTypes";
 
+function removeTemplateById(templates: LoreTemplate[], templateId: string) {
+  const next: LoreTemplate[] = [];
+  let removed = false;
+
+  for (const template of templates) {
+    if (template.id === templateId) {
+      removed = true;
+      continue;
+    }
+    next.push(template);
+  }
+
+  return removed ? next : templates;
+}
+
+function removeTraitDefinitionWithOrder(traits: TraitDefinition[], traitId: string) {
+  const next: TraitDefinition[] = [];
+  let removed = false;
+
+  for (const trait of traits) {
+    if (trait.id === traitId) {
+      removed = true;
+      continue;
+    }
+    next.push({ ...trait, order: next.length });
+  }
+
+  return removed ? next : traits;
+}
+
 export function useLoreTemplates(activeProjectId: string | null, loreTypes: LoreType[]) {
   const [templates, setTemplates] = useState<LoreTemplate[]>([]);
   const templatesById = useMemo(
@@ -89,7 +119,7 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
   }, []);
 
   const deleteTemplate = useCallback((templateId: string) => {
-    setTemplates((prev) => prev.filter((template) => template.id !== templateId));
+    setTemplates((prev) => removeTemplateById(prev, templateId));
   }, []);
 
   const addTraitDefinition = useCallback((templateId: string) => {
@@ -135,9 +165,7 @@ export function useLoreTemplates(activeProjectId: string | null, loreTypes: Lore
         template.id === templateId
           ? {
               ...template,
-              traitDefinitions: template.traitDefinitions
-                .filter((trait) => trait.id !== traitId)
-                .map((trait, index) => ({ ...trait, order: index })),
+              traitDefinitions: removeTraitDefinitionWithOrder(template.traitDefinitions, traitId),
             }
           : template,
       ),

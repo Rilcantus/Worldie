@@ -7,6 +7,21 @@ import {
   type LoreType,
 } from "../lib/loreTypes";
 
+function removeLoreTypeWithOrder(types: LoreType[], loreTypeId: string) {
+  const next: LoreType[] = [];
+  let removed = false;
+
+  for (const type of sortLoreTypes(types)) {
+    if (type.id === loreTypeId) {
+      removed = true;
+      continue;
+    }
+    next.push({ ...type, order: next.length });
+  }
+
+  return removed ? next : types;
+}
+
 export function useLoreTypes(activeProjectId: string | null) {
   const [loreTypes, setLoreTypes] = useState<LoreType[]>([]);
   const sortedLoreTypes = useMemo(() => sortLoreTypes(loreTypes), [loreTypes]);
@@ -85,9 +100,7 @@ export function useLoreTypes(activeProjectId: string | null) {
   }, []);
 
   const deleteLoreType = useCallback((loreTypeId: string) => {
-    setLoreTypes((prev) =>
-      sortLoreTypes(prev.filter((type) => type.id !== loreTypeId)).map((type, index) => ({ ...type, order: index })),
-    );
+    setLoreTypes((prev) => removeLoreTypeWithOrder(prev, loreTypeId));
   }, []);
 
   const moveLoreType = useCallback((loreTypeId: string, direction: -1 | 1) => {
