@@ -257,6 +257,15 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(registry_projects[0][0], reopened_uuid)
         self.assertEqual(registry_projects[0][1], "ashen-sky")
 
+    def test_sidecar_returns_structured_error_for_missing_project_file(self):
+        missing_path = self.temp_path / "missing" / "does-not-exist.worldie"
+        response = self.sidecar._handle_request(
+            {"action": "open_project", "data": {"filepath": str(missing_path)}}
+        )
+
+        self.assertEqual(response["status"], "error")
+        self.assertIn("does-not-exist.worldie", response["message"])
+
 
 if __name__ == "__main__":
     unittest.main()

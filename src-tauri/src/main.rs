@@ -34,6 +34,17 @@ fn sidecar_request(payload: Value) -> Result<Value, String> {
 
     let response: Value =
         serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?;
+    if response
+        .get("status")
+        .and_then(|status| status.as_str())
+        == Some("error")
+    {
+        let message = response
+            .get("message")
+            .and_then(|message| message.as_str())
+            .unwrap_or("Worldie sidecar request failed.");
+        return Err(message.to_string());
+    }
     Ok(response)
 }
 

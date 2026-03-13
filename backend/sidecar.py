@@ -54,6 +54,13 @@ def _reply(payload: Dict[str, Any]) -> None:
 
 
 def _handle_request(request: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        return _dispatch_request(request)
+    except Exception as error:
+        return {"status": "error", "message": str(error)}
+
+
+def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
     action = request.get("action")
     data = request.get("data", {})
 

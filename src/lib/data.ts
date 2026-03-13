@@ -106,6 +106,16 @@ function buildProjectStoreErrorMessage(action: string) {
   return `Worldie could not ${readableAction} in the active project file.`;
 }
 
+function resolveProjectStoreErrorMessage(action: string, error: unknown) {
+  if (error instanceof Error) {
+    const message = error.message.trim();
+    if (message) {
+      return message;
+    }
+  }
+  return buildProjectStoreErrorMessage(action);
+}
+
 async function invokeProjectStore<T>(action: string, data?: Record<string, unknown>) {
   if (!isTauri()) {
     throw new ProjectStoreError("Project data requires the desktop app and an active .worldie project file.");
@@ -116,7 +126,7 @@ async function invokeProjectStore<T>(action: string, data?: Record<string, unkno
       payload: { action, data },
     })) as T;
   } catch (error) {
-    const message = buildProjectStoreErrorMessage(action);
+    const message = resolveProjectStoreErrorMessage(action, error);
     reportProjectStoreError(message);
     throw new ProjectStoreError(message);
   }
