@@ -47,7 +47,12 @@ type EditorDisplayRepresentation = {
 type UnderlineElementLike = {
   tagName: string;
   classList?: { contains: (className: string) => boolean };
-  style?: { textDecoration?: string; textDecorationLine?: string };
+  style?: {
+    fontStyle?: string;
+    fontWeight?: string;
+    textDecoration?: string;
+    textDecorationLine?: string;
+  };
 };
 
 function escapeHtml(text: string) {
@@ -176,6 +181,20 @@ export function normalizeEditorText(text: string) {
   return text.replace(/\r\n/g, "\n").replace(/\u00a0/g, " ");
 }
 
+export function isBoldElement(node: UnderlineElementLike) {
+  if (node.tagName === "STRONG" || node.tagName === "B") return true;
+  const fontWeight = `${node.style?.fontWeight ?? ""}`.toLowerCase();
+  if (!fontWeight) return false;
+  if (fontWeight === "bold" || fontWeight === "bolder") return true;
+  const numericWeight = Number.parseInt(fontWeight, 10);
+  return Number.isFinite(numericWeight) && numericWeight >= 600;
+}
+
+export function isItalicElement(node: UnderlineElementLike) {
+  if (node.tagName === "EM" || node.tagName === "I") return true;
+  return `${node.style?.fontStyle ?? ""}`.toLowerCase().includes("italic");
+}
+
 export function isUnderlineElement(node: UnderlineElementLike) {
   if (node.tagName === "U") return true;
   if (node.classList?.contains("editor-format-underline")) return true;
@@ -199,8 +218,8 @@ export function serializeEditorDom(root: HTMLElement): string {
 
     const content = Array.from(node.childNodes).map(serializeNode).join("");
 
-    if (node.tagName === "STRONG" || node.tagName === "B") return `**${content}**`;
-    if (node.tagName === "EM" || node.tagName === "I") return `_${content}_`;
+    if (isBoldElement(node)) return `**${content}**`;
+    if (isItalicElement(node)) return `_${content}_`;
     if (isUnderlineElement(node)) return `__${content}__`;
 
     return content;

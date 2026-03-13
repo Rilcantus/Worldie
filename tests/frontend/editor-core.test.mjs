@@ -9,6 +9,8 @@ import {
   findActiveInlinePairExit,
   findEmptyInlinePairAtCursor,
   findInlinePairAutoInsert,
+  isBoldElement,
+  isItalicElement,
   getFormattingState,
   getSlashCommandMatch,
   isUnderlineElement,
@@ -115,6 +117,19 @@ test("normalizePastedText standardizes quote prefixes and list markers", () => {
   assert.equal(normalizePastedText("│ quoted\n| also quoted"), "> quoted\n> also quoted");
   assert.equal(normalizePastedText("  1) First\n  * Second"), "1. First\n- Second");
 });
+test("isBoldElement detects semantic and inline-style bold markup", () => {
+  assert.equal(isBoldElement({ tagName: "STRONG" }), true);
+  assert.equal(isBoldElement({ tagName: "SPAN", style: { fontWeight: "bold" } }), true);
+  assert.equal(isBoldElement({ tagName: "SPAN", style: { fontWeight: "700" } }), true);
+  assert.equal(isBoldElement({ tagName: "SPAN", style: { fontWeight: "500" } }), false);
+});
+
+test("isItalicElement detects semantic and inline-style italic markup", () => {
+  assert.equal(isItalicElement({ tagName: "EM" }), true);
+  assert.equal(isItalicElement({ tagName: "SPAN", style: { fontStyle: "italic" } }), true);
+  assert.equal(isItalicElement({ tagName: "SPAN", style: { fontStyle: "normal" } }), false);
+});
+
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {
   assert.equal(isUnderlineElement({ tagName: "U" }), true);
   assert.equal(
