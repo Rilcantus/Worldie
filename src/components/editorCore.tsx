@@ -947,6 +947,7 @@ function isSceneBreakLine(line: string) {
 
 export function getFormattingState(text: string, selection: SelectionOffsets | null): EditorFormattingState {
   const line = getCurrentLine(text, selection);
+  const lineBody = line.trimStart();
   const noteBlock = isLineWithinNoteBlock(text, selection);
   return {
     bold: isMarkerActiveAcrossSelection(text, selection, "**"),
@@ -954,8 +955,8 @@ export function getFormattingState(text: string, selection: SelectionOffsets | n
       isMarkerActiveAcrossSelection(text, selection, "_") ||
       isMarkerActiveAcrossSelection(text, selection, "*"),
     underline: isMarkerActiveAcrossSelection(text, selection, "__"),
-    heading1: line.startsWith("# "),
-    heading2: line.startsWith("## "),
+    heading1: lineBody.startsWith("# "),
+    heading2: lineBody.startsWith("## "),
     list: isBulletListLine(line),
     orderedList: isOrderedListLine(line),
     quote: isQuoteLine(line) && !noteBlock,
@@ -1431,19 +1432,21 @@ export function renderPreviewContent(
     flushQuotes();
     flushLists();
 
-    if (line.startsWith("## ")) {
+    const lineBody = line.trimStart();
+
+    if (lineBody.startsWith("## ")) {
       blocks.push(
         <h2 key={`h2-${index}`} className="editor-preview-heading editor-preview-heading-secondary">
-          {renderInlinePreview(line.slice(3), linkedLoreByTitle, onOpenLore, `h2-${index}`)}
+          {renderInlinePreview(lineBody.slice(3), linkedLoreByTitle, onOpenLore, `h2-${index}`)}
         </h2>,
       );
       return;
     }
 
-    if (line.startsWith("# ")) {
+    if (lineBody.startsWith("# ")) {
       blocks.push(
         <h1 key={`h1-${index}`} className="editor-preview-heading">
-          {renderInlinePreview(line.slice(2), linkedLoreByTitle, onOpenLore, `h1-${index}`)}
+          {renderInlinePreview(lineBody.slice(2), linkedLoreByTitle, onOpenLore, `h1-${index}`)}
         </h1>,
       );
       return;
