@@ -36,9 +36,12 @@ export function useLoreTypes(
   const [hasLoaded, setHasLoaded] = useState(false);
   const loadRequestId = useRef(0);
   const currentSaveProjectIdRef = useRef<string | null>(activeProjectId);
+  const currentSaveVersionRef = useRef(0);
+  const currentSaveRequestIdRef = useRef(0);
 
   useEffect(() => {
     currentSaveProjectIdRef.current = activeProjectId;
+    currentSaveVersionRef.current += 1;
   }, [activeProjectId]);
 
   useEffect(() => {
@@ -67,7 +70,11 @@ export function useLoreTypes(
   useEffect(() => {
     if (!activeProjectId || !hasLoaded) return;
     const saveProjectId = activeProjectId;
+    const saveVersion = currentSaveVersionRef.current;
+    const saveRequestId = ++currentSaveRequestIdRef.current;
     void saveProjectLoreTypes(saveProjectId, loreTypes).catch(async (error) => {
+      if (currentSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentSaveVersionRef.current !== saveVersion) return;
       if (currentSaveProjectIdRef.current !== saveProjectId) return;
       await recoverActiveProjectError(error, "Worldie could not save lore types for this project.");
     });
@@ -92,12 +99,14 @@ export function useLoreTypes(
       order: loreTypes.length,
       isSystem: false,
     };
+    currentSaveVersionRef.current += 1;
     setLoreTypes((prev) => sortLoreTypes([...prev, nextType]).map((type, index) => ({ ...type, order: index })));
     setSelectedLoreTypeId(nextType.id);
     return nextType;
   }, [loreTypes.length]);
 
   const updateLoreType = useCallback((loreTypeId: string, updates: Partial<Omit<LoreType, "id" | "isSystem">>) => {
+    currentSaveVersionRef.current += 1;
     setLoreTypes((prev) =>
       prev.map((type) => {
         if (type.id !== loreTypeId) return type;
@@ -113,10 +122,12 @@ export function useLoreTypes(
   }, []);
 
   const deleteLoreType = useCallback((loreTypeId: string) => {
+    currentSaveVersionRef.current += 1;
     setLoreTypes((prev) => removeLoreTypeWithOrder(prev, loreTypeId));
   }, []);
 
   const moveLoreType = useCallback((loreTypeId: string, direction: -1 | 1) => {
+    currentSaveVersionRef.current += 1;
     setLoreTypes((prev) => {
       const ordered = sortLoreTypes(prev);
       const index = ordered.findIndex((type) => type.id === loreTypeId);

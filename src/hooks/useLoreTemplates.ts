@@ -62,10 +62,13 @@ export function useLoreTemplates(
   const [hasLoaded, setHasLoaded] = useState(false);
   const loadRequestId = useRef(0);
   const currentSaveProjectIdRef = useRef<string | null>(activeProjectId);
+  const currentSaveVersionRef = useRef(0);
+  const currentSaveRequestIdRef = useRef(0);
   const defaultLoreTypeId = useMemo(() => getDefaultLoreTypeId(loreTypes) ?? "", [loreTypes]);
 
   useEffect(() => {
     currentSaveProjectIdRef.current = activeProjectId;
+    currentSaveVersionRef.current += 1;
   }, [activeProjectId]);
 
   useEffect(() => {
@@ -94,7 +97,11 @@ export function useLoreTemplates(
   useEffect(() => {
     if (!activeProjectId || !hasLoaded) return;
     const saveProjectId = activeProjectId;
+    const saveVersion = currentSaveVersionRef.current;
+    const saveRequestId = ++currentSaveRequestIdRef.current;
     void saveProjectLoreTemplates(saveProjectId, templates).catch(async (error) => {
+      if (currentSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentSaveVersionRef.current !== saveVersion) return;
       if (currentSaveProjectIdRef.current !== saveProjectId) return;
       await recoverActiveProjectError(error, "Worldie could not save lore templates for this project.");
     });
@@ -121,22 +128,26 @@ export function useLoreTemplates(
       loreTypeId,
       traitDefinitions: [],
     };
+    currentSaveVersionRef.current += 1;
     setTemplates((prev) => [nextTemplate, ...prev]);
     setSelectedTemplateId(nextTemplate.id);
     return nextTemplate;
   }, [defaultLoreTypeId]);
 
   const updateTemplate = useCallback((templateId: string, updates: Partial<Omit<LoreTemplate, "id">>) => {
+    currentSaveVersionRef.current += 1;
     setTemplates((prev) =>
       prev.map((template) => (template.id === templateId ? { ...template, ...updates } : template)),
     );
   }, []);
 
   const deleteTemplate = useCallback((templateId: string) => {
+    currentSaveVersionRef.current += 1;
     setTemplates((prev) => removeTemplateById(prev, templateId));
   }, []);
 
   const addTraitDefinition = useCallback((templateId: string) => {
+    currentSaveVersionRef.current += 1;
     setTemplates((prev) =>
       prev.map((template) => {
         if (template.id !== templateId) return template;
@@ -159,6 +170,7 @@ export function useLoreTemplates(
     traitId: string,
     updates: Partial<Omit<TraitDefinition, "id">>,
   ) => {
+    currentSaveVersionRef.current += 1;
     setTemplates((prev) =>
       prev.map((template) =>
         template.id === templateId
@@ -174,6 +186,7 @@ export function useLoreTemplates(
   }, []);
 
   const deleteTraitDefinition = useCallback((templateId: string, traitId: string) => {
+    currentSaveVersionRef.current += 1;
     setTemplates((prev) =>
       prev.map((template) =>
         template.id === templateId
@@ -187,6 +200,7 @@ export function useLoreTemplates(
   }, []);
 
   const moveTraitDefinition = useCallback((templateId: string, traitId: string, direction: -1 | 1) => {
+    currentSaveVersionRef.current += 1;
     setTemplates((prev) =>
       prev.map((template) => {
         if (template.id !== templateId) return template;
@@ -211,6 +225,7 @@ export function useLoreTemplates(
   );
 
   const reassignLoreTypeInTemplates = useCallback((fromLoreTypeId: string, toLoreTypeId: string) => {
+    currentSaveVersionRef.current += 1;
     setTemplates((prev) =>
       prev.map((template) =>
         template.loreTypeId === fromLoreTypeId ? { ...template, loreTypeId: toLoreTypeId } : template,
