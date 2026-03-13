@@ -589,7 +589,6 @@ function serializeBlockPasteNode(node: Node): string {
   const tag = node.tagName;
   const inlineContent = () => Array.from(node.childNodes).map(serializeInlinePasteNode).join("");
   const childBlocks = () => Array.from(node.childNodes).map(serializeBlockPasteNode).join("");
-  const childBlockContent = (child: Element) => Array.from(child.childNodes).map(serializeBlockPasteNode).join("");
   const clean = (text: string) =>
     normalizePastedText(text)
       .split("\n")
@@ -606,6 +605,37 @@ function serializeBlockPasteNode(node: Node): string {
       .join("\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
+  const isBlockPasteElement = (child: Node) =>
+    child instanceof HTMLElement &&
+    ["UL", "OL", "BLOCKQUOTE", "PRE", "P", "DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER", "H1", "H2", "H3", "HR"].includes(
+      child.tagName,
+    );
+  const buildListItemContent = (child: Element) => {
+    const inlineParts: string[] = [];
+    const blockParts: string[] = [];
+
+    for (const nestedChild of Array.from(child.childNodes)) {
+      if (isBlockPasteElement(nestedChild)) {
+        blockParts.push(serializeBlockPasteNode(nestedChild));
+      } else {
+        inlineParts.push(serializeInlinePasteNode(nestedChild));
+      }
+    }
+
+    const head = clean(inlineParts.join(""));
+    const tail = blockParts
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join("\n");
+    if (head && tail) return `${head}\n${tail}`;
+    return head || tail;
+  };
+  const formatListItem = (prefix: string, content: string) => {
+    const normalized = content.trimEnd();
+    if (!normalized) return prefix.trimEnd();
+    const [firstLine, ...rest] = normalized.split("\n");
+    return `${prefix}${firstLine}${rest.map((line) => `\n  ${line}`).join("")}`;
+  };
 
   if (tag === "BR") return "\n";
   if (tag === "HR") return "* * *\n\n";
@@ -624,14 +654,14 @@ function serializeBlockPasteNode(node: Node): string {
   if (tag === "UL") {
     const items = Array.from(node.children)
       .filter((child) => child.tagName === "LI")
-      .map((child) => `- ${clean(childBlockContent(child))}`);
+      .map((child) => formatListItem("- ", buildListItemContent(child)));
     return items.join("\n") + (items.length > 0 ? "\n\n" : "");
   }
 
   if (tag === "OL") {
     const items = Array.from(node.children)
       .filter((child) => child.tagName === "LI")
-      .map((child, index) => `${index + 1}. ${clean(childBlockContent(child))}`);
+      .map((child, index) => formatListItem(`${index + 1}. `, buildListItemContent(child)));
     return items.join("\n") + (items.length > 0 ? "\n\n" : "");
   }
 

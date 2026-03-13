@@ -247,6 +247,27 @@ test("extractEditorTextFromHtml preserves indentation inside pasted blockquotes"
   });
 });
 
+test("extractEditorTextFromHtml preserves nested html list structure", () => {
+  withFakeHtmlDocument((FakeElement, FakeTextNode) => [
+    new FakeElement("UL", [], [
+      new FakeElement("LI", [
+        new FakeTextNode("Parent"),
+        new FakeElement("UL", [], [
+          new FakeElement("LI", [new FakeTextNode("Child bullet")]),
+        ]),
+        new FakeElement("OL", [], [
+          new FakeElement("LI", [new FakeTextNode("Child step")]),
+        ]),
+      ]),
+    ]),
+  ], () => {
+    assert.equal(
+      extractEditorTextFromHtml("<ul><li>Parent<ul><li>Child bullet</li></ul><ol><li>Child step</li></ol></li></ul>"),
+      "- Parent\n  - Child bullet\n  1. Child step",
+    );
+  });
+});
+
 test("extractEditorTextFromHtml preserves indentation inside pasted pre blocks", () => {
   withFakeHtmlDocument((FakeElement, FakeTextNode) => [
     new FakeElement("PRE", [
