@@ -18,6 +18,7 @@ import {
   isUnderlineElement,
   moveSelectedLineBlock,
   normalizePastedText,
+  serializeFormattedInlineContent,
   sourceSelectionToDisplay,
   toggleLinePrefix,
   trimTypewriterCommit,
@@ -147,6 +148,21 @@ test("combined italic underline markers round-trip through editor display mappin
   assert.equal(representation.html, "<em><u>Text</u></em>");
   assert.deepEqual(sourceSelectionToDisplay(text, { start: 3, end: 7 }), { start: 0, end: 4 });
   assert.deepEqual(displaySelectionToSource(text, { start: 0, end: 4 }), { start: 3, end: 7 });
+});
+
+test("serializeFormattedInlineContent preserves semantic and inline-style combinations", () => {
+  assert.equal(
+    serializeFormattedInlineContent("Text", { tagName: "SPAN", style: { fontWeight: "700", fontStyle: "italic" } }),
+    "**_Text_**",
+  );
+  assert.equal(
+    serializeFormattedInlineContent("Text", { tagName: "SPAN", style: { fontStyle: "italic", textDecorationLine: "underline" } }),
+    "*__Text__*",
+  );
+  assert.equal(
+    serializeFormattedInlineContent("Text", { tagName: "U" }),
+    "__Text__",
+  );
 });
 
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {

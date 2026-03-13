@@ -217,6 +217,16 @@ export function wrapSerializedInlineContent(
   return nextContent;
 }
 
+export function serializeFormattedInlineContent(content: string, node: UnderlineElementLike) {
+  const bold = isBoldElement(node);
+  const italic = isItalicElement(node);
+  const underline = isUnderlineElement(node);
+  if (bold || italic || underline) {
+    return wrapSerializedInlineContent(content, { bold, italic, underline });
+  }
+  return content;
+}
+
 export function serializeEditorDom(root: HTMLElement): string {
   const serializeNode = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -232,15 +242,7 @@ export function serializeEditorDom(root: HTMLElement): string {
     }
 
     const content = Array.from(node.childNodes).map(serializeNode).join("");
-
-    const bold = isBoldElement(node);
-    const italic = isItalicElement(node);
-    const underline = isUnderlineElement(node);
-    if (bold || italic || underline) {
-      return wrapSerializedInlineContent(content, { bold, italic, underline });
-    }
-
-    return content;
+    return serializeFormattedInlineContent(content, node);
   };
 
   return normalizeEditorText(Array.from(root.childNodes).map(serializeNode).join(""));
@@ -558,12 +560,7 @@ function serializeInlinePasteNode(node: Node): string {
   }
 
   const content = Array.from(node.childNodes).map(serializeInlinePasteNode).join("");
-
-  if (node.tagName === "STRONG" || node.tagName === "B") return `**${content}**`;
-  if (node.tagName === "EM" || node.tagName === "I") return `_${content}_`;
-  if (node.tagName === "U") return `__${content}__`;
-
-  return content;
+  return serializeFormattedInlineContent(content, node);
 }
 
 function serializeBlockPasteNode(node: Node): string {
