@@ -63,6 +63,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const currentProjectRenameRequestIdRef = useRef(0);
   const currentWorldRenameVersionRef = useRef(0);
   const currentWorldRenameRequestIdRef = useRef(0);
+  const worldCreateRequestIdRef = useRef(0);
   const currentScopeRef = useRef<{ projectId: string | null; worldId: string | null }>({
     projectId: null,
     worldId: null,
@@ -335,29 +336,36 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     const actionProjectId = activeProjectId;
     const index = worlds.length + 1;
     const title = `New World ${index}`;
-    const nextColor = WORLD_COLORS[index % WORLD_COLORS.length];
+    const requestId = ++worldCreateRequestIdRef.current;
     void createWorld(actionProjectId, title)
       .then((created) => {
         if (currentScopeRef.current.projectId !== actionProjectId) return;
-        const newWorld: WorldUI = {
-          id: created.id,
-          name: created.title,
-          color: nextColor,
-          isOpen: true,
-          editorCount: 0,
-          loreCount: 0,
-          loreCategories: buildLoreCategories(currentLoreTypesRef.current),
-        };
         setWorlds((prev) => {
+          if (prev.some((world) => world.id === created.id)) return prev;
+          const shouldActivate = worldCreateRequestIdRef.current === requestId;
+          const nextColor = WORLD_COLORS[prev.length % WORLD_COLORS.length];
+          const nextWorld: WorldUI = {
+            id: created.id,
+            name: created.title,
+            color: nextColor,
+            isOpen: shouldActivate,
+            editorCount: 0,
+            loreCount: 0,
+            loreCategories: buildLoreCategories(currentLoreTypesRef.current),
+          };
+          if (!shouldActivate) {
+            return prev.concat(nextWorld);
+          }
           let changed = false;
           const closed = prev.map((world) => {
             if (!world.isOpen) return world;
             changed = true;
             return { ...world, isOpen: false };
           });
-          return (changed ? closed : prev).concat(newWorld);
+          return (changed ? closed : prev).concat(nextWorld);
         });
-        setActiveWorldId((current) => (current === newWorld.id ? current : newWorld.id));
+        if (worldCreateRequestIdRef.current !== requestId) return;
+        setActiveWorldId((current) => (current === created.id ? current : created.id));
       })
       .catch((error) => {
         if (currentScopeRef.current.projectId !== actionProjectId) return;
