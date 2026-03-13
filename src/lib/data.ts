@@ -23,6 +23,16 @@ type Project = {
   createdAt?: string;
 };
 
+type ProjectStoreProjectsResponse = {
+  projects?: Project[];
+  project?: Project | null;
+};
+
+type ProjectStoreProjectsResult = {
+  projects: Project[];
+  project: Project | null;
+};
+
 type World = {
   id: string;
   projectId: string;
@@ -257,22 +267,26 @@ export async function listProjects(): Promise<Project[]> {
 }
 
 export async function createProject(title: string): Promise<Project[]> {
-  return createProjectAtPath(title, "");
+  const result = await createProjectAtPath(title, "");
+  return result.projects;
 }
 
-export async function createProjectAtPath(title: string, filepath: string): Promise<Project[]> {
-  const response = await invokeProjectStore<{ projects?: Project[] }>("create_project", { title, filepath });
-  return response.projects ?? [];
+export async function createProjectAtPath(title: string, filepath: string): Promise<ProjectStoreProjectsResult> {
+  const response = await invokeProjectStore<ProjectStoreProjectsResponse>("create_project", { title, filepath });
+  return { projects: response.projects ?? [], project: response.project ?? null };
 }
 
-export async function openProjectFile(filepath: string): Promise<Project[]> {
-  const response = await invokeProjectStore<{ projects?: Project[] }>("open_project", { filepath });
-  return response.projects ?? [];
+export async function openProjectFile(filepath: string): Promise<ProjectStoreProjectsResult> {
+  const response = await invokeProjectStore<ProjectStoreProjectsResponse>("open_project", { filepath });
+  return { projects: response.projects ?? [], project: response.project ?? null };
 }
 
-export async function saveProjectAs(projectId: string, filepath: string): Promise<Project[]> {
-  const response = await invokeProjectStore<{ projects?: Project[] }>("save_project_as", { projectId, filepath });
-  return response.projects ?? [];
+export async function saveProjectAs(projectId: string, filepath: string): Promise<ProjectStoreProjectsResult> {
+  const response = await invokeProjectStore<ProjectStoreProjectsResponse>("save_project_as", {
+    projectId,
+    filepath,
+  });
+  return { projects: response.projects ?? [], project: response.project ?? null };
 }
 
 export async function updateProjectTitle(projectId: string, title: string): Promise<Project[]> {

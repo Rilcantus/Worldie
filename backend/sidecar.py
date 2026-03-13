@@ -53,6 +53,20 @@ def _reply(payload: Dict[str, Any]) -> None:
     sys.stdout.write(json.dumps(payload))
 
 
+def _serialize_project(row: Any) -> Dict[str, Any]:
+    return {
+        "id": row[0],
+        "title": row[1],
+        "filepath": row[2],
+        "lastEdited": row[3],
+        "createdAt": row[4],
+    }
+
+
+def _serialize_projects(rows: Any) -> list[Dict[str, Any]]:
+    return [_serialize_project(row) for row in rows]
+
+
 def _handle_request(request: Dict[str, Any]) -> Dict[str, Any]:
     try:
         return _dispatch_request(request)
@@ -71,55 +85,34 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         projects = get_all_projects()
         return {
             "status": "ok",
-            "projects": [
-                {
-                    "id": row[0],
-                    "title": row[1],
-                    "filepath": row[2],
-                    "lastEdited": row[3],
-                    "createdAt": row[4],
-                }
-                for row in projects
-            ],
+            "projects": _serialize_projects(projects),
         }
 
     if action == "create_project":
         title = data.get("title", "Untitled Project")
         filepath = data.get("filepath", "")
-        add_project(title, filepath)
+        project_id, project_filepath = add_project(title, filepath)
         projects = get_all_projects()
+        project = next((row for row in projects if row[0] == project_id), None)
         return {
             "status": "ok",
-            "projects": [
-                {
-                    "id": row[0],
-                    "title": row[1],
-                    "filepath": row[2],
-                    "lastEdited": row[3],
-                    "createdAt": row[4],
-                }
-                for row in projects
-            ],
+            "projects": _serialize_projects(projects),
+            "project": _serialize_project(project)
+            if project
+            else {"id": project_id, "title": title, "filepath": project_filepath},
         }
 
     if action == "open_project":
         filepath = data.get("filepath")
         if not filepath:
             return {"status": "error", "message": "filepath required"}
-        open_project(filepath)
+        project_id, _, resolved_path = open_project(filepath)
         projects = get_all_projects()
+        project = next((row for row in projects if row[0] == project_id), None)
         return {
             "status": "ok",
-            "projects": [
-                {
-                    "id": row[0],
-                    "title": row[1],
-                    "filepath": row[2],
-                    "lastEdited": row[3],
-                    "createdAt": row[4],
-                }
-                for row in projects
-            ],
+            "projects": _serialize_projects(projects),
+            "project": _serialize_project(project) if project else {"id": project_id, "filepath": resolved_path},
         }
 
     if action == "save_project_as":
@@ -127,20 +120,15 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         filepath = data.get("filepath")
         if not project_id or not filepath:
             return {"status": "error", "message": "projectId and filepath required"}
-        save_project_as(project_id, filepath)
+        copied_project_id, _, resolved_path = save_project_as(project_id, filepath)
         projects = get_all_projects()
+        project = next((row for row in projects if row[0] == copied_project_id), None)
         return {
             "status": "ok",
-            "projects": [
-                {
-                    "id": row[0],
-                    "title": row[1],
-                    "filepath": row[2],
-                    "lastEdited": row[3],
-                    "createdAt": row[4],
-                }
-                for row in projects
-            ],
+            "projects": _serialize_projects(projects),
+            "project": _serialize_project(project)
+            if project
+            else {"id": copied_project_id, "filepath": resolved_path},
         }
 
     if action == "update_project":
@@ -152,16 +140,7 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         projects = get_all_projects()
         return {
             "status": "ok",
-            "projects": [
-                {
-                    "id": row[0],
-                    "title": row[1],
-                    "filepath": row[2],
-                    "lastEdited": row[3],
-                    "createdAt": row[4],
-                }
-                for row in projects
-            ],
+            "projects": _serialize_projects(projects),
         }
 
     if action == "delete_project":
@@ -172,16 +151,7 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         projects = get_all_projects()
         return {
             "status": "ok",
-            "projects": [
-                {
-                    "id": row[0],
-                    "title": row[1],
-                    "filepath": row[2],
-                    "lastEdited": row[3],
-                    "createdAt": row[4],
-                }
-                for row in projects
-            ],
+            "projects": _serialize_projects(projects),
         }
     if action == "list_worlds":
         project_id = data.get("projectId")

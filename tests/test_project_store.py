@@ -116,8 +116,9 @@ class ProjectStoreTests(unittest.TestCase):
             }
         )
         self.assertEqual(create_response["status"], "ok")
-        project = create_response["projects"][0]
+        project = create_response["project"]
         project_id = project["id"]
+        self.assertEqual(Path(project["filepath"]), (self.temp_path / "sidecar.worldie").resolve())
 
         create_world_response = self.sidecar._handle_request(
             {"action": "create_world", "data": {"projectId": project_id, "title": "Emberfall"}}
@@ -192,6 +193,34 @@ class ProjectStoreTests(unittest.TestCase):
         )
         self.assertEqual(len(list_templates_response["templates"]), 1)
         self.assertEqual(list_templates_response["templates"][0]["name"], "Hero")
+
+    def test_sidecar_project_file_actions_return_target_project(self):
+        create_response = self.sidecar._handle_request(
+            {
+                "action": "create_project",
+                "data": {
+                    "title": "Targeted Project",
+                    "filepath": str(self.temp_path / "targeted.worldie"),
+                },
+            }
+        )
+        self.assertEqual(create_response["status"], "ok")
+        created_project = create_response["project"]
+
+        open_response = self.sidecar._handle_request(
+            {"action": "open_project", "data": {"filepath": str(self.temp_path / "targeted.worldie")}}
+        )
+        self.assertEqual(open_response["status"], "ok")
+        self.assertEqual(open_response["project"]["id"], created_project["id"])
+        self.assertEqual(Path(open_response["project"]["filepath"]), (self.temp_path / "targeted.worldie").resolve())
+
+        copy_path = self.temp_path / "copies" / "targeted-copy.worldie"
+        save_as_response = self.sidecar._handle_request(
+            {"action": "save_project_as", "data": {"projectId": created_project["id"], "filepath": str(copy_path)}}
+        )
+        self.assertEqual(save_as_response["status"], "ok")
+        self.assertEqual(Path(save_as_response["project"]["filepath"]), copy_path.resolve())
+        self.assertNotEqual(save_as_response["project"]["id"], created_project["id"])
 
     def test_delete_world_cascades_world_scoped_content(self):
         project_uuid, _ = self.db_manager.add_project("Cascade Test", "")

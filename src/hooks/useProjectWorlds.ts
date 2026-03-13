@@ -369,17 +369,20 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       const filepath = await pickNewProjectFile(`${suggestedTitle}.worldie`);
       if (!filepath) return false;
       let nextProjects: Project[] = [];
+      let project: Project | null = null;
       try {
-        nextProjects = await createProjectAtPath(
+        const result = await createProjectAtPath(
           getProjectFilename({ filepath, title: suggestedTitle }).replace(/\.worldie$/i, ""),
           filepath,
         );
+        nextProjects = result.projects;
+        project = result.project;
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not create the new project file.");
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const project = getProjectByFilepath(nextProjects, filepath);
+      project ??= getProjectByFilepath(nextProjects, filepath);
       if (!project) {
         showToast("Worldie could not find the newly created project file.");
         return false;
@@ -421,14 +424,17 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       const filepath = await pickOpenProjectFile();
       if (!filepath) return false;
       let nextProjects: Project[] = [];
+      let project: Project | null = null;
       try {
-        nextProjects = await openProjectFile(filepath);
+        const result = await openProjectFile(filepath);
+        nextProjects = result.projects;
+        project = result.project;
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not open that project file.");
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const project = getProjectByFilepath(nextProjects, filepath);
+      project ??= getProjectByFilepath(nextProjects, filepath);
       if (!project) {
         showToast("Worldie could not find the opened project in the project list.");
         return false;
@@ -464,14 +470,17 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         return true;
       }
       let nextProjects: Project[] = [];
+      let reopened: Project | null = null;
       try {
-        nextProjects = await openProjectFile(project.filepath);
+        const result = await openProjectFile(project.filepath);
+        nextProjects = result.projects;
+        reopened = result.project;
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not reopen that project file.");
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const reopened = getProjectByFilepath(nextProjects, project.filepath);
+      reopened ??= getProjectByFilepath(nextProjects, project.filepath);
       if (!reopened) {
         showToast("Worldie could not find the reopened recent project.");
         return false;
@@ -493,14 +502,17 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       const filepath = await pickSaveProjectAsFile(suggestedName);
       if (!filepath) return false;
       let nextProjects: Project[] = [];
+      let savedProject: Project | null = null;
       try {
-        nextProjects = await saveProjectAs(activeProjectId, filepath);
+        const result = await saveProjectAs(activeProjectId, filepath);
+        nextProjects = result.projects;
+        savedProject = result.project;
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Worldie could not save a copy of this project.");
         return false;
       }
       setProjectsIfChanged(nextProjects);
-      const savedProject = getProjectByFilepath(nextProjects, filepath);
+      savedProject ??= getProjectByFilepath(nextProjects, filepath);
       if (!savedProject) {
         showToast("Worldie could not find the saved project copy.");
         return false;
