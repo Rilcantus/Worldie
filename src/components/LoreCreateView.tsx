@@ -35,15 +35,25 @@ export const LoreCreateView = memo(function LoreCreateView({
   const [loreTypeId, setLoreTypeId] = useState(loreTypes[0]?.id ?? "");
   const [tags, setTags] = useState("");
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const loreTypeIds = useMemo(() => new Set(loreTypes.map((type) => type.id)), [loreTypes]);
+  const templatesByLoreTypeId = useMemo(() => {
+    const grouped = new Map<string, LoreTemplate[]>();
+    for (const template of templates) {
+      const existing = grouped.get(template.loreTypeId) ?? [];
+      existing.push(template);
+      grouped.set(template.loreTypeId, existing);
+    }
+    return grouped;
+  }, [templates]);
 
   useEffect(() => {
-    if (loreTypeId && loreTypes.some((type) => type.id === loreTypeId)) return;
+    if (loreTypeId && loreTypeIds.has(loreTypeId)) return;
     setLoreTypeId(loreTypes[0]?.id ?? "");
-  }, [loreTypeId, loreTypes]);
+  }, [loreTypeId, loreTypeIds, loreTypes]);
 
   const filteredTemplates = useMemo(
-    () => templates.filter((template) => template.loreTypeId === loreTypeId),
-    [templates, loreTypeId],
+    () => templatesByLoreTypeId.get(loreTypeId) ?? [],
+    [loreTypeId, templatesByLoreTypeId],
   );
   const hasLoreTypes = loreTypes.length > 0;
 
