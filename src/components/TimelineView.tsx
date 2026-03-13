@@ -114,11 +114,13 @@ export const TimelineView = memo(function TimelineView({
   const timelineSearchInputId = "timeline-search";
   const timelineTypeFilterId = "timeline-type-filter";
   const timelineLinkedFilterId = "timeline-linked-filter";
+  const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
+  const getLorePageById = (pageId: string | null | undefined) => (pageId ? lorePagesById.get(pageId) ?? null : null);
 
   const filteredTimelineEvents = useMemo(() => {
     const query = timelineSearch.trim().toLowerCase();
     return timelineEvents.filter((event) => {
-      const linkedTitle = lorePages.find((page) => page.id === event.linkedPageId)?.title ?? "";
+      const linkedTitle = getLorePageById(event.linkedPageId)?.title ?? "";
       const matchesQuery =
         !query ||
         event.title.toLowerCase().includes(query) ||
@@ -132,10 +134,10 @@ export const TimelineView = memo(function TimelineView({
         (timelineLinkedFilter === "unlinked" ? !event.linkedPageId : event.linkedPageId === timelineLinkedFilter);
       return matchesQuery && matchesType && matchesLinked;
     });
-  }, [lorePages, timelineEvents, timelineLinkedFilter, timelineSearch, timelineTypeFilter]);
+  }, [lorePagesById, timelineEvents, timelineLinkedFilter, timelineSearch, timelineTypeFilter]);
 
   const orderedEvents = useMemo(() => sortTimelineEvents(filteredTimelineEvents), [filteredTimelineEvents]);
-  const activeLinkedPage = lorePages.find((page) => page.id === timelineLinkedPageId) ?? null;
+  const activeLinkedPage = getLorePageById(timelineLinkedPageId);
   const allTimelineTypes = useMemo(
     () => [...new Set(timelineEvents.map((event) => event.eventType || "event"))].sort((a, b) => a.localeCompare(b)),
     [timelineEvents],
@@ -487,11 +489,10 @@ export const TimelineView = memo(function TimelineView({
             {orderedEvents.length === 0 ? (
               <div className="rp-empty">Your timeline will build here as you add major beats.</div>
             ) : (
-              <div className="timeline-canvas">
-                <div className="timeline-canvas-track" />
+                <div className="timeline-canvas">
+                  <div className="timeline-canvas-track" />
                 {featuredTimelineEvents.map((event, index) => {
-                  const linkedPage =
-                    lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                  const linkedPage = getLorePageById(event.linkedPageId);
                   const position =
                     featuredTimelineEvents.length <= 1
                       ? 0
@@ -589,7 +590,7 @@ export const TimelineView = memo(function TimelineView({
           ) : (
             <div className="timeline-outline">
               {orderedEvents.map((event) => {
-                const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                const linkedPage = getLorePageById(event.linkedPageId);
                 return (
                   <button
                     key={`${event.id}-outline`}
@@ -636,7 +637,7 @@ export const TimelineView = memo(function TimelineView({
                   </div>
                   <div className="timeline-track-list">
                     {events.slice(0, 4).map((event) => {
-                      const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                      const linkedPage = getLorePageById(event.linkedPageId);
                       return (
                         <div key={`${label}-${event.id}-era`} className="timeline-track-row">
                           <button
@@ -692,7 +693,7 @@ export const TimelineView = memo(function TimelineView({
                   </div>
                   <div className="timeline-track-list">
                     {events.map((event) => {
-                      const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                      const linkedPage = getLorePageById(event.linkedPageId);
                       return (
                         <button
                           key={`${label}-${event.id}`}
@@ -744,7 +745,7 @@ export const TimelineView = memo(function TimelineView({
               </div>
               <div className="timeline-track-list">
                 {focusedTrackEvents.slice(0, 6).map((event) => {
-                  const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                  const linkedPage = getLorePageById(event.linkedPageId);
                   return (
                     <div key={`focus-${event.id}`} className="timeline-track-row">
                       <button
@@ -786,7 +787,7 @@ export const TimelineView = memo(function TimelineView({
               </div>
               <div className="timeline-track-list">
                 {focusedEraEvents.slice(0, 6).map((event) => {
-                  const linkedPage = lorePages.find((page) => page.id === event.linkedPageId) ?? null;
+                  const linkedPage = getLorePageById(event.linkedPageId);
                   return (
                     <div key={`era-focus-${event.id}`} className="timeline-track-row">
                       <button
