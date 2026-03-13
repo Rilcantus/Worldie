@@ -312,7 +312,7 @@ export function useWorldStructures({
         notes: seed?.notes ?? "",
       });
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not create the relationship.");
+      await recoverActiveProjectError(error, "Worldie could not create the relationship.");
       return null;
     }
     setRelationships((prev) => [created, ...prev]);
@@ -347,7 +347,7 @@ export function useWorldStructures({
       markRelationshipSaved();
     } catch (error) {
       setRelationshipSaveState("error");
-      showToast(error instanceof Error ? error.message : "Worldie could not save the relationship.");
+      await recoverActiveProjectError(error, "Worldie could not save the relationship.");
       return;
     }
     setRelationships((prev) =>
@@ -372,7 +372,7 @@ export function useWorldStructures({
     try {
       await deleteRelationship(activeProjectId, relationshipId);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not delete the relationship.");
+      await recoverActiveProjectError(error, "Worldie could not delete the relationship.");
       return false;
     }
     const { next, first } = removeItemWithFallback(relationships, relationshipId);
@@ -447,7 +447,7 @@ export function useWorldStructures({
         description: seed?.description ?? "",
       });
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not create the timeline event.");
+      await recoverActiveProjectError(error, "Worldie could not create the timeline event.");
       return null;
     }
     setTimelineEvents((prev) => [created, ...prev]);
@@ -491,7 +491,7 @@ export function useWorldStructures({
       markTimelineSaved();
     } catch (error) {
       setTimelineSaveState("error");
-      showToast(error instanceof Error ? error.message : "Worldie could not save the timeline event.");
+      await recoverActiveProjectError(error, "Worldie could not save the timeline event.");
       return;
     }
     setTimelineEvents((prev) =>
@@ -517,7 +517,7 @@ export function useWorldStructures({
     try {
       await deleteTimelineEvent(activeProjectId, eventId);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not delete the timeline event.");
+      await recoverActiveProjectError(error, "Worldie could not delete the timeline event.");
       return false;
     }
     const { next, first } = removeItemWithFallback(timelineEvents, eventId);

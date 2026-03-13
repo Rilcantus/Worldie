@@ -371,11 +371,11 @@ export function useContentManager({
         })
         .catch((error) => {
           setDocumentSaveState("error");
-          showToast(error instanceof Error ? error.message : "Worldie could not save the current document.");
+          void recoverActiveProjectError(error, "Worldie could not save the current document.");
         });
     }, 700);
     return () => window.clearTimeout(handle);
-  }, [activeProjectId, activeDocumentId, documentTitle, documentContent, documentFolderPath]);
+  }, [activeProjectId, activeDocumentId, documentTitle, documentContent, documentFolderPath, markDocumentSaved, recoverActiveProjectError]);
 
   useEffect(() => {
     if (!activeProjectId || !activeWorldId || !defaultLoreTypeId) {
@@ -499,11 +499,21 @@ export function useContentManager({
         })
         .catch((error) => {
           setLoreSaveState("error");
-          showToast(error instanceof Error ? error.message : "Worldie could not save the current lore item.");
+          void recoverActiveProjectError(error, "Worldie could not save the current lore item.");
         });
     }, 700);
     return () => window.clearTimeout(handle);
-  }, [activeProjectId, activeLoreId, loreFields, lorePageTypeId, loreTags, loreTitle, selectedLorePageTypeName]);
+  }, [
+    activeProjectId,
+    activeLoreId,
+    loreFields,
+    lorePageTypeId,
+    loreTags,
+    loreTitle,
+    markLoreSaved,
+    recoverActiveProjectError,
+    selectedLorePageTypeName,
+  ]);
 
   const selectDocument = useCallback((doc: Document) => {
     const nextContent = doc.contentJson ?? "";
@@ -528,7 +538,7 @@ export function useContentManager({
     try {
       created = await createDocument(activeProjectId, activeWorldId, title);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not create a new document.");
+      await recoverActiveProjectError(error, "Worldie could not create a new document.");
       return null;
     }
     const nextDocs = [created, ...documents];
@@ -558,7 +568,7 @@ export function useContentManager({
       markDocumentSaved();
     } catch (error) {
       setDocumentSaveState("error");
-      showToast(error instanceof Error ? error.message : "Worldie could not save the document.");
+      await recoverActiveProjectError(error, "Worldie could not save the document.");
     }
   };
 
@@ -574,7 +584,7 @@ export function useContentManager({
         folderPath: activeDocument.folderPath ?? "",
       });
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not duplicate the document.");
+      await recoverActiveProjectError(error, "Worldie could not duplicate the document.");
       return null;
     }
     const duplicated = {
@@ -606,7 +616,7 @@ export function useContentManager({
     try {
       await deleteDocument(activeProjectId, docId);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not delete the document.");
+      await recoverActiveProjectError(error, "Worldie could not delete the document.");
       return false;
     }
     const { next: nextDocs, first: nextDocument } = removeItemWithFallback(documents, docId);
@@ -707,7 +717,7 @@ export function useContentManager({
         fieldsJson,
       });
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not create the lore item.");
+      await recoverActiveProjectError(error, "Worldie could not create the lore item.");
       return null;
     }
     const createdItem = {
@@ -760,7 +770,7 @@ export function useContentManager({
       markLoreSaved();
     } catch (error) {
       setLoreSaveState("error");
-      showToast(error instanceof Error ? error.message : "Worldie could not save the lore item.");
+      await recoverActiveProjectError(error, "Worldie could not save the lore item.");
     }
   };
 
@@ -772,7 +782,7 @@ export function useContentManager({
     try {
       await deleteLorePage(activeProjectId, loreId);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not delete the lore item.");
+      await recoverActiveProjectError(error, "Worldie could not delete the lore item.");
       return false;
     }
     const { next: nextPages, first: nextPage } = removeItemWithFallback(lorePages, loreId);
