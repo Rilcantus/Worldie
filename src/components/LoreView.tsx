@@ -81,14 +81,16 @@ export const LoreView = memo(function LoreView({
   const templateUsedInputId = "lore-view-template-used";
   const tagsInputId = "lore-view-tags";
   const detailsInputId = "lore-view-details";
+  const loreTypesById = useMemo(() => new Map(loreTypes.map((type) => [type.id, type])), [loreTypes]);
+  const templatesById = useMemo(() => new Map(templates.map((template) => [template.id, template])), [templates]);
   const activeLoreType = useMemo(
-    () => loreTypes.find((type) => type.id === activeLoreTypeId) ?? loreTypes[0] ?? null,
-    [activeLoreTypeId, loreTypes],
+    () => (activeLoreTypeId ? loreTypesById.get(activeLoreTypeId) : null) ?? loreTypes[0] ?? null,
+    [activeLoreTypeId, loreTypes, loreTypesById],
   );
   const loreItemFields = useMemo(() => parseLoreItemFields(loreFields), [loreFields]);
   const templateUsed = useMemo(
-    () => templates.find((template) => template.id === loreItemFields.templateId) ?? null,
-    [loreItemFields.templateId, templates],
+    () => (loreItemFields.templateId ? templatesById.get(loreItemFields.templateId) : null) ?? null,
+    [loreItemFields.templateId, templatesById],
   );
   const { linked: linkedLorePages, unresolved: unresolvedLoreLinks } = useMemo(
     () => resolveLoreLinks(`${loreTags}\n${loreItemFields.details}`, availableLorePages),
