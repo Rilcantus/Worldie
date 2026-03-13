@@ -136,6 +136,7 @@ export const EditorView = memo(function EditorView({
   const slashMenuRef = useRef<HTMLDivElement | null>(null);
   const documentMenuRef = useRef<HTMLDivElement | null>(null);
   const pendingSelectionRef = useRef<SelectionOffsets | null>(null);
+  const lastEditorSelectionRef = useRef<SelectionOffsets | null>(null);
   const focusStateRef = useRef<{
     sidebarCollapsed: boolean;
     docListCollapsed: boolean;
@@ -176,6 +177,9 @@ export const EditorView = memo(function EditorView({
   };
 
   const updateSelectionSnapshot = (next: SelectionOffsets | null) => {
+    if (next) {
+      lastEditorSelectionRef.current = next;
+    }
     setSelectionSnapshot((current) => (areSelectionsEqual(current, next) ? current : next));
   };
 
@@ -226,6 +230,7 @@ export const EditorView = memo(function EditorView({
   }, [isDocumentMenuOpen]);
 
   useEffect(() => {
+    lastEditorSelectionRef.current = null;
     if (typewriterDraft) {
       setTypewriterDraft("");
     }
@@ -248,6 +253,7 @@ export const EditorView = memo(function EditorView({
   }, [onPendingDraftChange]);
 
   useEffect(() => {
+    lastEditorSelectionRef.current = null;
     if (selectionSnapshot !== null) {
       setSelectionSnapshot(null);
     }
@@ -530,12 +536,15 @@ export const EditorView = memo(function EditorView({
     const editor = editorRef.current;
     if (!editor) return;
 
-    const selection =
-      displaySelectionToSource(activeEditorText, getSelectionOffsets(editor)) ?? {
-      start: activeEditorText.length,
-      end: activeEditorText.length,
-    };
-    const next = transform(activeEditorText, selection);
+    const liveSelection = displaySelectionToSource(activeEditorText, getSelectionOffsets(editor));
+    const resolvedSelection =
+      liveSelection ??
+      selectionSnapshot ??
+      lastEditorSelectionRef.current ?? {
+        start: activeEditorText.length,
+        end: activeEditorText.length,
+      };
+    const next = transform(activeEditorText, resolvedSelection);
     pendingSelectionRef.current = next.selection;
     updateSelectionSnapshot(next.selection);
     if (isTypewriterMode) {
