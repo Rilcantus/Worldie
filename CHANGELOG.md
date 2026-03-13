@@ -2,7 +2,7 @@
 
 ## Current Build
 
-Worldie is now a working offline desktop MVP centered on portable `.worldie` project files. The app has moved well beyond the original static shell and now includes real project-file flows, project-scoped persistence, and usable writing/worldbuilding workflows.
+Worldie is now a working offline desktop MVP centered on portable `.worldie` project files. The app has moved well beyond the original static shell and now includes real project-file flows, project-scoped persistence, and active writing and worldbuilding workflows.
 
 ### Added
 
@@ -17,12 +17,11 @@ Worldie is now a working offline desktop MVP centered on portable `.worldie` pro
 - Relationship CRUD
 - Timeline event CRUD
 - Workbench dashboard view
-- Dynamic tab bar with tab persistence
+- Dynamic tab bar with per-project tab persistence
 - Sidebar-based navigation across worlds and page types
 - Resizable and collapsible project, document, and context panels
 - Search and quick-open across current-world documents and lore
 - Demo project generator with seeded content
-- First-run seed content for empty worlds
 - Wiki-style lore link insertion with `[[...]]`
 - Linked lore detection
 - Clickable lore-link preview in the editor
@@ -30,6 +29,11 @@ Worldie is now a working offline desktop MVP centered on portable `.worldie` pro
 - Document folder organization
 - Start screen for opening or creating projects
 - Project menu with recent-project access
+- Focus mode and typewriter mode in the editor
+- Toolbar-based editor workflow with slash commands, undo/redo, keyboard shortcuts, and block tools
+- Explicit save-state feedback across editor and workspace flows
+- Relationship and timeline workspace filters, focus views, and linked-page actions
+- Project-scoped tab persistence with cross-world restore behavior
 - Lightweight dirty-state guard for project switching
 
 ### Changed
@@ -71,8 +75,11 @@ Worldie is now a working offline desktop MVP centered on portable `.worldie` pro
 - Finalized the persistence boundary so project entities persist through `.worldie` files while UI/session state stays local to the app
 - Upgraded the document editor from textarea-only editing to a custom contenteditable editing surface
 - Upgraded relationship and timeline screens from plain form/list views into richer workspace views
+- Tightened startup, project switching, tab restore, and world/workspace state handling
+- Hardened desktop shell responsiveness and panel behavior for common desktop sizes
 - Added explicit save-state feedback across editor and workspace flows: dirty, saving, saved, and failed
 - Added browser unload guarding for unsaved work
+- Removed automatic reseeding for normal worlds after starter content is deleted
 
 ### Project File Architecture
 
@@ -97,13 +104,16 @@ Worldie is now a working offline desktop MVP centered on portable `.worldie` pro
   - lightweight node/edge network preview
   - connection pattern breakdown
   - key connected page list
-  - dedicated relationship composer
+  - focus filters and neighbor exploration
+  - direct linked-page actions
 - Timeline workspace now includes:
   - summary cards
   - visual timeline canvas
   - chronological outline
   - event type breakdown
   - linked lore visibility
+  - type tracks and era grouping
+  - focused track and focused era inspection
 
 ### Seeded Demo Content
 
@@ -126,20 +136,23 @@ The demo project currently includes:
   - Blacktide Mutiny
 - Relationships and timeline events tied to those entries
 
+Normal worlds are no longer auto-reseeded after starter content is deleted.
+
 ### Current Limitations
 
 - The editor is not TipTap yet
 - Relationship visualization is still lightweight, not a full graph editor
 - Timeline visualization is still a narrative workspace, not a full multi-track timeline system
-- Cover image/media support is not implemented yet
-- The editor still needs broader reliability testing under real use
-- Export/publishing flows are not implemented yet
+- Cover image and broader media support are not implemented yet
+- The editor still needs broader long-session reliability testing
+- Export and publishing flows are not implemented yet
+- Automated QA coverage is still light beyond typecheck/build smoke
 
 ### Next Planned Work
 
-1. Harden the editor path and long-term rich-text model further
-2. Deepen relationship visualization beyond the current lightweight network view
-3. Deepen timeline visualization beyond the current narrative canvas
-4. Add cover image/media support
-5. Strengthen export and publishing boundaries for Spaci
-6. Add broader verification coverage beyond typecheck/build smoke
+1. Harden the editor path and long-term editing model further
+2. Add broader QA coverage around startup, switching, and workspace flows
+3. Deepen relationship visualization beyond the current lightweight network view
+4. Deepen timeline visualization beyond the current narrative canvas
+5. Add cover image and broader media support
+6. Strengthen export and publishing boundaries for Spaci

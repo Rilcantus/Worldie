@@ -3,7 +3,7 @@
 ## Project Overview
 
 Worldie is an offline-first desktop application for building fictional worlds.
-It is designed for writers, dungeon masters, and game designers who need a structured tool to organize lore, characters, timelines, and story documents.
+It is designed for writers, dungeon masters, and game designers who need a structured tool to organize lore, characters, timelines, relationships, and story documents.
 
 The application prioritizes:
 
@@ -41,9 +41,13 @@ Implemented now:
 - Wiki-style lore link insertion with `[[...]]`
 - Linked lore detection and clickable preview links
 - Document folder organization
+- Focus mode and typewriter mode in the editor
+- Keyboard-heavy editor workflow with toolbar, slash commands, undo/redo, and block tools
 - Project-backed SQLite persistence for core world data, lore types, and templates
-- Explicit save-state feedback for editor/workspace flows
+- Explicit save-state feedback for editor and workspace flows
 - Clear persistence boundary: project data in `.worldie`, UI/session state local to the app
+- Richer relationship and timeline workspace views with filtering, focus panels, and linked-page actions
+- Project-scoped tab persistence with cross-world tab restore behavior
 
 Current technical reality:
 
@@ -53,6 +57,7 @@ Current technical reality:
 - The writing editor uses a custom contenteditable path today, not TipTap yet
 - Project entity persistence is sidecar/project-file backed; local storage is reserved for UI/session state
 - Relationship and timeline views are richer workspace views, but not final graph/timeline systems
+- Starter/demo content lives in the demo project flow; normal worlds are no longer auto-reseeded after deletion
 
 ---
 
@@ -123,13 +128,13 @@ Current state:
 - Linked lore is detected
 - Preview renders clickable lore links
 - Document folder organization exists
+- Focus mode and typewriter mode exist
+- Keyboard shortcuts, slash commands, undo/redo, and block tools are wired into the current editor
 
 Still missing:
 
 - TipTap integration
-- richer block behavior
-- deeper keyboard shortcut support
-- broader reliability testing under real writing use
+- deeper long-session reliability testing
 
 ### 4. Relationships
 
@@ -140,12 +145,13 @@ Current state:
 - Relationship workspace includes connection summaries
 - Lightweight node/edge network preview exists
 - Connection pattern and key page views are available
+- Filter, focus, and keyboard workflow support exist
 
 Still missing:
 
 - full graph visualization
 - drag-and-arrange node editing
-- richer relationship typing/presets
+- richer relationship typing and presets
 
 ### 5. Timeline
 
@@ -156,11 +162,11 @@ Current state:
 - Timeline workspace includes summary cards
 - Visual timeline canvas and chronological outline exist
 - Linked lore pages are surfaced in the timeline workspace
+- Type tracks, era grouping, filters, and keyboard workflow exist
 
 Still missing:
 
 - multiple timelines per world
-- richer filtering
 - advanced chronological scaling and track views
 
 ---
@@ -223,7 +229,7 @@ Graph Visualization
 Timeline
 
 - Current: custom timeline canvas and chronological outline
-- Target: richer timeline visualization
+- Target: richer timeline visualization, potentially via a dedicated library later
 
 Exports
 
@@ -289,7 +295,7 @@ General rules for development:
 Next sensible moves, in order:
 
 1. Harden the current editor path and long-term editing model
-2. Strengthen project switching and dirty-state behavior further
+2. Add broader QA coverage and reliability testing around project switching, editor flows, and workspaces
 3. Deepen relationship visualization beyond the current lightweight node/edge workspace
 4. Deepen timeline visualization beyond the current narrative canvas
 5. Add cover image/media support
@@ -304,7 +310,7 @@ Worldie will later export worlds to a web platform called Spaci.
 To support this:
 
 - Use UUIDs for entities
-- Store editor content as JSON
+- Store editor content as JSON where useful
 - Design export bundles early
 
 Export flow:

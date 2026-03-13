@@ -4,7 +4,7 @@ Offline-first desktop app for building fictional worlds.
 
 ## Current Status
 
-Worldie is now a working desktop MVP with real project files, structured worldbuilding tools, and project-scoped persistence. The app is no longer a static scaffold or browser-only mockup.
+Worldie is now a working desktop MVP with real `.worldie` project files, project-scoped persistence, and active writing/worldbuilding workflows. The app is no longer a static scaffold or browser-only mockup.
 
 Current implemented features:
 
@@ -28,6 +28,12 @@ Current implemented features:
 - Linked lore detection
 - Clickable lore links in editor preview
 - Document folder organization
+- Focus mode and typewriter mode in the editor
+- Keyboard-heavy editor workflow with toolbar, slash commands, undo/redo, and block tools
+- Save-state feedback across editor and workspace flows
+- Richer relationship and timeline workspace views with filters, focus panels, and linked-page actions
+- Project-scoped tab persistence and cross-world tab restore behavior
+- Clear persistence boundary: project data in `.worldie`, UI/session state local to the app
 
 ## Current Limitations
 
@@ -36,12 +42,12 @@ The app is still in MVP transition, not final production shape.
 Known gaps:
 
 - The editor uses a custom contenteditable path, not TipTap yet
-- Relationship view is a richer workspace now, but not a full interactive graph map
-- Timeline view is a richer workspace now, but not a full multi-track timeline visualization
-- Cover image support is still missing
-- The editor still needs broader real-world reliability testing
+- Relationship view is a richer workspace now, but not a full interactive graph editor
+- Timeline view is a richer workspace now, but not a full multi-track timeline system
+- Cover image and broader media support are still missing
+- The editor still needs broader long-session reliability testing
 - Export and publishing flows are still not implemented
-- Some long-term project data flows are still being refined around portability and future export
+- Automated QA coverage is still light beyond typecheck/build verification
 
 ## MVP Scope
 
@@ -66,7 +72,7 @@ Target product direction:
 
 - Tauri desktop shell
 - React frontend
-- Python sidecar for file/export operations
+- Python sidecar for file and export operations
 - SQLite-backed portable `.worldie` files
 
 Current reality:
@@ -75,6 +81,7 @@ Current reality:
 - Python sidecar handling project-file and persistence operations
 - Portable per-project `.worldie` SQLite files as the main storage boundary
 - Project data persists through `.worldie` files, while UI/session state stays local to the app
+- The editor, relationship workspace, and timeline workspace are currently custom in-app implementations
 
 ## Run
 
@@ -111,19 +118,19 @@ Notes:
 
 Near-term roadmap:
 
-1. Push the editor toward a richer long-term editing model
-2. Improve relationship visualization beyond the current network workspace
-3. Improve timeline visualization beyond the current narrative timeline workspace
-4. Add cover image/media support
-5. Strengthen export and publishing boundaries for future Spaci integration
-6. Add broader verification coverage beyond typecheck/build smoke
+1. Harden the current editor path and long-term editing model
+2. Add broader QA coverage around startup, switching, and workspace flows
+3. Improve relationship visualization beyond the current network workspace
+4. Improve timeline visualization beyond the current narrative timeline workspace
+5. Add cover image and broader media support
+6. Strengthen export and publishing boundaries for future Spaci integration
 
 Longer-term direction:
 
 - Graph-based relationship map
 - Richer timeline visualization
 - Export bundles for Spaci
-- Better publishing/export pipeline
+- Better publishing and export pipeline
 
 ## Philosophy
 
