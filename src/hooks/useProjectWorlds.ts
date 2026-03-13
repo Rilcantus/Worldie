@@ -164,6 +164,10 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   const currentLoreTypesRef = useRef(initialLoreTypes);
   const activeProjectIdRef = useRef<string | null>(null);
   const worldsLengthRef = useRef(0);
+  const currentScopeRef = useRef<{ projectId: string | null; worldId: string | null }>({
+    projectId: null,
+    worldId: null,
+  });
   const missingProjectRecoveryPromisesRef = useRef(new Map<string, Promise<boolean>>());
   const [projectActionState, setProjectActionState] = useState<ProjectActionState>(IDLE_PROJECT_ACTION_STATE);
   const worldsById = useMemo(() => new Map(worlds.map((world) => [world.id, world])), [worlds]);
@@ -183,6 +187,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
   useEffect(() => {
     activeProjectIdRef.current = activeProjectId;
   }, [activeProjectId]);
+
+  useEffect(() => {
+    currentScopeRef.current = {
+      projectId: activeProjectId,
+      worldId: activeWorldId,
+    };
+  }, [activeProjectId, activeWorldId]);
 
   useEffect(() => {
     worldsLengthRef.current = worlds.length;
@@ -401,11 +412,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   const addWorld = useCallback(() => {
     if (!activeProjectId) return;
+    const actionProjectId = activeProjectId;
     const index = worlds.length + 1;
     const title = `New World ${index}`;
     const nextColor = WORLD_COLORS[index % WORLD_COLORS.length];
-    void createWorld(activeProjectId, title)
+    void createWorld(actionProjectId, title)
       .then((created) => {
+        if (currentScopeRef.current.projectId !== actionProjectId) return;
         const newWorld: WorldUI = {
           id: created.id,
           name: created.title,
@@ -427,6 +440,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
         setActiveWorldId((current) => (current === newWorld.id ? current : newWorld.id));
       })
       .catch((error) => {
+        if (currentScopeRef.current.projectId !== actionProjectId) return;
         void recoverActiveProjectError(error, "Worldie could not create a new world.");
       });
   }, [activeProjectId, recoverActiveProjectError, worlds.length]);
@@ -634,6 +648,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   const commitProjectTitle = useCallback(async () => {
     if (!activeProjectId) return;
+    const actionProjectId = activeProjectId;
     const nextTitle = projectDraft.trim();
     if (!nextTitle || nextTitle === projectTitle) {
       setProjectDraft((current) => (current === projectTitle ? current : projectTitle));
@@ -642,12 +657,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     }
     let nextProjects: Project[] = [];
     try {
-      nextProjects = await updateProjectTitle(activeProjectId, nextTitle);
+      nextProjects = await updateProjectTitle(actionProjectId, nextTitle);
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not rename the project.");
       return;
     }
     setProjectsIfChanged(nextProjects);
+    if (currentScopeRef.current.projectId !== actionProjectId) return;
     setProjectTitle((current) => (current === nextTitle ? current : nextTitle));
     setIsEditingProject((current) => (current ? false : current));
   }, [activeProjectId, projectDraft, projectTitle, recoverActiveProjectError, setProjectsIfChanged]);
@@ -659,6 +675,8 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   const commitWorldTitle = useCallback(async () => {
     if (!editingWorldId) return;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = editingWorldId;
     const nextTitle = worldDraft.trim();
     const currentWorldName = worldsById.get(editingWorldId)?.name ?? "";
     if (!nextTitle) {
@@ -670,16 +688,17 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       setEditingWorldId((current) => (current === null ? current : null));
       return;
     }
-    if (!activeProjectId) return;
+    if (!actionProjectId) return;
     try {
-      await updateWorldTitle(activeProjectId, editingWorldId, nextTitle);
+      await updateWorldTitle(actionProjectId, actionWorldId, nextTitle);
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not rename the world.");
       return;
     }
+    if (currentScopeRef.current.projectId !== actionProjectId) return;
     setWorlds((prev) =>
       prev.map((world) =>
-        world.id === editingWorldId ? { ...world, name: nextTitle } : world,
+        world.id === actionWorldId ? { ...world, name: nextTitle } : world,
       ),
     );
     setEditingWorldId((current) => (current === null ? current : null));
@@ -687,15 +706,19 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   const removeProject = useCallback(async () => {
     if (!activeProjectId) return false;
+    const deletedProjectId = activeProjectId;
     const confirmDelete = await confirmAction("Delete this project and all its data?");
     if (!confirmDelete) return false;
     let nextProjects: Project[] = [];
     try {
-      nextProjects = await deleteProject(activeProjectId);
+      nextProjects = await deleteProject(deletedProjectId);
     } catch (error) {
       return recoverActiveProjectError(error, "Worldie could not delete the project.");
     }
     setProjectsIfChanged(nextProjects);
+    if (activeProjectIdRef.current !== deletedProjectId) {
+      return true;
+    }
     await applyActiveProject(null);
     const next = nextProjects[0];
     if (!next) {
@@ -717,12 +740,14 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     const confirmDelete = await confirmAction("Delete this world and all its data?");
     if (!confirmDelete) return;
     if (!activeProjectId) return;
+    const actionProjectId = activeProjectId;
     try {
-      await deleteWorld(activeProjectId, worldId);
+      await deleteWorld(actionProjectId, worldId);
     } catch (error) {
       await recoverActiveProjectError(error, "Worldie could not delete the world.");
       return;
     }
+    if (currentScopeRef.current.projectId !== actionProjectId) return;
     const { next: nextWorlds, first: nextWorld } = removeItemWithFallback(worlds, worldId);
     if (editingWorldId === worldId) {
       setEditingWorldId((current) => (current === null ? current : null));
