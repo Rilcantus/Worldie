@@ -670,8 +670,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     try {
       nextProjects = await deleteProject(activeProjectId);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not delete the project.");
-      return false;
+      return recoverActiveProjectError(error, "Worldie could not delete the project.");
     }
     setProjectsIfChanged(nextProjects);
     await applyActiveProject(null);
@@ -685,7 +684,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return recoverMissingProject(next, error, { activateFallback: true });
     }
     return true;
-  }, [activeProjectId, applyActiveProject, confirmAction, recoverMissingProject, setProjectsIfChanged, showToast]);
+  }, [activeProjectId, applyActiveProject, confirmAction, recoverActiveProjectError, recoverMissingProject, setProjectsIfChanged]);
 
   const removeWorld = useCallback(async (worldId: string) => {
     if (worlds.length <= 1) {
