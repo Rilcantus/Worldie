@@ -233,6 +233,19 @@ test("extractEditorTextFromHtml preserves inline formatting inside pasted blocks
   });
 });
 
+test("extractEditorTextFromHtml preserves indentation inside pasted blockquotes", () => {
+  withFakeHtmlDocument((FakeElement, FakeTextNode) => [
+    new FakeElement("BLOCKQUOTE", [
+      new FakeTextNode("Quoted line\n  nested detail\n\nClosing line"),
+    ]),
+  ], () => {
+    assert.equal(
+      extractEditorTextFromHtml("<blockquote>Quoted line\n  nested detail\n\nClosing line</blockquote>"),
+      "> Quoted line\n>   nested detail\n>\n> Closing line",
+    );
+  });
+});
+
 test("extractEditorTextFromHtml preserves indentation inside pasted pre blocks", () => {
   withFakeHtmlDocument((FakeElement, FakeTextNode) => [
     new FakeElement("PRE", [

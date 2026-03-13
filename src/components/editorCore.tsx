@@ -32,6 +32,7 @@ type InlinePairDefinition = {
 
 const LORE_LINK_PAIR: InlinePairDefinition = { open: "[[", close: "]]" };
 const PRE_LINE_PROTECTOR = "__WORLDIE_PRE_LINE__";
+const QUOTE_LINE_PROTECTOR = "__WORLDIE_QUOTE_LINE__";
 const FORMAT_MARKERS = [
   { marker: "**", tag: "strong" },
   { marker: "__", tag: "u" },
@@ -595,6 +596,16 @@ function serializeBlockPasteNode(node: Node): string {
       .map((line) => line.trim())
       .join("\n")
       .trim();
+  const cleanQuoted = (text: string) =>
+    normalizeEditorText(text)
+      .replace(/\t/g, "  ")
+      .replace(/\u200b/g, "")
+      .replace(/\u00a0/g, " ")
+      .split("\n")
+      .map((line) => line.replace(/\s+$/g, ""))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
 
   if (tag === "BR") return "\n";
   if (tag === "HR") return "* * *\n\n";
@@ -625,12 +636,12 @@ function serializeBlockPasteNode(node: Node): string {
   }
 
   if (tag === "BLOCKQUOTE") {
-    const quoted = clean(childBlocks());
+    const quoted = cleanQuoted(childBlocks());
     if (!quoted) return "";
     return (
       quoted
         .split("\n")
-        .map((line) => (line.trim() ? `> ${line}` : ">"))
+        .map((line) => (line.length > 0 ? `${QUOTE_LINE_PROTECTOR}> ${line}` : `${QUOTE_LINE_PROTECTOR}>`))
         .join("\n") + "\n\n"
     );
   }
@@ -651,7 +662,10 @@ export function extractEditorTextFromHtml(html: string) {
   const container = document.createElement("div");
   container.innerHTML = html;
   const serialized = Array.from(container.childNodes).map(serializeBlockPasteNode).join("");
-  return normalizePastedText(serialized).replace(new RegExp(`^${PRE_LINE_PROTECTOR}`, "gm"), "").trimEnd();
+  return normalizePastedText(serialized)
+    .replace(new RegExp(`^${PRE_LINE_PROTECTOR}`, "gm"), "")
+    .replace(new RegExp(`^${QUOTE_LINE_PROTECTOR}`, "gm"), "")
+    .trimEnd();
 }
 
 export function resolvePastedEditorText(options: {
