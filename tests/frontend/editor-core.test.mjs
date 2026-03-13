@@ -120,17 +120,31 @@ test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {
 
   const removed = toggleLinePrefix(added.text, added.selection, "- ");
   assert.equal(removed.text, "Alpha\nBeta");
+
+  const removedAlternate = toggleLinePrefix("* Alpha\n• Beta", { start: 0, end: 14 }, "- ");
+  assert.equal(removedAlternate.text, "Alpha\nBeta");
 });
 
 test("toggleLinePrefix normalizes ordered list prefixes", () => {
   const result = toggleLinePrefix("Alpha\nBeta", { start: 0, end: 10 }, "1. ");
   assert.equal(result.text, "1. Alpha\n2. Beta");
+
+  const removedAlternate = toggleLinePrefix("3) Alpha\n4) Beta", { start: 0, end: 15 }, "1. ");
+  assert.equal(removedAlternate.text, "Alpha\nBeta");
 });
 
 test("continueBlockPrefix advances lists and clears empty prefixes", () => {
   const ordered = continueBlockPrefix("1. Alpha", { start: 8, end: 8 });
   assert.equal(ordered.text, "1. Alpha\n2. ");
   assert.deepEqual(ordered.selection, { start: 12, end: 12 });
+
+  const alternateOrdered = continueBlockPrefix("3) Alpha", { start: 8, end: 8 });
+  assert.equal(alternateOrdered.text, "3) Alpha\n4) ");
+  assert.deepEqual(alternateOrdered.selection, { start: 12, end: 12 });
+
+  const alternateBullet = continueBlockPrefix("* Alpha", { start: 7, end: 7 });
+  assert.equal(alternateBullet.text, "* Alpha\n* ");
+  assert.deepEqual(alternateBullet.selection, { start: 10, end: 10 });
 
   const cleared = continueBlockPrefix("- ", { start: 2, end: 2 });
   assert.equal(cleared.text, "");
@@ -188,6 +202,11 @@ test("clearCurrentLinePrefix removes active list prefixes and preserves selectio
   assert.equal(cleared?.text, "Alpha");
   assert.deepEqual(cleared?.selection, { start: 0, end: 5 });
   assert.equal(cleared?.contentStart, 3);
+
+  const alternateOrdered = clearCurrentLinePrefix("3) Alpha", { start: 3, end: 8 });
+  assert.equal(alternateOrdered?.text, "Alpha");
+  assert.deepEqual(alternateOrdered?.selection, { start: 0, end: 5 });
+  assert.equal(alternateOrdered?.prefix, "3) ");
 });
 
 test("getFormattingState reports inline and block formatting flags", () => {

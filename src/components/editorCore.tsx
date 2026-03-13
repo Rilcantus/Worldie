@@ -359,21 +359,27 @@ function getSelectedLineBlockRange(text: string, selection: SelectionOffsets) {
 function stripKnownLinePrefix(line: string) {
   return line
     .replace(/^>\s*Note:\s*/i, "")
-    .replace(/^\d+\.\s+/, "")
+    .replace(/^\d+[\.\)]\s+/, "")
     .replace(/^##\s+/, "")
     .replace(/^#\s+/, "")
-    .replace(/^-\s+/, "")
-    .replace(/^>\s+/, "");
+    .replace(/^(?:-|[*\u2022\u25cf\u25e6])\s+/, "")
+    .replace(/^>\s?/, "");
 }
 
 function getCurrentLinePrefix(line: string) {
   const noteMatch = line.match(/^>\s*Note:\s*/i);
   if (noteMatch) return noteMatch[0];
 
-  const orderedMatch = line.match(/^\d+\.\s+/);
+  const orderedMatch = line.match(/^\d+[\.\)]\s+/);
   if (orderedMatch) return orderedMatch[0];
 
-  return ["## ", "# ", "- ", "> "].find((prefix) => line.startsWith(prefix)) ?? "";
+  const bulletMatch = line.match(/^(?:-|[*\u2022\u25cf\u25e6])\s+/);
+  if (bulletMatch) return bulletMatch[0];
+
+  const quoteMatch = line.match(/^>\s?/);
+  if (quoteMatch) return quoteMatch[0];
+
+  return ["## ", "# "].find((prefix) => line.startsWith(prefix)) ?? "";
 }
 
 export function toggleLinePrefix(text: string, selection: SelectionOffsets, prefix: string) {
@@ -383,8 +389,9 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
   const segment = text.slice(lineStart, lineEnd);
   const lines = segment.split("\n");
   const isOrderedPrefix = prefix === "1. ";
+  const isBulletPrefix = prefix === "- ";
   const everyLineHasPrefix = lines.every((line, index) =>
-    isOrderedPrefix ? /^\d+\.\s+/.test(line) : line.startsWith(prefix),
+    isOrderedPrefix ? isOrderedListLine(line) : isBulletPrefix ? isBulletListLine(line) : line.startsWith(prefix),
   );
 
   const updated = lines
@@ -420,10 +427,12 @@ export function continueBlockPrefix(text: string, selection: SelectionOffsets) {
   const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
   const currentLine = text.slice(lineStart, lineEnd);
 
-  const orderedMatch = currentLine.match(/^(\d+)\.\s+/);
+  const orderedMatch = currentLine.match(/^(\d+)([\.\)])\s+/);
   const blockPrefix = orderedMatch
-    ? `${Number.parseInt(orderedMatch[1], 10) + 1}. `
-    : ["- ", "> ", "## ", "# "].find((prefix) => currentLine.startsWith(prefix)) ?? "";
+    ? `${Number.parseInt(orderedMatch[1], 10) + 1}${orderedMatch[2]} `
+    : /^>\s*Note:\s*/i.test(currentLine)
+      ? "> "
+      : getCurrentLinePrefix(currentLine);
   if (!blockPrefix) {
     const nextText = replaceRange(text, selection.start, selection.end, "\n");
     const cursor = selection.start + 1;
