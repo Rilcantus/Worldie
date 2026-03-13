@@ -4,6 +4,7 @@ venv/
 db_json_old/
 node_modules/
 dist/
+.tmp-frontend-tests/
 src-tauri/target/
 src-tauri/.cargo/
 .env

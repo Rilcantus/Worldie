@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test:frontend": "tsc -p tsconfig.frontend-tests.json && node --test tests/frontend/*.test.mjs",
     "test:python": "python -m unittest discover -s tests -p \"test_*.py\"",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview",
-    "verify": "npm run test:python && npm run typecheck && npm run build",
+    "verify": "npm run test:python && npm run test:frontend && npm run typecheck && npm run build",
     "tauri": "tauri"
   },
   "dependencies": {
