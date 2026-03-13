@@ -25,6 +25,63 @@ export function hydrateWorldUi(worlds: World[], loreTypes: LoreType[]): WorldUI[
   }));
 }
 
+export function appendCreatedWorld(
+  worlds: WorldUI[],
+  created: World,
+  loreTypes: LoreType[],
+  shouldActivate: boolean,
+) {
+  if (worlds.some((world) => world.id === created.id)) {
+    return {
+      worlds,
+      activeWorldId: shouldActivate ? created.id : null,
+    };
+  }
+
+  const nextWorld: WorldUI = {
+    id: created.id,
+    name: created.title,
+    color: WORLD_COLORS[worlds.length % WORLD_COLORS.length],
+    isOpen: shouldActivate,
+    editorCount: 0,
+    loreCount: 0,
+    loreCategories: buildLoreCategories(loreTypes),
+  };
+
+  if (!shouldActivate) {
+    return {
+      worlds: worlds.concat(nextWorld),
+      activeWorldId: null,
+    };
+  }
+
+  return {
+    worlds: worlds
+      .map((world) => (world.isOpen ? { ...world, isOpen: false } : world))
+      .concat(nextWorld),
+    activeWorldId: created.id,
+  };
+}
+
+export function removeWorldWithFallback(worlds: WorldUI[], worldId: string) {
+  const nextWorlds: WorldUI[] = [];
+  let removed = false;
+
+  for (const world of worlds) {
+    if (world.id === worldId) {
+      removed = true;
+      continue;
+    }
+    nextWorlds.push(world);
+  }
+
+  return {
+    worlds: nextWorlds,
+    nextActiveWorldId: nextWorlds[0]?.id ?? null,
+    removed,
+  };
+}
+
 export function areProjectsEqual(left: Project[], right: Project[]) {
   return (
     left.length === right.length &&

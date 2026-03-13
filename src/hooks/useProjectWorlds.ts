@@ -19,8 +19,16 @@ import {
 } from "../lib/data";
 import type { LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
-import { areProjectsEqual, areWorldsEqual, buildLoreCategories, hydrateWorldUi, WORLD_COLORS } from "./projectWorldState";
-import { getProjectByFilepath, isMissingProjectFileError, removeItemWithFallback } from "./projectRecovery";
+import {
+  appendCreatedWorld,
+  areProjectsEqual,
+  areWorldsEqual,
+  buildLoreCategories,
+  hydrateWorldUi,
+  removeWorldWithFallback,
+  WORLD_COLORS,
+} from "./projectWorldState";
+import { getProjectByFilepath, isMissingProjectFileError } from "./projectRecovery";
 
 type UseProjectWorldsArgs = {
   confirmAction: (
@@ -346,33 +354,17 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     void createWorld(actionProjectId, title)
       .then((created) => {
         if (currentScopeRef.current.projectId !== actionProjectId) return;
+        let nextActiveWorldId: string | null = null;
         setWorlds((prev) => {
-          if (prev.some((world) => world.id === created.id)) return prev;
           const shouldActivate = worldCreateRequestIdRef.current === requestId;
-          const nextColor = WORLD_COLORS[prev.length % WORLD_COLORS.length];
-          const nextWorld: WorldUI = {
-            id: created.id,
-            name: created.title,
-            color: nextColor,
-            isOpen: shouldActivate,
-            editorCount: 0,
-            loreCount: 0,
-            loreCategories: buildLoreCategories(currentLoreTypesRef.current),
-          };
-          if (!shouldActivate) {
-            return prev.concat(nextWorld);
-          }
-          let changed = false;
-          const closed = prev.map((world) => {
-            if (!world.isOpen) return world;
-            changed = true;
-            return { ...world, isOpen: false };
-          });
-          return (changed ? closed : prev).concat(nextWorld);
+          const nextState = appendCreatedWorld(prev, created, currentLoreTypesRef.current, shouldActivate);
+          nextActiveWorldId = nextState.activeWorldId;
+          return nextState.worlds;
         });
         if (worldCreateRequestIdRef.current !== requestId) return;
         if (activeWorldIdRef.current !== startedActiveWorldId) return;
-        setActiveWorldId((current) => (current === created.id ? current : created.id));
+        if (!nextActiveWorldId) return;
+        setActiveWorldId((current) => (current === nextActiveWorldId ? current : nextActiveWorldId));
       })
       .catch((error) => {
         if (currentScopeRef.current.projectId !== actionProjectId) return;
@@ -740,9 +732,13 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       setWorldDraft((current) => (current === "" ? current : ""));
     }
     setWorlds((prev) => {
-      const { next, first } = removeItemWithFallback(prev, worldId);
-      nextActiveWorldId = first?.id ?? null;
-      return next;
+      const nextState = removeWorldWithFallback(prev, worldId);
+      if (!nextState.removed) {
+        nextActiveWorldId = activeWorldIdRef.current;
+        return prev;
+      }
+      nextActiveWorldId = nextState.nextActiveWorldId;
+      return nextState.worlds;
     });
     if (startedActiveWorldId === worldId && activeWorldIdRef.current === worldId) {
       setActiveWorldId((current) => {
