@@ -231,24 +231,23 @@ export function useContentManager({
   ]);
   useEffect(() => {
     if (!defaultLoreTypeId) return;
-    setActiveLoreTypeId((current) => (current && orderedLoreTypes.some((type) => type.id === current) ? current : defaultLoreTypeId));
-    setLorePageTypeId((current) => (current && orderedLoreTypes.some((type) => type.id === current) ? current : defaultLoreTypeId));
-  }, [defaultLoreTypeId, orderedLoreTypes]);
+    setActiveLoreTypeId((current) => (current && loreTypesById.has(current) ? current : defaultLoreTypeId));
+    setLorePageTypeId((current) => (current && loreTypesById.has(current) ? current : defaultLoreTypeId));
+  }, [defaultLoreTypeId, loreTypesById]);
 
   useEffect(() => {
     if (!activeProjectId || allLorePages.length === 0 || orderedLoreTypes.length === 0) return;
 
-    const renamedPages = allLorePages
-      .map((page) => {
-        const loreTypeId = resolveLoreTypeId(page);
-        const loreType = loreTypeId ? loreTypesById.get(loreTypeId) ?? null : null;
-        if (!loreType || page.type === loreType.name) return null;
-        return {
-          ...page,
-          type: loreType.name,
-        };
-      })
-      .filter((page): page is LorePage => Boolean(page));
+    const renamedPages: LorePage[] = [];
+    for (const page of allLorePages) {
+      const loreTypeId = resolveLoreTypeId(page);
+      const loreType = loreTypeId ? loreTypesById.get(loreTypeId) ?? null : null;
+      if (!loreType || page.type === loreType.name) continue;
+      renamedPages.push({
+        ...page,
+        type: loreType.name,
+      });
+    }
 
     if (renamedPages.length === 0) return;
 
