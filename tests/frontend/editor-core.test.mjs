@@ -12,6 +12,7 @@ import {
   getFormattingState,
   getSlashCommandMatch,
   moveSelectedLineBlock,
+  normalizePastedText,
   toggleLinePrefix,
   trimTypewriterCommit,
 } from "../../.tmp-frontend-tests/src/components/editorCore.js";
@@ -104,4 +105,9 @@ test("getFormattingState reports inline and block formatting flags", () => {
   assert.equal(getFormattingState("_Italic_", { start: 1, end: 7 }).italic, true);
   assert.equal(getFormattingState("> Note: Reminder", { start: 8, end: 8 }).noteBlock, true);
   assert.equal(getFormattingState("* * *", { start: 5, end: 5 }).sceneBreak, true);
+});
+
+test("normalizePastedText standardizes quote prefixes and list markers", () => {
+  assert.equal(normalizePastedText("│ quoted\n| also quoted"), "> quoted\n> also quoted");
+  assert.equal(normalizePastedText("  1) First\n  * Second"), "1. First\n- Second");
 });

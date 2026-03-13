@@ -485,7 +485,8 @@ export function normalizePastedText(text: string) {
     .replace(/^[ \t]*(\d+)[\.\)][ \t]+/gm, "$1. ")
     .replace(/^[ \t]*[>│|][ \t]?/gm, "> ")
     .replace(/^[ \t]*(?:---|___|\*\*\*)[ \t]*$/gm, "* * *")
-    .replace(/\u00a0/g, " ");
+    .replace(/\u00a0/g, " ")
+    .replace(/^[ \t]*(?:>|\||\u2502|â”‚)[ \t]*/gm, "> ");
 
   return normalized
     .split("\n")
