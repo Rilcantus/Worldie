@@ -258,15 +258,18 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return false;
     }
     const isSameProjectActive = activeProjectIdRef.current === project.id && worldsLengthRef.current > 0;
-    setActiveProjectId((current) => (current === project.id ? current : project.id));
-    setProjectTitle((current) => (current === project.title ? current : project.title));
-    setProjectDraft((current) => (current === project.title ? current : project.title));
     if (isSameProjectActive) {
+      setActiveProjectId((current) => (current === project.id ? current : project.id));
+      setProjectTitle((current) => (current === project.title ? current : project.title));
+      setProjectDraft((current) => (current === project.title ? current : project.title));
       return true;
     }
     setWorldsIfChanged([]);
     setActiveWorldId((current) => (current === null ? current : null));
     await hydrateWorlds(project.id);
+    setActiveProjectId((current) => (current === project.id ? current : project.id));
+    setProjectTitle((current) => (current === project.title ? current : project.title));
+    setProjectDraft((current) => (current === project.title ? current : project.title));
     return true;
   }, [hydrateWorlds, setWorldsIfChanged]);
 
