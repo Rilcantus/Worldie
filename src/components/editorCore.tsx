@@ -405,6 +405,9 @@ export function toggleLinePrefix(text: string, selection: SelectionOffsets, pref
     .map((line, index) => {
       const normalized = stripKnownLinePrefix(line);
       if (everyLineHasPrefix) {
+        if (isQuotePrefix && /^>\s*Note:\s*/i.test(line)) {
+          return normalized.length > 0 ? `> ${normalized}` : ">";
+        }
         return normalized;
       }
       if (isOrderedPrefix) {

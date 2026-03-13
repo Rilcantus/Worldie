@@ -127,6 +127,10 @@ test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {
   const removedQuote = toggleLinePrefix(">Quote", { start: 0, end: 6 }, "> ");
   assert.equal(removedQuote.text, "Quote");
   assert.deepEqual(removedQuote.selection, { start: 0, end: 5 });
+
+  const downgradedNote = toggleLinePrefix("> Note: Reminder", { start: 0, end: 16 }, "> ");
+  assert.equal(downgradedNote.text, "> Reminder");
+  assert.deepEqual(downgradedNote.selection, { start: 0, end: 10 });
 });
 
 test("toggleLinePrefix normalizes ordered list prefixes", () => {
