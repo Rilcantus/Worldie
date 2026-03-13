@@ -35,6 +35,11 @@ export function useLoreTypes(
   const [selectedLoreTypeId, setSelectedLoreTypeId] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const loadRequestId = useRef(0);
+  const currentSaveProjectIdRef = useRef<string | null>(activeProjectId);
+
+  useEffect(() => {
+    currentSaveProjectIdRef.current = activeProjectId;
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (!activeProjectId) {
@@ -61,7 +66,9 @@ export function useLoreTypes(
 
   useEffect(() => {
     if (!activeProjectId || !hasLoaded) return;
-    void saveProjectLoreTypes(activeProjectId, loreTypes).catch(async (error) => {
+    const saveProjectId = activeProjectId;
+    void saveProjectLoreTypes(saveProjectId, loreTypes).catch(async (error) => {
+      if (currentSaveProjectIdRef.current !== saveProjectId) return;
       await recoverActiveProjectError(error, "Worldie could not save lore types for this project.");
     });
   }, [activeProjectId, hasLoaded, loreTypes, recoverActiveProjectError]);

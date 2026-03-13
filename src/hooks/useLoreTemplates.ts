@@ -61,7 +61,12 @@ export function useLoreTemplates(
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const loadRequestId = useRef(0);
+  const currentSaveProjectIdRef = useRef<string | null>(activeProjectId);
   const defaultLoreTypeId = useMemo(() => getDefaultLoreTypeId(loreTypes) ?? "", [loreTypes]);
+
+  useEffect(() => {
+    currentSaveProjectIdRef.current = activeProjectId;
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (!activeProjectId || loreTypes.length === 0) {
@@ -88,7 +93,9 @@ export function useLoreTemplates(
 
   useEffect(() => {
     if (!activeProjectId || !hasLoaded) return;
-    void saveProjectLoreTemplates(activeProjectId, templates).catch(async (error) => {
+    const saveProjectId = activeProjectId;
+    void saveProjectLoreTemplates(saveProjectId, templates).catch(async (error) => {
+      if (currentSaveProjectIdRef.current !== saveProjectId) return;
       await recoverActiveProjectError(error, "Worldie could not save lore templates for this project.");
     });
   }, [activeProjectId, hasLoaded, templates, recoverActiveProjectError]);
