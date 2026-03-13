@@ -154,6 +154,10 @@ test("continueBlockPrefix advances lists and clears empty prefixes", () => {
   assert.equal(compactQuote.text, ">Quote\n> ");
   assert.deepEqual(compactQuote.selection, { start: 9, end: 9 });
 
+  const clearedNote = continueBlockPrefix("> Note: ", { start: 8, end: 8 });
+  assert.equal(clearedNote.text, "");
+  assert.deepEqual(clearedNote.selection, { start: 0, end: 0 });
+
   const cleared = continueBlockPrefix("- ", { start: 2, end: 2 });
   assert.equal(cleared.text, "");
   assert.deepEqual(cleared.selection, { start: 0, end: 0 });

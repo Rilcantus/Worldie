@@ -434,6 +434,7 @@ export function continueBlockPrefix(text: string, selection: SelectionOffsets) {
   const lineEndCandidate = text.indexOf("\n", selection.start);
   const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
   const currentLine = text.slice(lineStart, lineEnd);
+  const currentPrefix = getCurrentLinePrefix(currentLine);
 
   const orderedMatch = currentLine.match(/^(\d+)([\.\)])\s+/);
   const blockPrefix = orderedMatch
@@ -449,7 +450,7 @@ export function continueBlockPrefix(text: string, selection: SelectionOffsets) {
     return { text: nextText, selection: { start: cursor, end: cursor } };
   }
 
-  const currentPrefixLength = orderedMatch ? orderedMatch[0].length : blockPrefix.length;
+  const currentPrefixLength = orderedMatch ? orderedMatch[0].length : currentPrefix.length;
   const lineBody = currentLine.slice(currentPrefixLength);
   if (lineBody.trim().length === 0) {
     const nextText = replaceRange(text, lineStart, lineEnd, "");
