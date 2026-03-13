@@ -11,10 +11,16 @@ import {
   updateDocument,
   updateLorePage,
 } from "../lib/data";
-import { createTraitsFromTemplate, parseLoreItemFields, stringifyLoreItemFields } from "../lib/loreItems";
+import { parseLoreItemFields, stringifyLoreItemFields } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import { getDefaultLoreTypeId, slugifyLoreTypeName, sortLoreTypes, type LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
+import {
+  buildInitialLoreFields,
+  buildLoreTypeCounts as buildLoreTypeCountsFromPages,
+  collectLoreStats as collectLoreStatsFromPages,
+  countNonEmptyWords,
+} from "./contentState";
 
 type UseContentManagerArgs = {
   activeProjectId: string | null;
@@ -38,11 +44,6 @@ type CreateLoreItemArgs = {
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
-function countNonEmptyWords(value: string | null | undefined) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed.split(/\s+/).length : 0;
-}
-
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
   const next: T[] = [];
   let removed = false;
@@ -60,15 +61,6 @@ function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: st
     first: next[0] ?? null,
     removed,
   };
-}
-
-function buildInitialLoreFields(loreTypeId: string | null, template: LoreTemplate | null) {
-  return stringifyLoreItemFields({
-    loreTypeId,
-    templateId: template?.id ?? null,
-    traits: createTraitsFromTemplate(template),
-    details: "",
-  });
 }
 
 export function useContentManager({
@@ -187,31 +179,12 @@ export function useContentManager({
     [loreTypesById],
   );
   const buildLoreTypeCounts = useCallback(
-    (pages: LorePage[]) => {
-      const counts = Object.fromEntries(orderedLoreTypes.map((type) => [type.id, 0]));
-      for (const page of pages) {
-        const loreTypeId = resolveLoreTypeId(page);
-        if (!loreTypeId || !(loreTypeId in counts)) continue;
-        counts[loreTypeId] += 1;
-      }
-      return counts;
-    },
+    (pages: LorePage[]) => buildLoreTypeCountsFromPages(pages, orderedLoreTypes, resolveLoreTypeId),
     [orderedLoreTypes, resolveLoreTypeId],
   );
   const collectLoreStats = useCallback(
-    (pages: LorePage[], activeTypeId: string | null) => {
-      const counts = Object.fromEntries(orderedLoreTypes.map((type) => [type.id, 0]));
-      const pagesForActiveType: LorePage[] = [];
-      for (const page of pages) {
-        const loreTypeId = resolveLoreTypeId(page);
-        if (!loreTypeId || !(loreTypeId in counts)) continue;
-        counts[loreTypeId] += 1;
-        if (activeTypeId && loreTypeId === activeTypeId) {
-          pagesForActiveType.push(page);
-        }
-      }
-      return { counts, pagesForActiveType };
-    },
+    (pages: LorePage[], activeTypeId: string | null) =>
+      collectLoreStatsFromPages(pages, activeTypeId, orderedLoreTypes, resolveLoreTypeId),
     [orderedLoreTypes, resolveLoreTypeId],
   );
 
