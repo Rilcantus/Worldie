@@ -1110,6 +1110,7 @@ export function renderPreviewContent(
   const blocks: ReactNode[] = [];
   let listLineBuffer: Array<{ kind: "ul" | "ol"; indent: number; text: string; value?: number }> = [];
   let quoteLineBuffer: string[] = [];
+  let noteLineBuffer: string[] = [];
 
   const renderPreviewListNodes = (
     nodes: Array<{ kind: "ul" | "ol"; text: string; value?: number; children: Array<any> }>,
@@ -1233,29 +1234,54 @@ export function renderPreviewContent(
     quoteLineBuffer = [];
   };
 
+  const flushNote = () => {
+    if (noteLineBuffer.length === 0) return;
+
+    const noteChildren: ReactNode[] = [];
+    noteLineBuffer.forEach((line, index) => {
+      if (index > 0) {
+        noteChildren.push(<br key={`note-${blocks.length}-break-${index}`} />);
+      }
+      if (line.length > 0) {
+        noteChildren.push(
+          <span key={`note-${blocks.length}-line-${index}`}>
+            {renderInlinePreview(line, linkedLoreByTitle, onOpenLore, `note-${blocks.length}-${index}`)}
+          </span>,
+        );
+      }
+    });
+
+    blocks.push(
+      <div key={`note-${blocks.length}`} className="editor-preview-note">
+        <div className="editor-preview-note-label">Note</div>
+        <div className="editor-preview-note-body">{noteChildren}</div>
+      </div>,
+    );
+    noteLineBuffer = [];
+  };
+
   lines.forEach((line, index) => {
     const noteMatch = line.match(/^>\s*Note:\s*(.*)$/i);
     if (noteMatch) {
       flushLists();
       flushQuotes();
-      blocks.push(
-        <div key={`note-${index}`} className="editor-preview-note">
-          <div className="editor-preview-note-label">Note</div>
-          <div className="editor-preview-note-body">
-            {renderInlinePreview(noteMatch[1], linkedLoreByTitle, onOpenLore, `note-${index}`)}
-          </div>
-        </div>,
-      );
+      flushNote();
+      noteLineBuffer.push(noteMatch[1]);
       return;
     }
 
     const quoteMatch = line.match(/^>\s?(.*)$/);
     if (quoteMatch) {
       flushLists();
-      quoteLineBuffer.push(quoteMatch[1]);
+      if (noteLineBuffer.length > 0) {
+        noteLineBuffer.push(quoteMatch[1]);
+      } else {
+        quoteLineBuffer.push(quoteMatch[1]);
+      }
       return;
     }
 
+    flushNote();
     const bulletMatch = line.match(/^(\s*)(?:-|[*\u2022\u25cf\u25e6])\s+(.*)$/);
     if (bulletMatch) {
       flushQuotes();
@@ -1279,6 +1305,7 @@ export function renderPreviewContent(
       return;
     }
 
+    flushNote();
     flushQuotes();
     flushLists();
 
@@ -1317,6 +1344,7 @@ export function renderPreviewContent(
     );
   });
 
+  flushNote();
   flushQuotes();
   flushLists();
   return blocks;

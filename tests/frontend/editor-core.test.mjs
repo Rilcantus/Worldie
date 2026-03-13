@@ -908,6 +908,78 @@ test("renderPreviewContent preserves multiline quote spacing and indentation", (
   );
 });
 
+test("renderPreviewContent preserves multiline note block spacing and indentation", () => {
+  const preview = renderPreviewContent("> Note: Reminder\n>   nested detail\n>\n> Closing line", new Map(), () => {});
+  assert.deepEqual(
+    summarizePreviewNode(preview[0]),
+    {
+      type: "div",
+      className: "editor-preview-note",
+      children: [
+        {
+          type: "div",
+          className: "editor-preview-note-label",
+          children: ["Note"],
+        },
+        {
+          type: "div",
+          className: "editor-preview-note-body",
+          children: [
+            {
+              type: "span",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["Reminder"],
+                },
+              ],
+            },
+            {
+              type: "br",
+              className: null,
+              children: [],
+            },
+            {
+              type: "span",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["  nested detail"],
+                },
+              ],
+            },
+            {
+              type: "br",
+              className: null,
+              children: [],
+            },
+            {
+              type: "br",
+              className: null,
+              children: [],
+            },
+            {
+              type: "span",
+              className: null,
+              children: [
+                {
+                  type: "span",
+                  className: null,
+                  children: ["Closing line"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  );
+});
+
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {
   assert.equal(isUnderlineElement({ tagName: "U" }), true);
   assert.equal(
