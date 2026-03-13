@@ -52,6 +52,10 @@ export default function App() {
     },
     [loreTemplates.templates, loreTypes.loreTypes],
   );
+  const loreTemplatesById = useMemo(
+    () => new Map(loreTemplates.templates.map((template) => [template.id, template])),
+    [loreTemplates.templates],
+  );
 
   const handleOpenRelationshipsTab = useCallback(() => {
     tabs.openSpecialTab("rels");
@@ -87,14 +91,14 @@ export default function App() {
 
   const handleCreateLoreItem = useCallback(
     ({ title, loreTypeId, templateId, tags }: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => {
-      const template = loreTemplates.templates.find((item) => item.id === templateId) ?? null;
+      const template = templateId ? loreTemplatesById.get(templateId) ?? null : null;
       void content.createLoreItem({ title, loreTypeId, template, tags }).then((created) => {
         if (created) {
           tabs.openLoreTab(created);
         }
       });
     },
-    [content.createLoreItem, loreTemplates.templates, tabs.openLoreTab],
+    [content.createLoreItem, loreTemplatesById, tabs.openLoreTab],
   );
 
   const handleCreateTemplate = useCallback(() => {

@@ -34,6 +34,11 @@ type CreateLoreItemArgs = {
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
+function countNonEmptyWords(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
   const next: T[] = [];
   let removed = false;
@@ -213,7 +218,7 @@ export function useContentManager({
   const totalWordCount = useMemo(
     () =>
       documents.reduce(
-        (sum, doc) => sum + (doc.contentJson?.trim().split(/\s+/).filter(Boolean).length ?? 0),
+        (sum, doc) => sum + countNonEmptyWords(doc.contentJson),
         0,
       ),
     [documents],
