@@ -672,19 +672,19 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
       return false;
     }
     setProjectsIfChanged(nextProjects);
+    await applyActiveProject(null);
     const next = nextProjects[0];
     if (!next) {
-      await applyActiveProject(null);
       return true;
     }
     try {
       await applyActiveProject(next);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Worldie could not load the next available project.");
+      await recoverMissingProject(next, error, { activateFallback: true });
       return false;
     }
     return true;
-  }, [activeProjectId, applyActiveProject, confirmAction, setProjectsIfChanged, showToast]);
+  }, [activeProjectId, applyActiveProject, confirmAction, recoverMissingProject, setProjectsIfChanged, showToast]);
 
   const removeWorld = useCallback(async (worldId: string) => {
     if (worlds.length <= 1) {
