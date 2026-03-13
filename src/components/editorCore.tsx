@@ -1073,7 +1073,7 @@ export function renderPreviewContent(
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
   let listBuffer: string[] = [];
-  let orderedListBuffer: string[] = [];
+  let orderedListBuffer: Array<{ value: number; text: string }> = [];
 
   const flushList = () => {
     if (listBuffer.length === 0) return;
@@ -1091,11 +1091,19 @@ export function renderPreviewContent(
 
   const flushOrderedList = () => {
     if (orderedListBuffer.length === 0) return;
+    const listStart = orderedListBuffer[0]?.value ?? 1;
     blocks.push(
-      <ol key={`olist-${blocks.length}`} className="editor-preview-list editor-preview-list-ordered">
+      <ol key={`olist-${blocks.length}`} className="editor-preview-list editor-preview-list-ordered" start={listStart}>
         {orderedListBuffer.map((item, index) => (
-          <li key={`olist-item-${index}`}>
-            {renderInlinePreview(item, linkedLoreByTitle, onOpenLore, `olist-${blocks.length}-${index}`)}
+          <li
+            key={`olist-item-${index}`}
+            value={
+              index === 0 || item.value === orderedListBuffer[index - 1].value + 1
+                ? undefined
+                : item.value
+            }
+          >
+            {renderInlinePreview(item.text, linkedLoreByTitle, onOpenLore, `olist-${blocks.length}-${index}`)}
           </li>
         ))}
       </ol>,
@@ -1110,10 +1118,13 @@ export function renderPreviewContent(
       return;
     }
 
-    const orderedMatch = line.match(/^\d+\.\s+(.*)$/);
+    const orderedMatch = line.match(/^(\d+)\.\s+(.*)$/);
     if (orderedMatch) {
       flushList();
-      orderedListBuffer.push(orderedMatch[1]);
+      orderedListBuffer.push({
+        value: Number.parseInt(orderedMatch[1], 10),
+        text: orderedMatch[2],
+      });
       return;
     }
 

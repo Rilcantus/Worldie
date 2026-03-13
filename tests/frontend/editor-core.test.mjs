@@ -623,6 +623,15 @@ test("renderPreviewContent preserves serializer-ordered nested underline and ita
   );
 });
 
+test("renderPreviewContent preserves explicit ordered list numbering", () => {
+  const preview = renderPreviewContent("3. Third\n7. Seventh\n8. Eighth", new Map(), () => {});
+  assert.equal(preview[0].type, "ol");
+  assert.equal(preview[0].props.start, 3);
+  assert.equal(preview[0].props.children[0].props.value, undefined);
+  assert.equal(preview[0].props.children[1].props.value, 7);
+  assert.equal(preview[0].props.children[2].props.value, undefined);
+});
+
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {
   assert.equal(isUnderlineElement({ tagName: "U" }), true);
   assert.equal(
