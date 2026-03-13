@@ -46,9 +46,11 @@ export const TemplatesView = memo(function TemplatesView({
   const templateNameInputId = "template-name";
   const templateLoreTypeInputId = "template-lore-type";
   const hasLoreTypes = loreTypes.length > 0;
+  const templatesById = useMemo(() => new Map(templates.map((template) => [template.id, template])), [templates]);
+  const loreTypesById = useMemo(() => new Map(loreTypes.map((type) => [type.id, type])), [loreTypes]);
   const selectedTemplate = useMemo(
-    () => templates.find((template) => template.id === selectedTemplateId) ?? templates[0] ?? null,
-    [selectedTemplateId, templates],
+    () => (selectedTemplateId ? templatesById.get(selectedTemplateId) : null) ?? templates[0] ?? null,
+    [selectedTemplateId, templates, templatesById],
   );
 
   return (
@@ -109,7 +111,7 @@ export const TemplatesView = memo(function TemplatesView({
               >
                 <span>{template.name}</span>
                 <span className="template-list-meta">
-                  {loreTypes.find((type) => type.id === template.loreTypeId)?.name ?? "Unknown"}
+                  {loreTypesById.get(template.loreTypeId)?.name ?? "Unknown"}
                 </span>
               </button>
             ))
