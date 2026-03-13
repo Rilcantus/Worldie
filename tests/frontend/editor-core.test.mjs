@@ -235,12 +235,12 @@ test("extractEditorTextFromHtml preserves inline formatting inside pasted blocks
 test("extractEditorTextFromHtml preserves indentation inside pasted pre blocks", () => {
   withFakeHtmlDocument((FakeElement, FakeTextNode) => [
     new FakeElement("PRE", [
-      new FakeTextNode("  first line\n    second line\n"),
+      new FakeTextNode("  first line\n\n* literal bullet\n> literal quote\n1) literal step\n    second line\n"),
     ]),
   ], () => {
     assert.equal(
-      extractEditorTextFromHtml("<pre>  first line\n    second line\n</pre>"),
-      "  first line\n    second line",
+      extractEditorTextFromHtml("<pre>  first line\n\n* literal bullet\n> literal quote\n1) literal step\n    second line\n</pre>"),
+      "  first line\n\n* literal bullet\n> literal quote\n1) literal step\n    second line",
     );
   });
 });

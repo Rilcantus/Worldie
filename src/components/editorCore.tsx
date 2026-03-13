@@ -31,6 +31,7 @@ type InlinePairDefinition = {
 };
 
 const LORE_LINK_PAIR: InlinePairDefinition = { open: "[[", close: "]]" };
+const PRE_LINE_PROTECTOR = "__WORLDIE_PRE_LINE__";
 const FORMAT_MARKERS = [
   { marker: "**", tag: "strong" },
   { marker: "__", tag: "u" },
@@ -601,7 +602,12 @@ function serializeBlockPasteNode(node: Node): string {
   if (tag === "H2" || tag === "H3") return `## ${clean(inlineContent())}\n\n`;
   if (tag === "PRE") {
     const content = normalizeEditorText(inlineContent()).replace(/\s+$/g, "");
-    return content ? `${content}\n\n` : "";
+    if (!content) return "";
+    const protectedContent = content
+      .split("\n")
+      .map((line) => `${PRE_LINE_PROTECTOR}${line}`)
+      .join("\n");
+    return `${protectedContent}\n\n`;
   }
 
   if (tag === "UL") {
@@ -645,7 +651,7 @@ export function extractEditorTextFromHtml(html: string) {
   const container = document.createElement("div");
   container.innerHTML = html;
   const serialized = Array.from(container.childNodes).map(serializeBlockPasteNode).join("");
-  return normalizePastedText(serialized).trimEnd();
+  return normalizePastedText(serialized).replace(new RegExp(`^${PRE_LINE_PROTECTOR}`, "gm"), "").trimEnd();
 }
 
 export function getSelectionText(text: string, selection: SelectionOffsets | null) {
