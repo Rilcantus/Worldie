@@ -453,7 +453,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     }
 
     showToast(`${getProjectFilename(project)} was removed from recent projects.`);
-    return false;
+    return shouldActivateFallback;
   }, [applyActiveProject, confirmAction, setProjectsIfChanged, showToast]);
 
   useEffect(() => {
@@ -680,8 +680,7 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
     try {
       await applyActiveProject(next);
     } catch (error) {
-      await recoverMissingProject(next, error, { activateFallback: true });
-      return false;
+      return recoverMissingProject(next, error, { activateFallback: true });
     }
     return true;
   }, [activeProjectId, applyActiveProject, confirmAction, recoverMissingProject, setProjectsIfChanged, showToast]);
