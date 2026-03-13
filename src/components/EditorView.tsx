@@ -745,7 +745,7 @@ export const EditorView = memo(function EditorView({
 
   const handleTitleBlur = () => {
     if (documentSaveState === "dirty") {
-      onSave();
+      requestDocumentSave();
     }
   };
 
