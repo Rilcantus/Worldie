@@ -464,7 +464,7 @@ export function applyNoteBlockPrefix(text: string, selection: SelectionOffsets) 
   }
 
   const updatedLines = lines.map((line, index) => {
-    if (lineInExistingNote[index]) {
+    if (lineInExistingNote[index] && selectionStartsInNote) {
       return line;
     }
     const normalized = stripKnownLinePrefix(line);
