@@ -205,6 +205,58 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(self.db_manager.list_relationships(project_uuid, world_id), [])
         self.assertEqual(self.db_manager.list_timeline_events(project_uuid, world_id), [])
 
+    def test_save_project_as_preserves_lore_types_and_templates(self):
+        project_uuid, _ = self.db_manager.add_project("Template World", "")
+        self.db_manager.replace_lore_types(
+            project_uuid,
+            [
+                {
+                    "id": "type-faction",
+                    "name": "Faction",
+                    "slug": "faction",
+                    "icon": "F",
+                    "order": 0,
+                    "isSystem": False,
+                }
+            ],
+        )
+        self.db_manager.replace_lore_templates(
+            project_uuid,
+            [
+                {
+                    "id": "template-faction",
+                    "name": "Guild",
+                    "loreTypeId": "type-faction",
+                    "traitDefinitionsJson": '[{"id":"trait-goal","label":"Goal","order":0}]',
+                }
+            ],
+        )
+
+        copy_path = self.temp_path / "copies" / "template-world-copy.worldie"
+        copied_project_uuid, _, _ = self.db_manager.save_project_as(project_uuid, str(copy_path))
+
+        copied_types = self.db_manager.list_lore_types(copied_project_uuid)
+        copied_templates = self.db_manager.list_lore_templates(copied_project_uuid)
+
+        self.assertEqual(len(copied_types), 1)
+        self.assertEqual(copied_types[0][1], "Faction")
+        self.assertEqual(len(copied_templates), 1)
+        self.assertEqual(copied_templates[0][1], "Guild")
+
+    def test_open_project_uses_filename_when_project_meta_is_untitled(self):
+        manual_path = self.temp_path / "manual" / "ashen-sky.worldie"
+        self.db_manager._init_project_db(str(manual_path))
+        self.db_manager._set_project_meta_title(str(manual_path), "Untitled Project")
+
+        reopened_uuid, reopened_title, reopened_path = self.db_manager.open_project(str(manual_path))
+
+        self.assertEqual(reopened_title, "ashen-sky")
+        self.assertEqual(Path(reopened_path), manual_path.resolve())
+        registry_projects = self.db_manager.get_all_projects()
+        self.assertEqual(len(registry_projects), 1)
+        self.assertEqual(registry_projects[0][0], reopened_uuid)
+        self.assertEqual(registry_projects[0][1], "ashen-sky")
+
 
 if __name__ == "__main__":
     unittest.main()
