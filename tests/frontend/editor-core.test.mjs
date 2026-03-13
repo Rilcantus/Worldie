@@ -18,6 +18,7 @@ import {
   normalizePastedText,
   toggleLinePrefix,
   trimTypewriterCommit,
+  wrapSerializedInlineContent,
 } from "../../.tmp-frontend-tests/src/components/editorCore.js";
 
 test("trimTypewriterCommit removes trailing blank lines and appendTypewriterCommit joins paragraphs", () => {
@@ -128,6 +129,13 @@ test("isItalicElement detects semantic and inline-style italic markup", () => {
   assert.equal(isItalicElement({ tagName: "EM" }), true);
   assert.equal(isItalicElement({ tagName: "SPAN", style: { fontStyle: "italic" } }), true);
   assert.equal(isItalicElement({ tagName: "SPAN", style: { fontStyle: "normal" } }), false);
+});
+
+test("wrapSerializedInlineContent preserves combined inline formatting markers", () => {
+  assert.equal(wrapSerializedInlineContent("Text", { bold: true, italic: true }), "**_Text_**");
+  assert.equal(wrapSerializedInlineContent("Text", { bold: true, underline: true }), "**__Text__**");
+  assert.equal(wrapSerializedInlineContent("Text", { italic: true, underline: true }), "___Text___");
+  assert.equal(wrapSerializedInlineContent("Text", { bold: true, italic: true, underline: true }), "**___Text___**");
 });
 
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {

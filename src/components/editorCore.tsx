@@ -202,6 +202,17 @@ export function isUnderlineElement(node: UnderlineElementLike) {
   return textDecoration.includes("underline");
 }
 
+export function wrapSerializedInlineContent(
+  content: string,
+  options: { bold?: boolean; italic?: boolean; underline?: boolean },
+) {
+  let nextContent = content;
+  if (options.underline) nextContent = `__${nextContent}__`;
+  if (options.italic) nextContent = `_${nextContent}_`;
+  if (options.bold) nextContent = `**${nextContent}**`;
+  return nextContent;
+}
+
 export function serializeEditorDom(root: HTMLElement): string {
   const serializeNode = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -218,9 +229,12 @@ export function serializeEditorDom(root: HTMLElement): string {
 
     const content = Array.from(node.childNodes).map(serializeNode).join("");
 
-    if (isBoldElement(node)) return `**${content}**`;
-    if (isItalicElement(node)) return `_${content}_`;
-    if (isUnderlineElement(node)) return `__${content}__`;
+    const bold = isBoldElement(node);
+    const italic = isItalicElement(node);
+    const underline = isUnderlineElement(node);
+    if (bold || italic || underline) {
+      return wrapSerializedInlineContent(content, { bold, italic, underline });
+    }
 
     return content;
   };
