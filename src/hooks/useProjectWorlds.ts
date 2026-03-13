@@ -514,28 +514,35 @@ export function useProjectWorlds({ confirmAction, showToast, initialLoreTypes }:
 
   useEffect(() => {
     const load = async () => {
+      const actionRequestId = ++projectActionRequestIdRef.current;
       setProjectActionStateIfChanged({ status: "loading", message: "Loading recent projects..." });
       const requestId = ++hydrateRequestId.current;
       let loadedProjects: Project[] = [];
       try {
         loadedProjects = await listProjects();
       } catch (error) {
+        if (projectActionRequestIdRef.current !== actionRequestId) return;
         showToast(error instanceof Error ? error.message : "Worldie could not load recent project files.");
       }
-      if (requestId !== hydrateRequestId.current) return;
+      if (requestId !== hydrateRequestId.current || projectActionRequestIdRef.current !== actionRequestId) return;
       setProjectsIfChanged(loadedProjects);
       const project = loadedProjects[0];
       if (!project) {
         await applyActiveProject(null);
-        setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
+        if (projectActionRequestIdRef.current === actionRequestId) {
+          setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
+        }
         return;
       }
       try {
         await applyActiveProject(project);
       } catch (error) {
+        if (projectActionRequestIdRef.current !== actionRequestId) return;
         await recoverMissingProject(project, error, { activateFallback: true });
       }
-      setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
+      if (projectActionRequestIdRef.current === actionRequestId) {
+        setProjectActionStateIfChanged(IDLE_PROJECT_ACTION_STATE);
+      }
     };
 
     void load();
