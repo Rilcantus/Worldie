@@ -160,6 +160,9 @@ test("applyNoteBlockPrefix converts the current line into a note block", () => {
   const alreadyNote = applyNoteBlockPrefix("> Note: Reminder", { start: 8, end: 16 });
   assert.equal(alreadyNote.text, "> Note: Reminder");
   assert.deepEqual(alreadyNote.selection, { start: 8, end: 16 });
+
+  const multiline = applyNoteBlockPrefix("Alpha\n- Beta\n> Gamma", { start: 0, end: 20 });
+  assert.equal(multiline.text, "> Note: Alpha\n> Beta\n> Gamma");
 });
 
 test("continueBlockPrefix advances lists and clears empty prefixes", () => {
