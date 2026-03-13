@@ -203,7 +203,8 @@ test("getFormattingState reports inline and block formatting flags", () => {
 
 test("normalizePastedText standardizes quote prefixes and list markers", () => {
   assert.equal(normalizePastedText("│ quoted\n| also quoted"), "> quoted\n> also quoted");
-  assert.equal(normalizePastedText("  1) First\n  * Second"), "1. First\n- Second");
+  assert.equal(normalizePastedText("  1) First\n  * Second"), "  1. First\n  - Second");
+  assert.equal(normalizePastedText("  * Nested bullet\n    2) Nested step"), "  - Nested bullet\n    2. Nested step");
 });
 test("normalizePastedText avoids false quote matches and supports heavy bars", () => {
   assert.equal(normalizePastedText("\u00e2lpha"), "\u00e2lpha");
