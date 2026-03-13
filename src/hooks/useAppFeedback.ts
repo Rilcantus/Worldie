@@ -1,16 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-
-type ConfirmOptions = {
-  confirmLabel?: string;
-  tone?: "default" | "danger";
-};
-
-type ConfirmState = {
-  message: string;
-  confirmLabel: string;
-  tone: "default" | "danger";
-} | null;
-type ToastState = { message: string; onUndo?: () => void } | null;
+import {
+  buildConfirmState,
+  buildToastState,
+  shouldAutoClearToast,
+  type ConfirmOptions,
+  type ConfirmState,
+  type ToastState,
+} from "./appFeedbackState";
 
 export function useAppFeedback() {
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
@@ -21,11 +17,7 @@ export function useAppFeedback() {
     (message: string, options?: ConfirmOptions) =>
       new Promise<boolean>((resolve) => {
         confirmResolver.current = resolve;
-        setConfirmState({
-          message,
-          confirmLabel: options?.confirmLabel ?? "Delete",
-          tone: options?.tone ?? "danger",
-        });
+        setConfirmState(buildConfirmState(message, options));
       }),
     [],
   );
@@ -37,9 +29,9 @@ export function useAppFeedback() {
   }, []);
 
   const showToast = useCallback((message: string, onUndo?: () => void) => {
-    setToast({ message, onUndo });
+    setToast(buildToastState(message, onUndo));
     window.setTimeout(() => {
-      setToast((current) => (current?.message === message ? null : current));
+      setToast((current) => (shouldAutoClearToast(current, message) ? null : current));
     }, 5000);
   }, []);
 

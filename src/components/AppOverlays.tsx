@@ -1,12 +1,6 @@
 import { memo, useEffect, useRef } from "react";
 import type { SearchResult } from "../hooks/useSearch";
-
-type ConfirmState = {
-  message: string;
-  confirmLabel: string;
-  tone: "default" | "danger";
-} | null;
-type ToastState = { message: string; onUndo?: () => void } | null;
+import type { ConfirmState, ToastState } from "../hooks/appFeedbackState";
 type QuickOpenState = {
   isOpen: boolean;
   query: string;
