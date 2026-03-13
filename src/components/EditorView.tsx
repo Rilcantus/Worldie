@@ -536,15 +536,14 @@ export const EditorView = memo(function EditorView({
     const editor = editorRef.current;
     if (!editor) return;
 
-    const liveSelection = displaySelectionToSource(activeEditorText, getSelectionOffsets(editor));
-    const resolvedSelection =
-      liveSelection ??
+    const resolveEditorSelection = () =>
+      displaySelectionToSource(activeEditorText, getSelectionOffsets(editor)) ??
       selectionSnapshot ??
       lastEditorSelectionRef.current ?? {
         start: activeEditorText.length,
         end: activeEditorText.length,
       };
-    const next = transform(activeEditorText, resolvedSelection);
+    const next = transform(activeEditorText, resolveEditorSelection());
     pendingSelectionRef.current = next.selection;
     updateSelectionSnapshot(next.selection);
     if (isTypewriterMode) {
@@ -773,11 +772,26 @@ export const EditorView = memo(function EditorView({
     const editor = editorRef.current;
     if (!editor) return;
 
-    editor.focus();
+    const liveSelection = displaySelectionToSource(activeEditorText, getSelectionOffsets(editor));
+    const fallbackSelection = selectionSnapshot ?? lastEditorSelectionRef.current;
+
+    if (!liveSelection && fallbackSelection) {
+      const displaySelection = sourceSelectionToDisplay(activeEditorText, fallbackSelection);
+      editor.focus();
+      setSelectionOffsets(editor, displaySelection.start, displaySelection.end);
+    } else {
+      editor.focus();
+    }
+
     document.execCommand(command);
 
     const nextText = serializeEditorDom(editor);
-    const nextSelection = displaySelectionToSource(nextText, getSelectionOffsets(editor));
+    const nextSelection =
+      displaySelectionToSource(nextText, getSelectionOffsets(editor)) ??
+      fallbackSelection ?? {
+        start: nextText.length,
+        end: nextText.length,
+      };
     updateSelectionSnapshot(nextSelection);
     if (isTypewriterMode) {
       setTypewriterDraft(nextText);

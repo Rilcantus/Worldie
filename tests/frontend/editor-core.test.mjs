@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   appendTypewriterCommit,
+  clearCurrentLinePrefix,
   continueBlockPrefix,
   duplicateSelectedLineBlock,
   findActiveInlinePairExit,
   findEmptyInlinePairAtCursor,
   findInlinePairAutoInsert,
+  getFormattingState,
   getSlashCommandMatch,
   moveSelectedLineBlock,
   toggleLinePrefix,
@@ -88,4 +90,18 @@ test("inline pair helpers detect lore-link auto insert, empty pairs, and exit po
     pair: { open: "[[", close: "]]" },
     nextCursor: 8,
   });
+});
+
+test("clearCurrentLinePrefix removes active list prefixes and preserves selection", () => {
+  const cleared = clearCurrentLinePrefix("1. Alpha", { start: 3, end: 8 });
+  assert.equal(cleared?.text, "Alpha");
+  assert.deepEqual(cleared?.selection, { start: 0, end: 5 });
+  assert.equal(cleared?.contentStart, 3);
+});
+
+test("getFormattingState reports inline and block formatting flags", () => {
+  assert.equal(getFormattingState("**Bold**", { start: 2, end: 6 }).bold, true);
+  assert.equal(getFormattingState("_Italic_", { start: 1, end: 7 }).italic, true);
+  assert.equal(getFormattingState("> Note: Reminder", { start: 8, end: 8 }).noteBlock, true);
+  assert.equal(getFormattingState("* * *", { start: 5, end: 5 }).sceneBreak, true);
 });
