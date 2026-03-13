@@ -440,6 +440,8 @@ export function continueBlockPrefix(text: string, selection: SelectionOffsets) {
     ? `${Number.parseInt(orderedMatch[1], 10) + 1}${orderedMatch[2]} `
     : /^>\s*Note:\s*/i.test(currentLine)
       ? "> "
+      : isQuoteLine(currentLine)
+        ? "> "
       : getCurrentLinePrefix(currentLine);
   if (!blockPrefix) {
     const nextText = replaceRange(text, selection.start, selection.end, "\n");
