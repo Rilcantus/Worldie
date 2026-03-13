@@ -8,8 +8,7 @@ type UseSidebarActionsArgs = {
   setIsSidebarCollapsed: (value: boolean) => void;
   setEditingWorldId: (value: string | null) => void;
   removeWorld: (worldId: string) => Promise<void>;
-  setActiveWorldId: (worldId: string) => void;
-  openSpecialTab: (kind: "rels" | "timeline", worldId?: string | null) => void;
+  openSpecialTab: (kind: "rels" | "timeline", worldId?: string | null) => Promise<void>;
 };
 
 export function useSidebarActions({
@@ -20,7 +19,6 @@ export function useSidebarActions({
   setIsSidebarCollapsed,
   setEditingWorldId,
   removeWorld,
-  setActiveWorldId,
   openSpecialTab,
 }: UseSidebarActionsArgs) {
   const cancelProjectEdit = useCallback(() => {
@@ -53,18 +51,16 @@ export function useSidebarActions({
 
   const openRelationshipsForWorld = useCallback(
     (worldId: string) => {
-      setActiveWorldId(worldId);
-      openSpecialTab("rels", worldId);
+      void openSpecialTab("rels", worldId);
     },
-    [openSpecialTab, setActiveWorldId],
+    [openSpecialTab],
   );
 
   const openTimelineForWorld = useCallback(
     (worldId: string) => {
-      setActiveWorldId(worldId);
-      openSpecialTab("timeline", worldId);
+      void openSpecialTab("timeline", worldId);
     },
-    [openSpecialTab, setActiveWorldId],
+    [openSpecialTab],
   );
 
   return useMemo(

@@ -17,6 +17,11 @@ type UseTabsArgs = {
   setActiveWorldId: (worldId: string) => void;
   onSelectDocument: (doc: Document) => void;
   onSelectLorePage: (page: LorePage, loreTypeId: string | null) => void;
+  canLeaveCurrentView: () => Promise<boolean>;
+};
+
+type NavigationOptions = {
+  skipGuard?: boolean;
 };
 
 const WORKBENCH_TAB: TabItem = { id: "workbench", kind: "workbench", label: "Workbench", icon: "W" };
@@ -140,6 +145,7 @@ export function useTabs({
   setActiveWorldId,
   onSelectDocument,
   onSelectLorePage,
+  canLeaveCurrentView,
 }: UseTabsArgs) {
   const [tabs, setTabs] = useState<TabItem[]>([WORKBENCH_TAB]);
   const [activeTabId, setActiveTabId] = useState("workbench");
@@ -370,63 +376,103 @@ export function useTabs({
     setActiveTabId((current) => (current === tab.id ? current : tab.id));
   }, [activeTabId]);
 
-  const openWorkbenchTab = useCallback(() => openTab(WORKBENCH_TAB), [openTab]);
+  const openWorkbenchTab = useCallback(async (options?: NavigationOptions) => {
+    if (activeTabId === WORKBENCH_TAB.id) return;
+    if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+    openTab(WORKBENCH_TAB);
+  }, [activeTabId, canLeaveCurrentView, openTab]);
 
   const openSpecialTab = useCallback(
-    (kind: "rels" | "timeline", worldId = activeWorldId) =>
+    async (kind: "rels" | "timeline", worldId = activeWorldId, options?: NavigationOptions) => {
+      const nextTabId = kind;
+      const isAlreadyActive =
+        activeTabId === nextTabId &&
+        (!worldId || worldId === activeWorldId);
+      if (isAlreadyActive) return;
+      if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
       openTab({
         id: kind,
         kind,
         label: kind === "rels" ? "Relationships" : "Timeline",
         icon: kind === "rels" ? "R" : "T",
         worldId,
-      }),
-    [activeWorldId, openTab],
+      });
+    },
+    [activeTabId, activeWorldId, canLeaveCurrentView, openTab],
   );
 
   const openTemplatesTab = useCallback(
-    () => openTab({ id: "templates", kind: "templates", label: "Templates", icon: "S" }),
-    [openTab],
+    async (options?: NavigationOptions) => {
+      if (activeTabId === "templates") return;
+      if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      openTab({ id: "templates", kind: "templates", label: "Templates", icon: "S" });
+    },
+    [activeTabId, canLeaveCurrentView, openTab],
   );
   const openLoreTypesTab = useCallback(
-    () => openTab({ id: "loretypes", kind: "ltypes", label: "Lore Types", icon: "Y" }),
-    [openTab],
+    async (options?: NavigationOptions) => {
+      if (activeTabId === "loretypes") return;
+      if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      openTab({ id: "loretypes", kind: "ltypes", label: "Lore Types", icon: "Y" });
+    },
+    [activeTabId, canLeaveCurrentView, openTab],
   );
   const openLoreCreateTab = useCallback(
-    () => openTab({ id: "lore:create", kind: "lcreate", label: "New Lore Item", icon: "+" }),
-    [openTab],
+    async (options?: NavigationOptions) => {
+      if (activeTabId === "lore:create") return;
+      if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      openTab({ id: "lore:create", kind: "lcreate", label: "New Lore Item", icon: "+" });
+    },
+    [activeTabId, canLeaveCurrentView, openTab],
   );
 
   const openNewTab = useCallback(
-    () => openTab({ id: `new:${crypto.randomUUID()}`, kind: "new", label: "New Tab", icon: "+" }),
-    [openTab],
+    async (options?: NavigationOptions) => {
+      if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
+      openTab({ id: `new:${crypto.randomUUID()}`, kind: "new", label: "New Tab", icon: "+" });
+    },
+    [canLeaveCurrentView, openTab],
   );
 
-  const openDocumentTab = useCallback((doc: Document) => {
+  const openDocumentTab = useCallback(async (doc: Document, options?: NavigationOptions) => {
+    const nextTabId = `doc:${doc.id}`;
+    const isAlreadyActive =
+      activeTabId === nextTabId &&
+      activeDocumentId === doc.id &&
+      (!doc.worldId || doc.worldId === activeWorldId);
+    if (isAlreadyActive) return;
+    if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
     onSelectDocument(doc);
     openTab({
-      id: `doc:${doc.id}`,
+      id: nextTabId,
       kind: "editor",
       label: doc.title || "Untitled Document",
       icon: "D",
       refId: doc.id,
       worldId: doc.worldId,
     });
-  }, [onSelectDocument, openTab]);
+  }, [activeDocumentId, activeTabId, activeWorldId, canLeaveCurrentView, onSelectDocument, openTab]);
 
-  const openLoreTab = useCallback((page: LorePage) => {
+  const openLoreTab = useCallback(async (page: LorePage, options?: NavigationOptions) => {
+    const nextTabId = `lore:${page.id}`;
+    const isAlreadyActive =
+      activeTabId === nextTabId &&
+      activeLoreId === page.id &&
+      (!page.worldId || page.worldId === activeWorldId);
+    if (isAlreadyActive) return;
+    if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
     onSelectLorePage(page, resolveLoreTypeId(page));
     openTab({
-      id: `lore:${page.id}`,
+      id: nextTabId,
       kind: "lore",
       label: page.title || "Untitled Lore",
       icon: "L",
       refId: page.id,
       worldId: page.worldId,
     });
-  }, [onSelectLorePage, openTab, resolveLoreTypeId]);
+  }, [activeLoreId, activeTabId, activeWorldId, canLeaveCurrentView, onSelectLorePage, openTab, resolveLoreTypeId]);
 
-  const handleTabSelect = useCallback((tab: TabItem) => {
+  const handleTabSelect = useCallback(async (tab: TabItem) => {
     const isAlreadyActiveTab = tab.id === activeTabId;
     if (
       isAlreadyActiveTab &&
@@ -464,6 +510,8 @@ export function useTabs({
       return;
     }
 
+    if (!(await canLeaveCurrentView())) return;
+
     setActiveTabId(tab.id);
     if ((tab.kind === "rels" || tab.kind === "timeline") && tab.worldId && tab.worldId !== activeWorldId) {
       pendingWorldScopedTabId.current = tab.id;
@@ -499,6 +547,7 @@ export function useTabs({
     onSelectLorePage,
     resolveLoreTypeId,
     setActiveWorldId,
+    canLeaveCurrentView,
   ]);
 
   const handleTabClose = useCallback((tab: TabItem) => {

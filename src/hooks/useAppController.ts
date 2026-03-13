@@ -58,6 +58,13 @@ export function useAppController() {
     [content.selectLorePage, content.setActiveLoreTypeId],
   );
 
+  const hasUnsavedProjectChanges = content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+
+  const canLeaveCurrentView = useCallback(async () => {
+    if (!hasUnsavedProjectChanges) return true;
+    return feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?");
+  }, [feedback.confirmAction, hasUnsavedProjectChanges]);
+
   const tabs = useTabs({
     activeProjectId: projectWorlds.activeProjectId,
     activeWorldId: projectWorlds.activeWorldId,
@@ -72,6 +79,7 @@ export function useAppController() {
     setActiveWorldId: projectWorlds.setActiveWorldId,
     onSelectDocument: content.selectDocument,
     onSelectLorePage: handleSelectLorePage,
+    canLeaveCurrentView,
   });
 
   const search = useSearch({
@@ -102,8 +110,6 @@ export function useAppController() {
     search.setSearchQuery((current) => (current ? "" : current));
     search.closeQuickOpen();
   }, [projectWorlds.activeProjectId]);
-
-  const hasUnsavedProjectChanges = content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -144,6 +150,7 @@ export function useAppController() {
     openLoreTab: tabs.openLoreTab,
     openLoreCreateTab: tabs.openLoreCreateTab,
     openNewTab: tabs.openNewTab,
+    canLeaveCurrentView,
   });
 
   const sidebarActions = useSidebarActions({
@@ -154,7 +161,6 @@ export function useAppController() {
     setIsSidebarCollapsed: panelLayout.setIsSidebarCollapsed,
     setEditingWorldId: projectWorlds.setEditingWorldId,
     removeWorld: projectWorlds.removeWorld,
-    setActiveWorldId: projectWorlds.setActiveWorldId,
     openSpecialTab: tabs.openSpecialTab,
   });
 
@@ -215,40 +221,35 @@ export function useAppController() {
               : null,
   });
 
-  const confirmProjectSwitch = useCallback(async () => {
-    if (!hasUnsavedProjectChanges) return true;
-    return feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?");
-  }, [feedback.confirmAction, hasUnsavedProjectChanges]);
-
   const projectFileActions = useMemo(
     () => ({
       addProject: async () => {
-        if (!(await confirmProjectSwitch())) return;
+        if (!(await canLeaveCurrentView())) return;
         await projectWorlds.addProject();
       },
       openProject: async () => {
-        if (!(await confirmProjectSwitch())) return;
+        if (!(await canLeaveCurrentView())) return;
         await projectWorlds.openProject();
       },
       openRecentProject: async (projectId: string) => {
-        if (!(await confirmProjectSwitch())) return;
+        if (!(await canLeaveCurrentView())) return;
         await projectWorlds.openRecentProject(projectId);
       },
       saveCurrentProjectAs: async () => {
-        if (!(await confirmProjectSwitch())) return;
+        if (!(await canLeaveCurrentView())) return;
         await projectWorlds.saveCurrentProjectAs();
       },
       addDemoProject: async () => {
-        if (!(await confirmProjectSwitch())) return;
+        if (!(await canLeaveCurrentView())) return;
         await projectWorlds.addDemoProject();
       },
       removeProject: async () => {
-        if (!(await confirmProjectSwitch())) return;
+        if (!(await canLeaveCurrentView())) return;
         await projectWorlds.removeProject();
       },
     }),
     [
-      confirmProjectSwitch,
+      canLeaveCurrentView,
       projectWorlds.addProject,
       projectWorlds.openProject,
       projectWorlds.openRecentProject,
