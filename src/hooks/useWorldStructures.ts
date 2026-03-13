@@ -78,6 +78,10 @@ export function useWorldStructures({
     projectId: activeProjectId,
     timelineEventId: null,
   });
+  const currentRelationshipSaveVersionRef = useRef(0);
+  const currentTimelineSaveVersionRef = useRef(0);
+  const currentRelationshipSaveRequestIdRef = useRef(0);
+  const currentTimelineSaveRequestIdRef = useRef(0);
 
   const resetRelationshipState = (saveState: SaveState = "idle") => {
     setRelationships((current) => (current.length === 0 ? current : []));
@@ -172,6 +176,7 @@ export function useWorldStructures({
       projectId: activeProjectId,
       relationshipId: activeRelationshipId,
     };
+    currentRelationshipSaveVersionRef.current += 1;
   }, [activeProjectId, activeRelationshipId]);
 
   useEffect(() => {
@@ -179,6 +184,7 @@ export function useWorldStructures({
       projectId: activeProjectId,
       timelineEventId: activeTimelineEventId,
     };
+    currentTimelineSaveVersionRef.current += 1;
   }, [activeProjectId, activeTimelineEventId]);
 
   const canLeaveRelationshipDraft = useCallback(
@@ -348,6 +354,8 @@ export function useWorldStructures({
     if (!activeProjectId) return;
     const saveProjectId = activeProjectId;
     const saveRelationshipId = activeRelationshipId;
+    const saveVersion = currentRelationshipSaveVersionRef.current;
+    const saveRequestId = ++currentRelationshipSaveRequestIdRef.current;
     try {
       setRelationshipSaveState("saving");
       await updateRelationship(saveProjectId, saveRelationshipId, {
@@ -357,10 +365,14 @@ export function useWorldStructures({
         notes: relationshipNotes,
       });
       const currentTarget = currentRelationshipSaveTargetRef.current;
+      if (currentRelationshipSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentRelationshipSaveVersionRef.current !== saveVersion) return;
       if (currentTarget.projectId !== saveProjectId || currentTarget.relationshipId !== saveRelationshipId) return;
       markRelationshipSaved();
     } catch (error) {
       const currentTarget = currentRelationshipSaveTargetRef.current;
+      if (currentRelationshipSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentRelationshipSaveVersionRef.current !== saveVersion) return;
       if (currentTarget.projectId !== saveProjectId || currentTarget.relationshipId !== saveRelationshipId) return;
       setRelationshipSaveState("error");
       await recoverActiveProjectError(error, "Worldie could not save the relationship.");
@@ -510,6 +522,8 @@ export function useWorldStructures({
     if (!activeProjectId) return;
     const saveProjectId = activeProjectId;
     const saveTimelineEventId = activeTimelineEventId;
+    const saveVersion = currentTimelineSaveVersionRef.current;
+    const saveRequestId = ++currentTimelineSaveRequestIdRef.current;
     try {
       setTimelineSaveState("saving");
       await updateTimelineEvent(saveProjectId, saveTimelineEventId, {
@@ -520,10 +534,14 @@ export function useWorldStructures({
         description: timelineDescription,
       });
       const currentTarget = currentTimelineSaveTargetRef.current;
+      if (currentTimelineSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentTimelineSaveVersionRef.current !== saveVersion) return;
       if (currentTarget.projectId !== saveProjectId || currentTarget.timelineEventId !== saveTimelineEventId) return;
       markTimelineSaved();
     } catch (error) {
       const currentTarget = currentTimelineSaveTargetRef.current;
+      if (currentTimelineSaveRequestIdRef.current !== saveRequestId) return;
+      if (currentTimelineSaveVersionRef.current !== saveVersion) return;
       if (currentTarget.projectId !== saveProjectId || currentTarget.timelineEventId !== saveTimelineEventId) return;
       setTimelineSaveState("error");
       await recoverActiveProjectError(error, "Worldie could not save the timeline event.");
@@ -585,6 +603,7 @@ export function useWorldStructures({
   const updateRelationshipSourceId = useCallback((value: string) => {
     setRelationshipSourceId((current) => {
       if (current === value) return current;
+      currentRelationshipSaveVersionRef.current += 1;
       setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
@@ -593,6 +612,7 @@ export function useWorldStructures({
   const updateRelationshipTargetId = useCallback((value: string) => {
     setRelationshipTargetId((current) => {
       if (current === value) return current;
+      currentRelationshipSaveVersionRef.current += 1;
       setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
@@ -601,6 +621,7 @@ export function useWorldStructures({
   const updateRelationshipType = useCallback((value: string) => {
     setRelationshipType((current) => {
       if (current === value) return current;
+      currentRelationshipSaveVersionRef.current += 1;
       setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
@@ -609,6 +630,7 @@ export function useWorldStructures({
   const updateRelationshipNotes = useCallback((value: string) => {
     setRelationshipNotes((current) => {
       if (current === value) return current;
+      currentRelationshipSaveVersionRef.current += 1;
       setRelationshipSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
@@ -617,6 +639,7 @@ export function useWorldStructures({
   const updateTimelineTitle = useCallback((value: string) => {
     setTimelineTitle((current) => {
       if (current === value) return current;
+      currentTimelineSaveVersionRef.current += 1;
       setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
@@ -625,6 +648,7 @@ export function useWorldStructures({
   const updateTimelineDate = useCallback((value: string) => {
     setTimelineDate((current) => {
       if (current === value) return current;
+      currentTimelineSaveVersionRef.current += 1;
       setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
@@ -633,6 +657,7 @@ export function useWorldStructures({
   const updateTimelineType = useCallback((value: string) => {
     setTimelineType((current) => {
       if (current === value) return current;
+      currentTimelineSaveVersionRef.current += 1;
       setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
@@ -641,6 +666,7 @@ export function useWorldStructures({
   const updateTimelineLinkedPageId = useCallback((value: string) => {
     setTimelineLinkedPageId((current) => {
       if (current === value) return current;
+      currentTimelineSaveVersionRef.current += 1;
       setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
@@ -649,6 +675,7 @@ export function useWorldStructures({
   const updateTimelineDescription = useCallback((value: string) => {
     setTimelineDescription((current) => {
       if (current === value) return current;
+      currentTimelineSaveVersionRef.current += 1;
       setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
       return value;
     });
