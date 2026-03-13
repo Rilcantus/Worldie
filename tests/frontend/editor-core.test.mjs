@@ -8,6 +8,7 @@ import {
   continueBlockPrefix,
   displaySelectionToSource,
   duplicateSelectedLineBlock,
+  extractEditorTextFromHtml,
   findActiveInlinePairExit,
   findEmptyInlinePairAtCursor,
   findInlinePairAutoInsert,
@@ -155,6 +156,74 @@ test("normalizePastedText avoids false quote matches and supports heavy bars", (
   assert.equal(normalizePastedText("\u00e2lpha"), "\u00e2lpha");
   assert.equal(normalizePastedText("  \u00e2lpha"), "  \u00e2lpha");
   assert.equal(normalizePastedText("\u2503 quoted"), "> quoted");
+});
+
+test("extractEditorTextFromHtml preserves inline formatting inside pasted blocks", () => {
+  const originalDocument = globalThis.document;
+  const originalNode = globalThis.Node;
+  const originalHTMLElement = globalThis.HTMLElement;
+
+  class FakeNode {}
+  FakeNode.TEXT_NODE = 3;
+
+  class FakeTextNode extends FakeNode {
+    constructor(text) {
+      super();
+      this.nodeType = FakeNode.TEXT_NODE;
+      this.textContent = text;
+    }
+  }
+
+  class FakeElement extends FakeNode {
+    constructor(tagName, childNodes = [], children = childNodes.filter((child) => child instanceof FakeElement)) {
+      super();
+      this.nodeType = 1;
+      this.tagName = tagName;
+      this.childNodes = childNodes;
+      this.children = children;
+    }
+  }
+
+  globalThis.Node = FakeNode;
+  globalThis.HTMLElement = FakeElement;
+  globalThis.document = {
+    createElement: () => {
+      const root = new FakeElement("DIV");
+      Object.defineProperty(root, "innerHTML", {
+        get() {
+          return "";
+        },
+        set() {
+          root.childNodes = [
+            new FakeElement("P", [
+              new FakeElement("STRONG", [new FakeTextNode("Bold")]),
+              new FakeTextNode(" plain"),
+            ]),
+            new FakeElement("BLOCKQUOTE", [
+              new FakeElement("EM", [new FakeTextNode("Quoted")]),
+            ]),
+            new FakeElement("UL", [], [
+              new FakeElement("LI", [
+                new FakeElement("U", [new FakeTextNode("Under")]),
+              ]),
+            ]),
+          ];
+        },
+      });
+      return root;
+    },
+  };
+
+  try {
+    assert.equal(
+      extractEditorTextFromHtml("<p><strong>Bold</strong> plain</p>"),
+      "**Bold** plain\n\n> _Quoted_\n\n- __Under__",
+    );
+  } finally {
+    globalThis.document = originalDocument;
+    globalThis.Node = originalNode;
+    globalThis.HTMLElement = originalHTMLElement;
+  }
 });
 
 test("isBoldElement detects semantic and inline-style bold markup", () => {

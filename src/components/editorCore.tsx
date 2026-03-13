@@ -634,7 +634,7 @@ function serializeBlockPasteNode(node: Node): string {
     return clean(childBlocks());
   }
 
-  return childBlocks();
+  return serializeInlinePasteNode(node);
 }
 
 export function extractEditorTextFromHtml(html: string) {
