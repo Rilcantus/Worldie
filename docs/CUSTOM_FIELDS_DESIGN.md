@@ -131,6 +131,8 @@ Worldie now includes a simple lore table inside the lore area. It reads the same
 - Columns: lore-type field definitions, plus title/type/updated metadata.
 - Cells: values from each page's `customFields`.
 - Filtering: the selected lore type.
+- Quick filtering: case-insensitive text search across page titles and visible custom field values.
+- Sorting: click table headers to sort ascending or descending by title, updated date text, or visible custom field values.
 - Row action: clicking a page title opens the existing lore editor for that page.
 
 Field definitions already use stable IDs. Lore page values are currently keyed by definition `key`, not by definition ID. A future table view can use definition IDs for column identity while continuing to read/write page values through stable keys.
@@ -140,7 +142,7 @@ Current table limitations:
 - It is view-only.
 - It does not support formulas.
 - It does not support bulk editing.
-- It does not have advanced filters or click-to-sort yet.
+- It does not have advanced filters or saved views yet.
 - Manual extra fields are not promoted into columns in this first table slice.
 - Definition renames or key changes do not migrate existing page values automatically.
 

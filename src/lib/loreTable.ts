@@ -21,6 +21,13 @@ export type LoreTableRow = {
   cells: Record<string, string>;
 };
 
+export type LoreTableSortDirection = "asc" | "desc";
+
+export type LoreTableSort = {
+  columnId: string;
+  direction: LoreTableSortDirection;
+};
+
 export type LoreTableModel = {
   loreType: LoreType | null;
   columns: LoreTableColumn[];
@@ -58,6 +65,54 @@ function getCustomFieldValue(page: LorePage, field: CustomFieldDefinition) {
   return fields.customFields[field.key] ?? fields.customFields[field.name] ?? field.defaultValue;
 }
 
+function getSearchText(row: LoreTableRow, columns: LoreTableColumn[]) {
+  return columns
+    .filter((column) => column.kind === "title" || column.kind === "custom_field")
+    .map((column) => row.cells[column.id] ?? "")
+    .join(" ")
+    .toLowerCase();
+}
+
+function getSortValue(row: LoreTableRow, column: LoreTableColumn | undefined) {
+  if (!column) return "";
+  return row.cells[column.id] ?? "";
+}
+
+function compareLoreTableRows(
+  left: LoreTableRow,
+  right: LoreTableRow,
+  column: LoreTableColumn | undefined,
+  direction: LoreTableSortDirection,
+) {
+  const leftValue = getSortValue(left, column);
+  const rightValue = getSortValue(right, column);
+  if (!leftValue && !rightValue) return left.page.title.localeCompare(right.page.title);
+  if (!leftValue) return 1;
+  if (!rightValue) return -1;
+
+  let comparison = 0;
+  if (column?.fieldType === "number") {
+    const leftNumber = Number(leftValue);
+    const rightNumber = Number(rightValue);
+    if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber) && leftNumber !== rightNumber) {
+      comparison = leftNumber - rightNumber;
+    }
+  }
+
+  if (comparison === 0 && column?.fieldType === "checkbox") {
+    const leftNumber = leftValue === "Yes" ? 1 : 0;
+    const rightNumber = rightValue === "Yes" ? 1 : 0;
+    if (leftNumber !== rightNumber) comparison = leftNumber - rightNumber;
+  }
+
+  if (comparison === 0) {
+    comparison = leftValue.localeCompare(rightValue, undefined, {
+      numeric: column?.kind !== "custom_field",
+    });
+  }
+  return direction === "desc" ? -comparison : comparison;
+}
+
 function parseLoreTableFields(fieldsJson: string | null | undefined): ParsedLoreTableFields {
   if (!fieldsJson?.trim()) return { loreTypeId: null, customFields: {} };
   try {
@@ -88,6 +143,7 @@ export function buildLoreTableModel(
   pages: LorePage[],
   loreTypes: LoreType[],
   selectedLoreTypeId: string | null,
+  options: { filterText?: string; sort?: LoreTableSort | null } = {},
 ): LoreTableModel {
   const loreType = (selectedLoreTypeId ? loreTypes.find((type) => type.id === selectedLoreTypeId) : null) ?? loreTypes[0] ?? null;
   if (!loreType) {
@@ -107,6 +163,7 @@ export function buildLoreTableModel(
     { id: "updated", label: "Updated", kind: "updated" },
   ];
 
+  const filterText = options.filterText?.trim().toLowerCase() ?? "";
   const rows = pages
     .filter((page) => pageMatchesLoreType(page, loreType))
     .map((page) => {
@@ -119,7 +176,17 @@ export function buildLoreTableModel(
         cells[field.id] = formatLoreTableValue(getCustomFieldValue(page, field), field.type);
       }
       return { page, cells };
+    })
+    .filter((row) => !filterText || getSearchText(row, columns).includes(filterText));
+
+  const sortColumn = options.sort ? columns.find((column) => column.id === options.sort?.columnId) : null;
+  if (sortColumn && options.sort) {
+    rows.sort((left, right) => {
+      const comparison = compareLoreTableRows(left, right, sortColumn, options.sort?.direction ?? "asc");
+      if (comparison !== 0) return comparison;
+      return left.page.id.localeCompare(right.page.id);
     });
+  }
 
   return { loreType, columns, rows };
 }

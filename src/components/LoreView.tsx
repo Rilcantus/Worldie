@@ -8,7 +8,7 @@ import {
   type LoreTrait,
 } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
-import { buildLoreTableModel } from "../lib/loreTable";
+import { buildLoreTableModel, type LoreTableSort } from "../lib/loreTable";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import { resolveLoreLinks } from "../lib/loreLinks";
 import type { WorldUI } from "../types/ui";
@@ -104,6 +104,8 @@ export const LoreView = memo(function LoreView({
     [activeLoreTypeId, loreTypes, loreTypesById],
   );
   const [tableLoreTypeId, setTableLoreTypeId] = useState(activeLoreType?.id ?? "");
+  const [tableFilterText, setTableFilterText] = useState("");
+  const [tableSort, setTableSort] = useState<LoreTableSort | null>({ columnId: "title", direction: "asc" });
   useEffect(() => {
     if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
     setTableLoreTypeId(activeLoreType?.id ?? "");
@@ -119,9 +121,21 @@ export const LoreView = memo(function LoreView({
   );
   const filteredLinkedLorePages = linkedLorePages.filter((page) => page.id !== activeLoreId);
   const loreTableModel = useMemo(
-    () => buildLoreTableModel(availableLorePages, loreTypes, tableLoreTypeId || activeLoreType?.id || null),
-    [activeLoreType?.id, availableLorePages, loreTypes, tableLoreTypeId],
+    () =>
+      buildLoreTableModel(availableLorePages, loreTypes, tableLoreTypeId || activeLoreType?.id || null, {
+        filterText: tableFilterText,
+        sort: tableSort,
+      }),
+    [activeLoreType?.id, availableLorePages, loreTypes, tableFilterText, tableLoreTypeId, tableSort],
   );
+
+  const toggleTableSort = (columnId: string) => {
+    setTableSort((current) =>
+      current?.columnId === columnId
+        ? { columnId, direction: current.direction === "asc" ? "desc" : "asc" }
+        : { columnId, direction: "asc" },
+    );
+  };
 
   const persistFields = (
     traits = loreItemFields.traits,
@@ -374,18 +388,26 @@ export const LoreView = memo(function LoreView({
         <div className="lore-panel">
           <div className="lore-panel-header">
             <div className="linked-lore-label">Lore Table</div>
-            <select
-              id={tableLoreTypeInputId}
-              className="lore-input lore-table-type-select"
-              value={loreTableModel.loreType?.id ?? ""}
-              onChange={(event) => setTableLoreTypeId(event.target.value)}
-            >
-              {loreTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
+            <div className="lore-table-controls">
+              <input
+                className="lore-input lore-table-filter"
+                value={tableFilterText}
+                onChange={(event) => setTableFilterText(event.target.value)}
+                placeholder="Filter table"
+              />
+              <select
+                id={tableLoreTypeInputId}
+                className="lore-input lore-table-type-select"
+                value={loreTableModel.loreType?.id ?? ""}
+                onChange={(event) => setTableLoreTypeId(event.target.value)}
+              >
+                {loreTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           {loreTableModel.loreType ? (
             <div className="lore-table-wrap">
@@ -393,7 +415,14 @@ export const LoreView = memo(function LoreView({
                 <thead>
                   <tr>
                     {loreTableModel.columns.map((column) => (
-                      <th key={column.id}>{column.label}</th>
+                      <th key={column.id}>
+                        <button className="lore-table-sort" type="button" onClick={() => toggleTableSort(column.id)}>
+                          <span>{column.label}</span>
+                          {tableSort?.columnId === column.id ? (
+                            <span className="lore-table-sort-direction">{tableSort.direction === "asc" ? "Asc" : "Desc"}</span>
+                          ) : null}
+                        </button>
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -401,7 +430,9 @@ export const LoreView = memo(function LoreView({
                   {loreTableModel.rows.length === 0 ? (
                     <tr>
                       <td colSpan={loreTableModel.columns.length || 1}>
-                        No {loreTableModel.loreType.name.toLowerCase()} lore pages yet.
+                        {tableFilterText.trim()
+                          ? "No lore pages match this filter."
+                          : `No ${loreTableModel.loreType.name.toLowerCase()} lore pages yet.`}
                       </td>
                     </tr>
                   ) : (

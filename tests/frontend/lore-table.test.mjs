@@ -104,3 +104,102 @@ test("formatLoreTableValue renders checkbox, select, number, date, and empty val
   assert.equal(formatLoreTableValue(null, "text"), "");
   assert.equal(formatLoreTableValue(undefined, "text"), "");
 });
+
+const sortablePages = [
+  {
+    id: "lore-mara",
+    worldId: "world-1",
+    title: "Mara Quill",
+    type: "Character",
+    fieldsJson: JSON.stringify({
+      loreTypeId: "type-character",
+      customFields: { species: "Human", age: 31, active: true, status: "Active", first_seen: "2026-01-02" },
+    }),
+    updatedAt: "2026-06-01",
+  },
+  {
+    id: "lore-bran",
+    worldId: "world-1",
+    title: "Bran Vale",
+    type: "Character",
+    fieldsJson: JSON.stringify({
+      loreTypeId: "type-character",
+      customFields: { species: "Elf", age: 7, active: false, status: "Missing", first_seen: "2026-02-03" },
+    }),
+    updatedAt: "2026-05-01",
+  },
+  {
+    id: "lore-asha",
+    worldId: "world-1",
+    title: "Asha Reed",
+    type: "Character",
+    fieldsJson: JSON.stringify({
+      loreTypeId: "type-character",
+      customFields: { species: "Human", active: true, status: "Retired" },
+    }),
+  },
+  {
+    id: "lore-harbor",
+    worldId: "world-1",
+    title: "Red Harbor",
+    type: "Place",
+    fieldsJson: JSON.stringify({ loreTypeId: "type-place", customFields: { region: "Coast" } }),
+  },
+];
+
+test("quick filter matches titles case-insensitively and excludes non-matching rows", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    filterText: "mara",
+  });
+
+  assert.deepEqual(model.rows.map((row) => row.page.id), ["lore-mara"]);
+});
+
+test("quick filter matches visible custom field values case-insensitively", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    filterText: "ELF",
+  });
+
+  assert.deepEqual(model.rows.map((row) => row.page.id), ["lore-bran"]);
+});
+
+test("quick filter and sorting still exclude pages from other lore types", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    filterText: "harbor",
+    sort: { columnId: "title", direction: "asc" },
+  });
+
+  assert.deepEqual(model.rows.map((row) => row.page.id), []);
+});
+
+test("sorting by name toggles ascending and descending", () => {
+  const ascending = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    sort: { columnId: "title", direction: "asc" },
+  });
+  const descending = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    sort: { columnId: "title", direction: "desc" },
+  });
+
+  assert.deepEqual(ascending.rows.map((row) => row.page.title), ["Asha Reed", "Bran Vale", "Mara Quill"]);
+  assert.deepEqual(descending.rows.map((row) => row.page.title), ["Mara Quill", "Bran Vale", "Asha Reed"]);
+});
+
+test("sorting by number custom fields uses numeric order and keeps missing values safe", () => {
+  const ascending = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    sort: { columnId: "field-age", direction: "asc" },
+  });
+
+  assert.deepEqual(ascending.rows.map((row) => row.page.id), ["lore-bran", "lore-mara", "lore-asha"]);
+});
+
+test("sorting by checkbox custom fields is predictable", () => {
+  const ascending = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    sort: { columnId: "field-active", direction: "asc" },
+  });
+  const descending = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    sort: { columnId: "field-active", direction: "desc" },
+  });
+
+  assert.deepEqual(ascending.rows.map((row) => row.page.id), ["lore-bran", "lore-asha", "lore-mara"]);
+  assert.deepEqual(descending.rows.map((row) => row.page.id), ["lore-asha", "lore-mara", "lore-bran"]);
+});
