@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildLoreCreateDefaultCustomFields,
   buildLoreCreateDraftPayload,
   buildLoreEditorDraftPage,
   getLoreCreateDraftState,
@@ -9,6 +10,7 @@ import {
   buildLoreTypeCounts,
   collectLoreStats,
   countNonEmptyWords,
+  setLoreCreateCustomFieldValue,
 } from "../../.tmp-frontend-tests/src/hooks/contentState.js";
 
 test("countNonEmptyWords ignores blank input and compresses whitespace", () => {
@@ -101,14 +103,100 @@ test("new lore draft payload uses entered title selected type template and tags"
       loreTypeId: "type-character",
       templateId: "template-character",
       tags: "lead, courier",
+      details: "Courier with a sealed letter.",
+      customFields: { status: "Active" },
     }),
     {
       title: "Mara Quill",
       loreTypeId: "type-character",
       templateId: "template-character",
       tags: "lead, courier",
+      details: "Courier with a sealed letter.",
+      customFields: { status: "Active" },
     },
   );
+});
+
+test("new lore draft payload keeps no template valid and includes details", () => {
+  assert.deepEqual(
+    buildLoreCreateDraftPayload({
+      title: "Red Harbor",
+      loreTypeId: "type-location",
+      templateId: null,
+      tags: "port, fog",
+      details: "A declining harbor city.",
+    }),
+    {
+      title: "Red Harbor",
+      loreTypeId: "type-location",
+      templateId: null,
+      tags: "port, fog",
+      details: "A declining harbor city.",
+      customFields: {},
+    },
+  );
+});
+
+test("new lore custom field drafts seed defaults and normalize typed edits", () => {
+  const loreType = {
+    id: "type-character",
+    name: "Character",
+    slug: "character",
+    order: 0,
+    isSystem: true,
+    fieldDefinitions: [
+      { id: "field-status", name: "Status", key: "status", type: "select", options: ["Draft", "Active"], required: false, order: 0, defaultValue: "Draft" },
+      { id: "field-active", name: "Active", key: "active", type: "checkbox", options: [], required: false, order: 1, defaultValue: false },
+      { id: "field-age", name: "Age", key: "age", type: "number", options: [], required: false, order: 2 },
+      { id: "field-species", name: "Species", key: "species", type: "text", options: [], required: false, order: 3 },
+    ],
+  };
+
+  const seeded = buildLoreCreateDefaultCustomFields(loreType);
+  const editedAge = setLoreCreateCustomFieldValue(seeded, loreType.fieldDefinitions[2], "31");
+  const editedActive = setLoreCreateCustomFieldValue(editedAge, loreType.fieldDefinitions[1], true);
+  const editedStatus = setLoreCreateCustomFieldValue(editedActive, loreType.fieldDefinitions[0], "Active");
+  const editedSpecies = setLoreCreateCustomFieldValue(editedStatus, loreType.fieldDefinitions[3], "Human");
+
+  assert.deepEqual(seeded, {
+    status: "Draft",
+    active: false,
+  });
+  assert.deepEqual(editedSpecies, {
+    status: "Active",
+    active: true,
+    age: 31,
+    species: "Human",
+  });
+});
+
+test("initial lore fields include draft details and custom field overrides", () => {
+  const fieldsJson = buildInitialLoreFields(
+    "type-character",
+    null,
+    {
+      id: "type-character",
+      name: "Character",
+      slug: "character",
+      order: 0,
+      isSystem: true,
+      fieldDefinitions: [
+        { id: "field-status", name: "Status", key: "status", type: "select", options: ["Draft", "Active"], required: false, order: 0, defaultValue: "Draft" },
+        { id: "field-age", name: "Age", key: "age", type: "number", options: [], required: false, order: 1 },
+      ],
+    },
+    {
+      details: "Starts with useful notes.",
+      customFields: { status: "Active", age: 31 },
+    },
+  );
+  const fields = JSON.parse(fieldsJson);
+
+  assert.equal(fields.details, "Starts with useful notes.");
+  assert.deepEqual(fields.customFields, {
+    status: "Active",
+    age: 31,
+  });
 });
 
 test("existing lore page title edits preserve fields custom fields and metadata", () => {

@@ -1,6 +1,6 @@
 import { memo, useCallback, type MouseEvent as ReactMouseEvent } from "react";
 import type { Document, LorePage, LoreTableView, Relationship, TimelineEvent } from "../lib/data";
-import type { LoreCustomFieldValue } from "../lib/loreItems";
+import type { LoreCustomFields, LoreCustomFieldValue } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import type { LoreTableCsvImportDraft, LoreTableCsvUpdateDraft } from "../lib/loreTable";
@@ -115,7 +115,14 @@ type MainContentProps = {
   onLoreTagsChange: (value: string) => void;
   onLoreFieldsChange: (value: string) => void;
   onLorePageTypeChange: (value: string) => void;
-  onCreateLoreItem: (payload: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => void;
+  onCreateLoreItem: (payload: {
+    title: string;
+    loreTypeId: string;
+    templateId: string | null;
+    tags: string;
+    details: string;
+    customFields: LoreCustomFields;
+  }) => Promise<unknown> | void;
   onSelectTemplate: (templateId: string) => void;
   onCreateTemplate: () => void;
   onUpdateTemplate: (templateId: string, updates: Partial<Omit<LoreTemplate, "id">>) => void;

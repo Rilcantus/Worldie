@@ -1,9 +1,10 @@
 import type { LorePage } from "../lib/data";
+import type { LoreCustomFieldValue, LoreCustomFields } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
-import type { LoreType } from "../lib/loreTypes";
+import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 
-function buildDefaultCustomFields(loreType: LoreType | null | undefined) {
-  const customFields: Record<string, string | number | boolean | null> = {};
+export function buildLoreCreateDefaultCustomFields(loreType: LoreType | null | undefined) {
+  const customFields: LoreCustomFields = {};
   for (const field of loreType?.fieldDefinitions ?? []) {
     if (field.defaultValue === undefined || field.defaultValue === null) continue;
     customFields[field.key] = field.defaultValue;
@@ -20,6 +21,7 @@ export function buildInitialLoreFields(
   loreTypeId: string | null,
   template: LoreTemplate | null,
   loreType?: LoreType | null,
+  draft: { details?: string; customFields?: LoreCustomFields } = {},
 ) {
   return JSON.stringify(
     {
@@ -31,8 +33,11 @@ export function buildInitialLoreFields(
           name: trait.label.trim() || "Trait",
           value: "",
         })) ?? [],
-      details: "",
-      customFields: buildDefaultCustomFields(loreType),
+      details: draft.details ?? "",
+      customFields: {
+        ...buildLoreCreateDefaultCustomFields(loreType),
+        ...(draft.customFields ?? {}),
+      },
     },
     null,
     2,
@@ -48,11 +53,15 @@ export function buildLoreCreateDraftPayload({
   loreTypeId,
   templateId,
   tags,
+  details = "",
+  customFields = {},
 }: {
   title: string;
   loreTypeId: string | null | undefined;
   templateId: string | null;
   tags: string;
+  details?: string;
+  customFields?: LoreCustomFields;
 }) {
   const normalizedTitle = normalizeLoreTitleDraft(title);
   if (!normalizedTitle || !loreTypeId) return null;
@@ -61,6 +70,8 @@ export function buildLoreCreateDraftPayload({
     loreTypeId,
     templateId,
     tags,
+    details,
+    customFields,
   };
 }
 
@@ -79,6 +90,30 @@ export function getLoreCreateDraftState({
     canCreate: Boolean(loreType && normalizedTitle && !isCreating),
     buttonLabel: loreType ? `Create ${loreType.name}` : "Create Lore Item",
     titlePlaceholder: loreType ? `New ${loreType.name} title` : "New lore item title",
+  };
+}
+
+export function normalizeLoreCreateCustomFieldValue(
+  field: CustomFieldDefinition,
+  value: string | number | boolean | null,
+): LoreCustomFieldValue {
+  if (field.type === "checkbox") return Boolean(value);
+  if (field.type === "number") {
+    if (value === "" || value === null) return "";
+    const numberValue = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(numberValue) ? numberValue : "";
+  }
+  return value == null ? "" : String(value);
+}
+
+export function setLoreCreateCustomFieldValue(
+  current: LoreCustomFields,
+  field: CustomFieldDefinition,
+  value: string | number | boolean | null,
+) {
+  return {
+    ...current,
+    [field.key]: normalizeLoreCreateCustomFieldValue(field, value),
   };
 }
 

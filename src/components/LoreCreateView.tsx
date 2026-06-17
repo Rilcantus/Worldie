@@ -1,7 +1,13 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { buildLoreCreateDraftPayload, getLoreCreateDraftState } from "../hooks/contentState";
+import {
+  buildLoreCreateDefaultCustomFields,
+  buildLoreCreateDraftPayload,
+  getLoreCreateDraftState,
+  setLoreCreateCustomFieldValue,
+} from "../hooks/contentState";
+import type { LoreCustomFieldValue, LoreCustomFields } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
-import type { LoreType } from "../lib/loreTypes";
+import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
 
 type LoreCreateViewProps = {
@@ -12,10 +18,21 @@ type LoreCreateViewProps = {
   loreTypes: LoreType[];
   onExpandSidebar: () => void;
   onExpandRightPanel: () => void;
-  onCreateLoreItem: (payload: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => void;
+  onCreateLoreItem: (payload: {
+    title: string;
+    loreTypeId: string;
+    templateId: string | null;
+    tags: string;
+    details: string;
+    customFields: LoreCustomFields;
+  }) => Promise<unknown> | void;
   onOpenTemplates: () => void;
   onOpenLoreTypes: () => void;
 };
+
+function formatDraftCustomFieldValue(value: LoreCustomFieldValue | undefined) {
+  return value == null ? "" : String(value);
+}
 
 export const LoreCreateView = memo(function LoreCreateView({
   isSidebarCollapsed,
@@ -35,8 +52,11 @@ export const LoreCreateView = memo(function LoreCreateView({
   const [title, setTitle] = useState("");
   const [loreTypeId, setLoreTypeId] = useState(loreTypes[0]?.id ?? "");
   const [tags, setTags] = useState("");
+  const [details, setDetails] = useState("");
+  const [customFields, setCustomFields] = useState<LoreCustomFields>({});
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [createError, setCreateError] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const loreTypeIds = useMemo(() => new Set(loreTypes.map((type) => type.id)), [loreTypes]);
   const selectedLoreType = useMemo(
     () => loreTypes.find((type) => type.id === loreTypeId) ?? null,
@@ -57,6 +77,10 @@ export const LoreCreateView = memo(function LoreCreateView({
     setLoreTypeId(loreTypes[0]?.id ?? "");
   }, [loreTypeId, loreTypeIds, loreTypes]);
 
+  useEffect(() => {
+    setCustomFields(buildLoreCreateDefaultCustomFields(selectedLoreType));
+  }, [selectedLoreType?.id]);
+
   const filteredTemplates = useMemo(
     () => templatesByLoreTypeId.get(loreTypeId) ?? [],
     [loreTypeId, templatesByLoreTypeId],
@@ -69,21 +93,92 @@ export const LoreCreateView = memo(function LoreCreateView({
     setTemplateId(null);
   }, [filteredTemplates, templateId]);
 
-  const createState = getLoreCreateDraftState({ title, loreType: selectedLoreType });
+  const createState = getLoreCreateDraftState({ title, loreType: selectedLoreType, isCreating });
 
-  const handleCreate = () => {
+  const updateCustomFieldValue = (field: CustomFieldDefinition, value: string | number | boolean | null) => {
+    setCustomFields((current) => setLoreCreateCustomFieldValue(current, field, value));
+  };
+
+  const renderCustomFieldControl = (field: CustomFieldDefinition) => {
+    const value = customFields[field.key] ?? "";
+    if (field.type === "long_text") {
+      return (
+        <textarea
+          aria-label={`${field.name} value`}
+          className="lore-textarea custom-field-textarea"
+          value={formatDraftCustomFieldValue(value)}
+          onChange={(event) => updateCustomFieldValue(field, event.target.value)}
+          placeholder={field.name}
+        />
+      );
+    }
+    if (field.type === "checkbox") {
+      return (
+        <label className="meta-tag custom-field-checkbox">
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(event) => updateCustomFieldValue(field, event.target.checked)}
+          />
+          {Boolean(value) ? "Yes" : "No"}
+        </label>
+      );
+    }
+    if (field.type === "select") {
+      return (
+        <select
+          aria-label={`${field.name} value`}
+          className="lore-input"
+          value={formatDraftCustomFieldValue(value)}
+          onChange={(event) => updateCustomFieldValue(field, event.target.value)}
+        >
+          <option value="">Select {field.name}</option>
+          {field.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <input
+        aria-label={`${field.name} value`}
+        className="lore-input"
+        type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+        value={formatDraftCustomFieldValue(value)}
+        onChange={(event) =>
+          updateCustomFieldValue(
+            field,
+            field.type === "number" && event.target.value !== "" ? Number(event.target.value) : event.target.value,
+          )
+        }
+        placeholder={field.name}
+      />
+    );
+  };
+
+  const handleCreate = async () => {
+    if (isCreating) return;
     const payload = buildLoreCreateDraftPayload({
       title,
       loreTypeId,
       templateId,
       tags,
+      details,
+      customFields,
     });
     if (!payload) {
       setCreateError("Enter a title before creating this lore page.");
       return;
     }
     setCreateError("");
-    onCreateLoreItem(payload);
+    setIsCreating(true);
+    try {
+      await onCreateLoreItem(payload);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -116,21 +211,11 @@ export const LoreCreateView = memo(function LoreCreateView({
         <button className="tb-btn" type="button" onClick={onOpenTemplates}>
           Manage Templates
         </button>
-        <button className="tb-btn tb-save" type="button" onClick={handleCreate} disabled={!createState.canCreate}>
-          {createState.buttonLabel}
+        <button className="tb-btn tb-save" type="button" onClick={() => void handleCreate()} disabled={!createState.canCreate}>
+          {isCreating ? "Creating..." : createState.buttonLabel}
         </button>
       </div>
 
-      <input
-        className="doc-title-input"
-        value={title}
-        onChange={(event) => {
-          setTitle(event.target.value);
-          if (createError) setCreateError("");
-        }}
-        placeholder={createState.titlePlaceholder}
-        aria-label={createState.titlePlaceholder}
-      />
       <div className="doc-meta">
         <div className="meta-tag">
           <div className="meta-dot"></div> {activeWorld?.name ?? "World"}
@@ -148,13 +233,27 @@ export const LoreCreateView = memo(function LoreCreateView({
           </div>
         ) : null}
         {createError ? <div className="lore-table-error">{createError}</div> : null}
+        <label className="lore-label" htmlFor="lore-create-title">Title</label>
+        <input
+          id="lore-create-title"
+          className="lore-input lore-create-title-input"
+          value={title}
+          onChange={(event) => {
+            setTitle(event.target.value);
+            if (createError) setCreateError("");
+          }}
+          placeholder={selectedLoreType ? `${selectedLoreType.name} name` : "Lore item title"}
+          aria-label={selectedLoreType ? `${selectedLoreType.name} name` : "Lore item title"}
+          disabled={isCreating}
+        />
+
         <label className="lore-label" htmlFor={loreTypeInputId}>Lore Type</label>
         <select
           id={loreTypeInputId}
           className="lore-input"
           value={loreTypeId}
           onChange={(event) => setLoreTypeId(event.target.value)}
-          disabled={!hasLoreTypes}
+          disabled={!hasLoreTypes || isCreating}
         >
           {loreTypes.map((type) => (
             <option key={type.id} value={type.id}>
@@ -169,7 +268,7 @@ export const LoreCreateView = memo(function LoreCreateView({
           className="lore-input"
           value={templateId ?? ""}
           onChange={(event) => setTemplateId(event.target.value || null)}
-          disabled={!hasLoreTypes}
+          disabled={!hasLoreTypes || isCreating}
         >
           <option value="">No template</option>
           {filteredTemplates.map((template) => (
@@ -186,7 +285,39 @@ export const LoreCreateView = memo(function LoreCreateView({
           value={tags}
           onChange={(event) => setTags(event.target.value)}
           placeholder="ex: rumor, harbor, antagonist"
+          disabled={isCreating}
         />
+
+        <label className="lore-label" htmlFor="lore-create-details">Details</label>
+        <textarea
+          id="lore-create-details"
+          className="lore-textarea lore-create-details-editor"
+          value={details}
+          onChange={(event) => setDetails(event.target.value)}
+          placeholder="Add a short description, role, history, or first notes before creating this page..."
+          disabled={isCreating}
+        />
+      </div>
+
+      <div className="lore-panel">
+        <div className="lore-panel-header">
+          <div className="linked-lore-label">Custom Fields</div>
+        </div>
+        {selectedLoreType?.fieldDefinitions.length ? (
+          <div className="trait-list">
+            {selectedLoreType.fieldDefinitions.map((field) => (
+              <div key={field.id} className="custom-field-row">
+                <div>
+                  <div className="linked-lore-label">{field.name}</div>
+                  <div className="template-list-meta">{field.key} - {field.type}{field.required ? " - required" : ""}</div>
+                </div>
+                {renderCustomFieldControl(field)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rp-empty">No custom fields are defined for this lore type yet.</div>
+        )}
       </div>
 
       <div className="lore-panel">

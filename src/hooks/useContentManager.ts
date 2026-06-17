@@ -16,7 +16,7 @@ import {
   updateLorePage,
   updateLoreTableView,
 } from "../lib/data";
-import { parseLoreItemFields, stringifyLoreItemFields } from "../lib/loreItems";
+import { parseLoreItemFields, stringifyLoreItemFields, type LoreCustomFields } from "../lib/loreItems";
 import { applyLoreTableCustomFieldEdit, type LoreTableCsvImportDraft, type LoreTableCsvUpdateDraft } from "../lib/loreTable";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import { getDefaultLoreTypeId, slugifyLoreTypeName, sortLoreTypes, type CustomFieldDefinition, type LoreType } from "../lib/loreTypes";
@@ -49,6 +49,8 @@ type CreateLoreItemArgs = {
   loreTypeId: string;
   template: LoreTemplate | null;
   tags: string;
+  details?: string;
+  customFields?: LoreCustomFields;
 };
 
 type ImportLoreItemsFromCsvArgs = {
@@ -836,7 +838,7 @@ export function useContentManager({
     resolveLoreTypeId,
   ]);
 
-  const createLoreItem = async ({ title, loreTypeId, template, tags }: CreateLoreItemArgs) => {
+  const createLoreItem = async ({ title, loreTypeId, template, tags, details = "", customFields = {} }: CreateLoreItemArgs) => {
     if (!activeProjectId || !activeWorldId) return null;
     const actionProjectId = activeProjectId;
     const actionWorldId = activeWorldId;
@@ -845,7 +847,7 @@ export function useContentManager({
     const normalizedTitle = normalizeLoreTitleDraft(title);
     if (!normalizedTitle) return null;
     let created: LorePage;
-    const fieldsJson = buildInitialLoreFields(loreType.id, template, loreType);
+    const fieldsJson = buildInitialLoreFields(loreType.id, template, loreType, { details, customFields });
     try {
       created = await createLorePage(actionProjectId, actionWorldId, normalizedTitle, loreType.name);
       await updateLorePage(actionProjectId, created.id, {

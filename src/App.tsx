@@ -6,6 +6,7 @@ import { AppStatusBar } from "./components/AppStatusBar";
 import { AppOverlays } from "./components/AppOverlays";
 import { StartScreen } from "./components/StartScreen";
 import { useAppController } from "./hooks/useAppController";
+import type { LoreCustomFields } from "./lib/loreItems";
 import type { LoreTableCsvImportDraft, LoreTableCsvUpdateDraft } from "./lib/loreTable";
 
 export default function App() {
@@ -93,7 +94,21 @@ export default function App() {
   );
 
   const handleCreateLoreItem = useCallback(
-    ({ title, loreTypeId, templateId, tags }: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => {
+    ({
+      title,
+      loreTypeId,
+      templateId,
+      tags,
+      details,
+      customFields,
+    }: {
+      title: string;
+      loreTypeId: string;
+      templateId: string | null;
+      tags: string;
+      details?: string;
+      customFields?: LoreCustomFields;
+    }) => {
       const template = templateId ? loreTemplatesById.get(templateId) ?? null : null;
       return (async () => {
         const hasUnsavedChanges =
@@ -105,7 +120,7 @@ export default function App() {
           });
           if (!canContinue) return null;
         }
-        const created = await content.createLoreItem({ title, loreTypeId, template, tags });
+        const created = await content.createLoreItem({ title, loreTypeId, template, tags, details, customFields });
         if (created) {
           tabs.openLoreTab(created);
         }

@@ -2300,6 +2300,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 .custom-field-textarea {
   min-height: 82px;
 }
+.lore-create-title-input {
+  font-size: 16px;
+  min-height: 42px;
+}
+.lore-create-details-editor {
+  min-height: 150px;
+}
 .custom-field-checkbox {
   justify-content: flex-start;
   width: fit-content;
