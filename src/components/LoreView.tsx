@@ -1,4 +1,4 @@
-import { memo, useMemo, type MouseEvent as ReactMouseEvent } from "react";
+import { memo, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import type { LorePage } from "../lib/data";
 import {
   parseLoreItemFields,
@@ -8,6 +8,7 @@ import {
   type LoreTrait,
 } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
+import { buildLoreTableModel } from "../lib/loreTable";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import { resolveLoreLinks } from "../lib/loreLinks";
 import type { WorldUI } from "../types/ui";
@@ -92,6 +93,7 @@ export const LoreView = memo(function LoreView({
   onPageTypeChange,
 }: LoreViewProps) {
   const loreTypeInputId = "lore-view-type";
+  const tableLoreTypeInputId = "lore-table-type";
   const templateUsedInputId = "lore-view-template-used";
   const tagsInputId = "lore-view-tags";
   const detailsInputId = "lore-view-details";
@@ -101,6 +103,11 @@ export const LoreView = memo(function LoreView({
     () => (activeLoreTypeId ? loreTypesById.get(activeLoreTypeId) : null) ?? loreTypes[0] ?? null,
     [activeLoreTypeId, loreTypes, loreTypesById],
   );
+  const [tableLoreTypeId, setTableLoreTypeId] = useState(activeLoreType?.id ?? "");
+  useEffect(() => {
+    if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
+    setTableLoreTypeId(activeLoreType?.id ?? "");
+  }, [activeLoreType?.id, loreTypesById, tableLoreTypeId]);
   const loreItemFields = useMemo(() => parseLoreItemFields(loreFields), [loreFields]);
   const templateUsed = useMemo(
     () => (loreItemFields.templateId ? templatesById.get(loreItemFields.templateId) : null) ?? null,
@@ -111,6 +118,10 @@ export const LoreView = memo(function LoreView({
     [availableLorePages, loreItemFields.details, loreTags],
   );
   const filteredLinkedLorePages = linkedLorePages.filter((page) => page.id !== activeLoreId);
+  const loreTableModel = useMemo(
+    () => buildLoreTableModel(availableLorePages, loreTypes, tableLoreTypeId || activeLoreType?.id || null),
+    [activeLoreType?.id, availableLorePages, loreTypes, tableLoreTypeId],
+  );
 
   const persistFields = (
     traits = loreItemFields.traits,
@@ -358,6 +369,64 @@ export const LoreView = memo(function LoreView({
             <div className="meta-dot"></div> {activeWorld?.name ?? "World"}
           </div>
           <div className="meta-tag">{activeLoreType?.name ?? "Lore"}</div>
+        </div>
+
+        <div className="lore-panel">
+          <div className="lore-panel-header">
+            <div className="linked-lore-label">Lore Table</div>
+            <select
+              id={tableLoreTypeInputId}
+              className="lore-input lore-table-type-select"
+              value={loreTableModel.loreType?.id ?? ""}
+              onChange={(event) => setTableLoreTypeId(event.target.value)}
+            >
+              {loreTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {loreTableModel.loreType ? (
+            <div className="lore-table-wrap">
+              <table className="lore-table">
+                <thead>
+                  <tr>
+                    {loreTableModel.columns.map((column) => (
+                      <th key={column.id}>{column.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loreTableModel.rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={loreTableModel.columns.length || 1}>
+                        No {loreTableModel.loreType.name.toLowerCase()} lore pages yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    loreTableModel.rows.map((row) => (
+                      <tr key={row.page.id}>
+                        {loreTableModel.columns.map((column) => (
+                          <td key={column.id}>
+                            {column.kind === "title" ? (
+                              <button className="lore-table-link" type="button" onClick={() => onOpenLore(row.page)}>
+                                {row.cells[column.id]}
+                              </button>
+                            ) : (
+                              row.cells[column.id]
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="rp-empty">Create a lore type to start using the table view.</div>
+          )}
         </div>
 
         <div className="lore-panel">

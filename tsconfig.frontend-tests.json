@@ -10,6 +10,7 @@
     "src/lib/browserStorage.ts",
     "src/lib/customFieldDefinitions.ts",
     "src/lib/loreItems.ts",
+    "src/lib/loreTable.ts",
     "src/lib/loreTemplates.ts",
     "src/lib/loreTypes.ts",
     "src/hooks/contentState.ts",
