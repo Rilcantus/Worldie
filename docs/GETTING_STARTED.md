@@ -76,7 +76,7 @@ Use the lore editor for longer notes, traits, details, tags, and writing that ne
 
 When a name, place, faction, creature, or object appears naturally in a document, highlight the text and click the floating Create Lore action that appears near the selection. The editor toolbar keeps a Create Lore button as a fallback. Worldie opens a small draft form with the highlighted text as the title. Choose the lore type, optionally choose a template, add starter notes or tags, and create the page.
 
-If the link option is enabled, the highlighted text is replaced with a `[[Lore Link]]` after the lore page is created. This first slice works inside the main document editor; global operating-system context menus and advanced duplicate handling are not implemented yet.
+If the link option is enabled, the highlighted text is replaced with a `[[Lore Link]]` after the lore page is created. When Worldie finds other exact, unlinked mentions of the same title in the current document, it offers a small follow-up action to link those too. This first slice works inside the main document editor and only scans the current document; global operating-system context menus and project-wide auto-linking are not implemented yet.
 
 ## How To Use CSV Export And Import Safely
 
