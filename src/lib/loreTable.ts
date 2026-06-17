@@ -61,6 +61,35 @@ export function getLoreTableCreateState(state: LoreTableCreateState) {
   };
 }
 
+function escapeCsvCell(value: string) {
+  const cell = value ?? "";
+  const escaped = cell.replace(/"/g, '""');
+  return /[",\r\n]/.test(escaped) ? `"${escaped}"` : escaped;
+}
+
+export function buildLoreTableCsv(model: Pick<LoreTableModel, "columns" | "rows">) {
+  if (model.columns.length === 0) return "";
+  const header = model.columns.map((column) => escapeCsvCell(column.label)).join(",");
+  const rows = model.rows.map((row) =>
+    model.columns.map((column) => escapeCsvCell(row.cells[column.id] ?? "")).join(","),
+  );
+  return [header, ...rows].join("\n");
+}
+
+export function canExportLoreTableCsv(model: Pick<LoreTableModel, "loreType" | "columns">) {
+  return Boolean(model.loreType && model.columns.length > 0);
+}
+
+export function buildLoreTableCsvFilename(worldTitle: string | null | undefined, loreTypeName: string | null | undefined) {
+  const base = `${worldTitle?.trim() || "World"} - ${loreTypeName?.trim() || "Lore"} Table`;
+  const safeBase = base
+    .replace(/[<>:"/\\|?*\x00-\x1f]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[ .-]+$/g, "");
+  return `${safeBase || "Lore Table"}.csv`;
+}
+
 export function buildLoreTableViewDraft(name: string, state: LoreTableViewState): LoreTableViewDraft {
   return {
     name: name.trim() || "Untitled Table View",

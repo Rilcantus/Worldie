@@ -80,6 +80,11 @@ type ProjectMarkdownExportResult = {
   files: ExportedFile[];
 };
 
+type LoreTableCsvExportResult = {
+  exportPath: string;
+  filename: string;
+};
+
 type World = {
   id: string;
   projectId: string;
@@ -392,6 +397,22 @@ export async function exportProjectMarkdown(
   });
   if (!response.export) {
     throw new ProjectStoreError("Worldie could not export the active project.");
+  }
+  return response.export;
+}
+
+export async function exportLoreTableCsv(
+  exportRoot: string,
+  filename: string,
+  csvText: string,
+): Promise<LoreTableCsvExportResult> {
+  const response = await invokeProjectStore<{ export?: LoreTableCsvExportResult }>("export_lore_table_csv", {
+    exportRoot,
+    filename,
+    csvText,
+  });
+  if (!response.export) {
+    throw new ProjectStoreError("Worldie could not export the Lore Table CSV.");
   }
   return response.export;
 }
@@ -744,4 +765,5 @@ export type {
   TimelineEvent,
   WorldMarkdownExportResult,
   ProjectMarkdownExportResult,
+  LoreTableCsvExportResult,
 };

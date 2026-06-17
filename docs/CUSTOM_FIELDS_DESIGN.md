@@ -136,6 +136,7 @@ Worldie now includes a simple lore table inside the lore area. It reads the same
 - Row action: clicking a page title opens the existing lore editor for that page.
 - Row creation: when a lore type is selected, the table shows a compact title input and an `Add <Type>` action that creates a normal lore page in the active world using the selected lore type.
 - Inline editing: custom field definition cells can be edited directly in the table.
+- CSV export: when a lore type is selected, `Export CSV` writes the currently visible table to a user-selected folder.
 
 Saved lore table views are stored in the `.worldie` SQLite project file in the world-scoped `lore_table_views` table. A saved view currently remembers:
 
@@ -176,16 +177,21 @@ Edits update the lore page's existing `customFields` object through the normal l
 
 Creating from the table reuses the existing lore page creation and update path, so the page is persisted inside the active `.worldie` project file. Table-created pages start with empty traits and details, no template, and a `customFields` object seeded only from lore-type field definitions that have a non-null `defaultValue`. Field definitions without defaults are left absent/blank, matching existing custom-field behavior. The created page opens in the existing lore editor after creation; the table's current filter, sort, saved-view selection, and column visibility state are not reset.
 
+CSV export uses the rendered table model, so it respects the selected lore type, quick filter, sort column/direction, saved view state, and custom column visibility. Exported CSV files include a header row with core columns (`Name`, `Type`, `Updated`) plus the currently visible custom field columns in display order. Hidden custom columns and filtered-out rows are not exported. Missing values export as blank cells, checkbox values export as `Yes`/`No`, and values with commas, quotes, or newlines are quoted using standard CSV escaping. If the selected table has no visible rows, Worldie exports headers only. CSV export writes an external UTF-8 copy and does not mutate lore pages or `.worldie` project data.
+
 Current table limitations:
 
 - Only custom field cells are editable.
 - Table creation is single-row only.
+- CSV support is export-only.
 - It does not support formulas.
 - It does not support bulk editing.
 - It does not support CSV import.
+- It does not export media files.
 - It does not edit core columns from the table.
 - It does not have advanced validation or a table-specific undo stack.
 - It does not have advanced filters yet.
+- It is not a full database workspace yet.
 - It does not have saved view sharing, duplication, or per-view descriptions yet.
 - Manual extra fields are not promoted into columns in this first table slice.
 - Definition renames or key changes do not migrate existing page values automatically.

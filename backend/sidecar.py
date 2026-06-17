@@ -23,6 +23,7 @@ from db.db_manager import (
     delete_relationship,
     delete_timeline_event,
     delete_world,
+    export_lore_table_csv,
     export_project_markdown,
     export_world_markdown,
     get_all_projects,
@@ -161,6 +162,17 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "status": "ok",
             "export": export_project_markdown(project_id, export_root),
+        }
+
+    if action == "export_lore_table_csv":
+        export_root = data.get("exportRoot")
+        filename = data.get("filename")
+        csv_text = data.get("csvText")
+        if not export_root or filename is None or csv_text is None:
+            return {"status": "error", "message": "exportRoot, filename, and csvText required"}
+        return {
+            "status": "ok",
+            "export": export_lore_table_csv(export_root, filename, csv_text),
         }
 
     if action == "update_project":

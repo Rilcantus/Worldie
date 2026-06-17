@@ -16,7 +16,13 @@ import { useWorldStructures } from "./useWorldStructures";
 import { getDirtyNavigationDecision, resolveEditorSaveState, shouldContinueAfterGuard } from "./dirtyState";
 import { buildProjectExportSuccessMessage, buildWorldExportSuccessMessage } from "./exportFeedbackState";
 import { getSeededLoreTypes } from "../lib/loreTypes";
-import { exportProjectMarkdown, exportWorldMarkdown, pickExportFolder, setProjectStoreErrorHandler } from "../lib/data";
+import {
+  exportLoreTableCsv as exportLoreTableCsvFile,
+  exportProjectMarkdown,
+  exportWorldMarkdown,
+  pickExportFolder,
+  setProjectStoreErrorHandler,
+} from "../lib/data";
 
 type UseAppControllerArgs = {
   hasPendingEditorDraft?: boolean;
@@ -338,6 +344,18 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
           feedback.showToast(buildProjectExportSuccessMessage(result));
         } catch (error) {
           await projectWorlds.recoverActiveProjectError(error, "Worldie could not export this project.");
+        }
+      },
+      exportLoreTableCsv: async (payload: { filename: string; csvText: string }) => {
+        const exportRoot = await pickExportFolder();
+        if (!exportRoot) return true;
+        try {
+          const result = await exportLoreTableCsvFile(exportRoot, payload.filename, payload.csvText);
+          feedback.showToast(`Lore Table CSV exported to ${result.exportPath}.`);
+          return true;
+        } catch (error) {
+          await projectWorlds.recoverActiveProjectError(error, "Worldie could not export this Lore Table CSV.");
+          return false;
         }
       },
     }),

@@ -341,6 +341,16 @@ def _dedupe_export_path(directory, filename, used_paths):
     return resolved
 
 
+def _dedupe_existing_export_path(directory, filename):
+    stem, ext = os.path.splitext(filename)
+    candidate = filename
+    suffix = 2
+    while os.path.exists(os.path.join(directory, candidate)):
+        candidate = f"{stem}-{suffix}{ext}"
+        suffix += 1
+    return os.path.abspath(os.path.join(directory, candidate))
+
+
 def _relative_export_path(path, root_path):
     return os.path.relpath(path, root_path).replace(os.sep, "/")
 
@@ -348,6 +358,12 @@ def _relative_export_path(path, root_path):
 def _write_text_file(path, content):
     _ensure_parent_dir(path)
     with open(path, "w", encoding="utf-8", newline="\n") as file:
+        file.write(content)
+
+
+def _write_csv_file(path, content):
+    _ensure_parent_dir(path)
+    with open(path, "w", encoding="utf-8", newline="") as file:
         file.write(content)
 
 
@@ -956,6 +972,24 @@ def export_world_markdown(project_uuid, world_id, export_root):
     export_folder_name = _safe_export_name(f"{project_title} - {world_data['world'][2]}", "worldie-export")
     export_path = os.path.abspath(os.path.join(export_root, export_folder_name))
     return _write_world_markdown_export(project_title, world_data, export_path)
+
+
+def export_lore_table_csv(export_root, filename, csv_text):
+    if not export_root:
+        raise ValueError("exportRoot required")
+    if csv_text is None:
+        raise ValueError("csvText required")
+
+    os.makedirs(export_root, exist_ok=True)
+    raw_filename = str(filename or "Lore Table.csv")
+    stem, ext = os.path.splitext(raw_filename)
+    safe_filename = f"{_safe_export_name(stem, 'Lore Table')}{ext if ext.lower() == '.csv' else '.csv'}"
+    export_path = _dedupe_existing_export_path(export_root, safe_filename)
+    _write_csv_file(export_path, str(csv_text))
+    return {
+        "exportPath": export_path,
+        "filename": os.path.basename(export_path),
+    }
 
 
 def export_project_markdown(project_uuid, export_root):

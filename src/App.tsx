@@ -337,6 +337,7 @@ export default function App() {
           onDeleteLoreTableView={content.removeLoreTableView}
           onUpdateLoreTableCustomField={content.updateLoreTableCustomField}
           onCreateLoreFromTable={handleCreateLoreItem}
+          onExportLoreTableCsv={exportActions.exportLoreTableCsv}
           onSaveLorePage={mainContentActions.saveLorePage}
           onLoreTitleChange={content.setLoreTitle}
           onLoreTagsChange={content.setLoreTags}

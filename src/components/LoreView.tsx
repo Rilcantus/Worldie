@@ -12,7 +12,10 @@ import type { LoreTemplate } from "../lib/loreTemplates";
 import {
   applyLoreTableView,
   buildLoreTableModel,
+  buildLoreTableCsv,
+  buildLoreTableCsvFilename,
   buildLoreTableViewDraft,
+  canExportLoreTableCsv,
   clearHiddenColumnSort,
   getLoreTableCreateState,
   getLoreTableCustomFieldValue,
@@ -60,6 +63,7 @@ type LoreViewProps = {
   onDeleteLoreTableView: (viewId: string) => Promise<boolean>;
   onUpdateLoreTableCustomField: (loreId: string, field: CustomFieldDefinition, value: LoreCustomFieldValue) => Promise<boolean>;
   onCreateLoreFromTable: (payload: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => Promise<LorePage | null>;
+  onExportLoreTableCsv: (payload: { filename: string; csvText: string }) => Promise<boolean>;
   onSave: () => void;
   onTitleChange: (value: string) => void;
   onTagsChange: (value: string) => void;
@@ -114,6 +118,7 @@ export const LoreView = memo(function LoreView({
   onDeleteLoreTableView,
   onUpdateLoreTableCustomField,
   onCreateLoreFromTable,
+  onExportLoreTableCsv,
   onSave,
   onTitleChange,
   onTagsChange,
@@ -139,6 +144,7 @@ export const LoreView = memo(function LoreView({
   const [tableViewName, setTableViewName] = useState("");
   const [tableCreateTitle, setTableCreateTitle] = useState("");
   const [isCreatingTableLore, setIsCreatingTableLore] = useState(false);
+  const [isExportingTableCsv, setIsExportingTableCsv] = useState(false);
   const [tableEditError, setTableEditError] = useState("");
   useEffect(() => {
     if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
@@ -173,6 +179,7 @@ export const LoreView = memo(function LoreView({
     loreType: loreTableModel.loreType,
     isCreating: isCreatingTableLore,
   });
+  const canExportTableCsv = canExportLoreTableCsv(loreTableModel);
   useEffect(() => {
     setTableSort((current) => clearHiddenColumnSort(current, loreTableModel.columns));
   }, [loreTableModel.columns]);
@@ -267,6 +274,20 @@ export const LoreView = memo(function LoreView({
       return;
     }
     setTableCreateTitle("");
+  };
+
+  const exportLoreTableCsv = async () => {
+    if (!canExportTableCsv || !loreTableModel.loreType) return;
+    setTableEditError("");
+    setIsExportingTableCsv(true);
+    const exported = await onExportLoreTableCsv({
+      filename: buildLoreTableCsvFilename(activeWorld?.name, loreTableModel.loreType.name),
+      csvText: buildLoreTableCsv(loreTableModel),
+    });
+    setIsExportingTableCsv(false);
+    if (!exported) {
+      setTableEditError("Worldie could not export that Lore Table CSV.");
+    }
   };
 
   const persistFields = (
@@ -621,6 +642,9 @@ export const LoreView = memo(function LoreView({
               </button>
               <button className="tb-btn" type="button" onClick={deleteSelectedTableView} disabled={!selectedTableViewId}>
                 Delete
+              </button>
+              <button className="tb-btn" type="button" onClick={() => void exportLoreTableCsv()} disabled={!canExportTableCsv || isExportingTableCsv}>
+                {isExportingTableCsv ? "Exporting..." : "Export CSV"}
               </button>
             </div>
           </div>

@@ -4,8 +4,11 @@ import assert from "node:assert/strict";
 import {
   applyLoreTableCustomFieldEdit,
   applyLoreTableView,
+  buildLoreTableCsv,
+  buildLoreTableCsvFilename,
   buildLoreTableViewDraft,
   buildLoreTableModel,
+  canExportLoreTableCsv,
   clearHiddenColumnSort,
   formatLoreTableValue,
   getLoreTableCreateState,
@@ -456,6 +459,79 @@ test("created lore table page appears in selected type rows while preserving fil
   );
   assert.deepEqual(model.rows.map((row) => row.page.id), ["lore-new", "lore-mara"]);
   assert.equal(model.rows[0].cells["field-age"], "19");
+});
+
+test("lore table CSV exports core headers and visible custom columns in table order", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    visibleColumnIds: ["field-species", "field-age"],
+    sort: { columnId: "title", direction: "asc" },
+  });
+
+  const csv = buildLoreTableCsv(model);
+
+  assert.equal(csv.split("\n")[0], "Name,Type,Species,Age,Updated");
+  assert.equal(csv.includes("Active"), false);
+  assert.equal(csv.includes("First Seen"), false);
+});
+
+test("lore table CSV excludes filtered-out rows and preserves sorted order", () => {
+  const filtered = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    filterText: "human",
+    sort: { columnId: "title", direction: "desc" },
+    visibleColumnIds: ["field-species"],
+  });
+
+  const csv = buildLoreTableCsv(filtered);
+  const lines = csv.split("\n");
+
+  assert.deepEqual(lines.slice(1).map((line) => line.split(",")[0]), ["Mara Quill", "Asha Reed"]);
+  assert.equal(csv.includes("Bran Vale"), false);
+  assert.equal(csv.includes("Red Harbor"), false);
+});
+
+test("lore table CSV escapes commas quotes and newlines", () => {
+  const pages = [
+    {
+      id: "lore-quoted",
+      worldId: "world-1",
+      title: "Mara, \"Ash\"\nLine",
+      type: "Character",
+      fieldsJson: JSON.stringify({
+        loreTypeId: "type-character",
+        customFields: { species: "Human, \"North\"\nCoast" },
+      }),
+      updatedAt: "2026-06-01",
+    },
+  ];
+  const model = buildLoreTableModel(pages, [characterType], "type-character", {
+    visibleColumnIds: ["field-species"],
+  });
+
+  const csv = buildLoreTableCsv(model);
+
+  assert.equal(csv, 'Name,Type,Species,Updated\n"Mara, ""Ash""\nLine",Character,"Human, ""North""\nCoast",2026-06-01');
+});
+
+test("lore table CSV exports missing values as blanks and checkbox values predictably", () => {
+  const missing = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    filterText: "asha",
+    visibleColumnIds: ["field-age", "field-active"],
+  });
+  const checkbox = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    filterText: "bran",
+    visibleColumnIds: ["field-active"],
+  });
+
+  assert.equal(buildLoreTableCsv(missing), "Name,Type,Age,Active,Updated\nAsha Reed,Character,,Yes,");
+  assert.equal(buildLoreTableCsv(checkbox), "Name,Type,Active,Updated\nBran Vale,Character,No,2026-05-01");
+});
+
+test("lore table CSV availability and filename stay safe without a selected lore type", () => {
+  const emptyModel = buildLoreTableModel([], [], null);
+
+  assert.equal(canExportLoreTableCsv(emptyModel), false);
+  assert.equal(buildLoreTableCsv(emptyModel), "");
+  assert.equal(buildLoreTableCsvFilename("Dusk/Fen", "Character: Lead"), "Dusk-Fen - Character- Lead Table.csv");
 });
 
 test("saved lore table view payloads preserve explicit nulls and omit undefined fields", () => {

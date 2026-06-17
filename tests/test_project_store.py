@@ -1223,6 +1223,28 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIn("Mirror-World/index.md", index_text)
         self.assertIn("Mirror-World-2/index.md", index_text)
 
+    def test_export_lore_table_csv_writes_utf8_sanitized_and_deduped_files(self):
+        export_root = self.temp_path / "csv-exports"
+        csv_text = 'Name,Type\n"Mara, ""Ash""",Character\nRune,Place\n'
+
+        result = self.db_manager.export_lore_table_csv(
+            str(export_root),
+            "Dusk/Fen: Character Table.csv",
+            csv_text,
+        )
+        duplicate = self.db_manager.export_lore_table_csv(
+            str(export_root),
+            "Dusk/Fen: Character Table.csv",
+            "Name,Type\nSecond,Character\n",
+        )
+
+        exported_path = Path(result["exportPath"])
+        duplicate_path = Path(duplicate["exportPath"])
+        self.assertEqual(exported_path.name, "Dusk-Fen- Character Table.csv")
+        self.assertEqual(duplicate_path.name, "Dusk-Fen- Character Table-2.csv")
+        self.assertEqual(exported_path.read_text(encoding="utf-8"), csv_text)
+        self.assertEqual(duplicate_path.read_text(encoding="utf-8"), "Name,Type\nSecond,Character\n")
+
     def test_sidecar_exports_project_markdown_with_metadata(self):
         project_uuid, _ = self.db_manager.add_project("Sidecar Project Export", "")
         world_id = self.db_manager.create_world(project_uuid, "Test World")
@@ -1253,6 +1275,12 @@ class ProjectStoreTests(unittest.TestCase):
 
         self.assertEqual(response["status"], "error")
         self.assertEqual(response["message"], "projectId and exportRoot required")
+
+    def test_sidecar_export_lore_table_csv_requires_target_data(self):
+        response = self.sidecar._handle_request({"action": "export_lore_table_csv", "data": {}})
+
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], "exportRoot, filename, and csvText required")
 
     def test_sidecar_exports_world_markdown_with_metadata(self):
         project_uuid, _ = self.db_manager.add_project("Sidecar Export", "")

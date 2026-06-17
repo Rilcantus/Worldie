@@ -6,6 +6,22 @@ Worldie now has a first export path for writing content. The MVP export reads fr
 
 The `.worldie` file remains the source of truth. Exported files are external copies only.
 
+## Lore Table CSV Export
+
+The Lore Table can export the currently selected lore type's visible table to a `.csv` file in a user-selected folder. This export is separate from active-world and full-project Markdown export.
+
+CSV export respects the table controls currently applied in the UI:
+
+- quick filter
+- sort column
+- sort direction
+- saved view state
+- visible custom field columns
+
+The CSV includes a header row, core columns (`Name`, `Type`, `Updated`), and the currently visible custom field columns in display order. Hidden columns and filtered-out rows are excluded. Empty filtered tables export headers only. Values are written as UTF-8 CSV text, with commas, quotes, and newlines escaped for spreadsheet tools.
+
+CSV export is an external copy only. It does not mutate lore pages, saved views, or the `.worldie` project file.
+
 ## Export Shape
 
 Worldie supports two Markdown export scopes:
@@ -88,7 +104,9 @@ Each generated world `index.md` includes:
 
 ## Limitations
 
-- Export is Markdown only.
+- Active-world and full-project export are Markdown only.
+- Lore Table CSV is export-only; CSV import is not implemented yet.
+- Lore Table CSV does not include formulas, bulk edits, or a full database workspace.
 - Media is not exported yet.
 - Exported files are not synced back into the `.worldie` project.
 - Timeline date sorting is intentionally simple and does not yet understand full calendars, eras, date ranges, or custom chronology rules.
