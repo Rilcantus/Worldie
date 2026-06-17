@@ -48,6 +48,35 @@ export function normalizeLoreTitleDraft(value: string | null | undefined) {
   return value?.trim() ?? "";
 }
 
+export const MAX_LORE_SELECTION_TITLE_LENGTH = 120;
+
+export function normalizeLoreSelectionTitle(value: string | null | undefined) {
+  return (value ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_LORE_SELECTION_TITLE_LENGTH);
+}
+
+export function getLoreSelectionCreateState({
+  selectedText,
+  title,
+  loreType,
+  isCreating = false,
+}: {
+  selectedText: string;
+  title: string;
+  loreType: LoreType | null | undefined;
+  isCreating?: boolean;
+}) {
+  const selectionTitle = normalizeLoreSelectionTitle(selectedText);
+  const draftTitle = normalizeLoreTitleDraft(title);
+  return {
+    selectionTitle,
+    title: draftTitle || selectionTitle,
+    canOpen: Boolean(selectionTitle),
+    canCreate: Boolean(loreType && draftTitle && !isCreating),
+    buttonLabel: loreType ? `Create ${loreType.name}` : "Create Lore Item",
+    titleWasTruncated: selectionTitle.length === MAX_LORE_SELECTION_TITLE_LENGTH && normalizeLoreTitleDraft(selectedText).length > MAX_LORE_SELECTION_TITLE_LENGTH,
+  };
+}
+
 export function buildLoreCreateDraftPayload({
   title,
   loreTypeId,

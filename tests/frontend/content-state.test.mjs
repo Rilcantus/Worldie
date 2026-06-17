@@ -6,6 +6,7 @@ import {
   buildLoreCreateDraftPayload,
   buildLoreEditorDraftPage,
   getLoreCreateDraftState,
+  getLoreSelectionCreateState,
   buildInitialLoreFields,
   buildLoreTypeCounts,
   collectLoreStats,
@@ -83,6 +84,68 @@ test("new lore draft state requires a title and uses the selected lore type labe
     canCreate: true,
     buttonLabel: "Create Character",
     titlePlaceholder: "New Character title",
+  });
+});
+
+test("selected text lore state trims selection and blocks blank selection", () => {
+  const factionType = {
+    id: "type-faction",
+    name: "Faction",
+    slug: "faction",
+    order: 0,
+    isSystem: true,
+    fieldDefinitions: [],
+  };
+
+  assert.deepEqual(getLoreSelectionCreateState({
+    selectedText: "   ",
+    title: "",
+    loreType: factionType,
+  }), {
+    selectionTitle: "",
+    title: "",
+    canOpen: false,
+    canCreate: false,
+    buttonLabel: "Create Faction",
+    titleWasTruncated: false,
+  });
+
+  assert.deepEqual(getLoreSelectionCreateState({
+    selectedText: "  Blacktooth   clan ",
+    title: "",
+    loreType: factionType,
+  }), {
+    selectionTitle: "Blacktooth clan",
+    title: "Blacktooth clan",
+    canOpen: true,
+    canCreate: false,
+    buttonLabel: "Create Faction",
+    titleWasTruncated: false,
+  });
+});
+
+test("selected text lore state allows title edits before creation and blocks in-flight create", () => {
+  const placeType = {
+    id: "type-place",
+    name: "Place",
+    slug: "place",
+    order: 0,
+    isSystem: true,
+    fieldDefinitions: [],
+  };
+
+  assert.deepEqual(getLoreSelectionCreateState({
+    selectedText: "old name",
+    title: "Blacktooth Hold",
+    loreType: placeType,
+    isCreating: true,
+  }), {
+    selectionTitle: "old name",
+    title: "Blacktooth Hold",
+    canOpen: true,
+    canCreate: false,
+    buttonLabel: "Create Place",
+    titleWasTruncated: false,
   });
 });
 

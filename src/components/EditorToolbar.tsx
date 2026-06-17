@@ -18,6 +18,8 @@ type EditorToolbarProps = {
   onInsertSceneBreak: () => void;
   onInsertNoteBlock: () => void;
   onInsertLoreLink: () => void;
+  onCreateLoreFromSelection: () => void;
+  canCreateLoreFromSelection: boolean;
   selectedLorePageId: string;
   availableLorePages: LorePage[];
   onSelectLorePageId: (value: string) => void;
@@ -55,6 +57,8 @@ export const EditorToolbar = memo(function EditorToolbar({
   onInsertSceneBreak,
   onInsertNoteBlock,
   onInsertLoreLink,
+  onCreateLoreFromSelection,
+  canCreateLoreFromSelection,
   selectedLorePageId,
   availableLorePages,
   onSelectLorePageId,
@@ -234,6 +238,16 @@ export const EditorToolbar = memo(function EditorToolbar({
           title="Insert lore link (Ctrl/Cmd+K)"
         >
           Link
+        </button>
+        <button
+          className="tb-btn"
+          type="button"
+          onMouseDown={preserveEditorSelection}
+          onClick={onCreateLoreFromSelection}
+          disabled={!canCreateLoreFromSelection}
+          title="Create lore from selected text"
+        >
+          Create Lore
         </button>
         <select
           className="tb-select tb-select-compact toolbar-compact-hide"

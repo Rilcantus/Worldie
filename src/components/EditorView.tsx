@@ -10,7 +10,16 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { Document, LorePage } from "../lib/data";
+import type { LoreCustomFieldValue, LoreCustomFields } from "../lib/loreItems";
+import type { LoreTemplate } from "../lib/loreTemplates";
+import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import { resolveLoreLinks } from "../lib/loreLinks";
+import {
+  buildLoreCreateDefaultCustomFields,
+  buildLoreCreateDraftPayload,
+  getLoreSelectionCreateState,
+  setLoreCreateCustomFieldValue,
+} from "../hooks/contentState";
 import type { WorldUI } from "../types/ui";
 import { EditorDocumentList } from "./EditorDocumentList";
 import { EditorDetailsDrawer } from "./EditorDetailsDrawer";
@@ -36,6 +45,7 @@ import {
   getSlashCommandMatch,
   normalizeEditorText,
   moveSelectedLineBlock,
+  replaceSelectionWithLoreLink,
   renderPreviewContent,
   replaceRange,
   resolvePastedEditorText,
@@ -56,6 +66,8 @@ type EditorViewProps = {
   docListWidth: number;
   documents: Document[];
   availableLorePages: LorePage[];
+  templates: LoreTemplate[];
+  loreTypes: LoreType[];
   activeDocumentId: string | null;
   documentTitle: string;
   documentContent: string;
@@ -72,6 +84,14 @@ type EditorViewProps = {
   onResizeStart: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onAddDocument: () => void;
   onDuplicateDocument: () => void;
+  onCreateLoreFromSelection: (payload: {
+    title: string;
+    loreTypeId: string;
+    templateId: string | null;
+    tags: string;
+    details?: string;
+    customFields?: LoreCustomFields;
+  }) => Promise<LorePage | null>;
   onOpenDocument: (doc: Document) => void;
   onOpenLore: (page: LorePage) => void;
   onRemoveDocument: (docId: string) => void;
@@ -92,6 +112,15 @@ type SlashCommandOption = {
   keywords: string[];
 };
 
+type SelectionLoreDialogState = {
+  selection: SelectionOffsets;
+  selectedText: string;
+};
+
+function formatDraftCustomFieldValue(value: LoreCustomFieldValue | undefined) {
+  return value == null ? "" : String(value);
+}
+
 export const EditorView = memo(function EditorView({
   isDocListCollapsed,
   isSidebarCollapsed,
@@ -99,6 +128,8 @@ export const EditorView = memo(function EditorView({
   docListWidth,
   documents,
   availableLorePages,
+  templates,
+  loreTypes,
   activeDocumentId,
   documentTitle,
   documentContent,
@@ -115,6 +146,7 @@ export const EditorView = memo(function EditorView({
   onResizeStart,
   onAddDocument,
   onDuplicateDocument,
+  onCreateLoreFromSelection,
   onOpenDocument,
   onOpenLore,
   onRemoveDocument,
@@ -156,6 +188,16 @@ export const EditorView = memo(function EditorView({
   const [editorWidth, setEditorWidth] = useState<EditorWidth>("standard");
   const [editorMode, setEditorMode] = useState<EditorPresentationMode>("standard");
   const [typewriterDraft, setTypewriterDraft] = useState("");
+  const [selectionLoreDialog, setSelectionLoreDialog] = useState<SelectionLoreDialogState | null>(null);
+  const [selectionLoreTitle, setSelectionLoreTitle] = useState("");
+  const [selectionLoreTypeId, setSelectionLoreTypeId] = useState(loreTypes[0]?.id ?? "");
+  const [selectionLoreTemplateId, setSelectionLoreTemplateId] = useState<string | null>(null);
+  const [selectionLoreDetails, setSelectionLoreDetails] = useState("");
+  const [selectionLoreTags, setSelectionLoreTags] = useState("");
+  const [selectionLoreCustomFields, setSelectionLoreCustomFields] = useState<LoreCustomFields>({});
+  const [shouldReplaceSelectionWithLink, setShouldReplaceSelectionWithLink] = useState(true);
+  const [selectionLoreError, setSelectionLoreError] = useState("");
+  const [isCreatingSelectionLore, setIsCreatingSelectionLore] = useState(false);
   const isTypewriterMode = editorMode === "typewriter";
   const hasPendingTypewriterDraft = isTypewriterMode && trimTypewriterCommit(typewriterDraft).length > 0;
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
@@ -169,7 +211,15 @@ export const EditorView = memo(function EditorView({
     () => (selectedLorePageId ? availableLorePagesById.get(selectedLorePageId) ?? firstAvailableLorePage : firstAvailableLorePage),
     [availableLorePagesById, firstAvailableLorePage, selectedLorePageId],
   );
-
+  const loreTypesById = useMemo(() => new Map(loreTypes.map((type) => [type.id, type])), [loreTypes]);
+  const selectedSelectionLoreType = useMemo(
+    () => loreTypesById.get(selectionLoreTypeId) ?? loreTypes[0] ?? null,
+    [loreTypes, loreTypesById, selectionLoreTypeId],
+  );
+  const filteredSelectionLoreTemplates = useMemo(
+    () => templates.filter((template) => template.loreTypeId === selectedSelectionLoreType?.id),
+    [selectedSelectionLoreType?.id, templates],
+  );
   const clearSlashSession = (dismissStart: number | null = null) => {
     setSelectedSlashIndex((current) => (current === 0 ? current : 0));
     setSlashMenuPosition((current) => (current === null ? current : null));
@@ -228,6 +278,21 @@ export const EditorView = memo(function EditorView({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isDocumentMenuOpen]);
+
+  useEffect(() => {
+    if (selectionLoreTypeId && loreTypesById.has(selectionLoreTypeId)) return;
+    setSelectionLoreTypeId(loreTypes[0]?.id ?? "");
+  }, [loreTypes, loreTypesById, selectionLoreTypeId]);
+
+  useEffect(() => {
+    setSelectionLoreCustomFields(buildLoreCreateDefaultCustomFields(selectedSelectionLoreType));
+  }, [selectedSelectionLoreType?.id]);
+
+  useEffect(() => {
+    if (selectionLoreTemplateId === null) return;
+    if (filteredSelectionLoreTemplates.some((template) => template.id === selectionLoreTemplateId)) return;
+    setSelectionLoreTemplateId(null);
+  }, [filteredSelectionLoreTemplates, selectionLoreTemplateId]);
 
   useEffect(() => {
     lastEditorSelectionRef.current = null;
@@ -354,6 +419,12 @@ export const EditorView = memo(function EditorView({
     [activeEditorText, selectionSnapshot],
   );
   const selectedWordCount = useMemo(() => countWords(selectedText), [selectedText]);
+  const selectionLoreCreateState = getLoreSelectionCreateState({
+    selectedText: selectionLoreDialog?.selectedText ?? selectedText,
+    title: selectionLoreTitle,
+    loreType: selectedSelectionLoreType,
+    isCreating: isCreatingSelectionLore,
+  });
   const readingMinutes = useMemo(() => Math.max(1, Math.ceil(wordCount / 200)), [wordCount]);
   const slashCommandMatch = useMemo(() => {
     const match = getSlashCommandMatch(activeEditorText, selectionSnapshot);
@@ -627,6 +698,139 @@ export const EditorView = memo(function EditorView({
 
   const requestDuplicateDocument = () => {
     runAfterTypewriterDraftCommit(onDuplicateDocument);
+  };
+
+  const closeSelectionLoreDialog = () => {
+    setSelectionLoreDialog(null);
+    setSelectionLoreTitle("");
+    setSelectionLoreTemplateId(null);
+    setSelectionLoreDetails("");
+    setSelectionLoreTags("");
+    setSelectionLoreError("");
+    setShouldReplaceSelectionWithLink(true);
+  };
+
+  const openCreateLoreFromSelectionDialog = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selection =
+      displaySelectionToSource(activeEditorText, getSelectionOffsets(editor)) ??
+      selectionSnapshot ??
+      lastEditorSelectionRef.current;
+    if (!selection || selection.start === selection.end) return;
+    const selectionText = getSelectionText(activeEditorText, selection);
+    const createState = getLoreSelectionCreateState({
+      selectedText: selectionText,
+      title: "",
+      loreType: selectedSelectionLoreType,
+    });
+    if (!createState.canOpen) return;
+    setSelectionLoreDialog({ selection, selectedText: selectionText });
+    setSelectionLoreTitle(createState.title);
+    setSelectionLoreDetails("");
+    setSelectionLoreTags("");
+    setSelectionLoreError("");
+    setShouldReplaceSelectionWithLink(true);
+    setSelectionLoreCustomFields(buildLoreCreateDefaultCustomFields(selectedSelectionLoreType));
+  };
+
+  const updateSelectionLoreCustomFieldValue = (
+    field: CustomFieldDefinition,
+    value: string | number | boolean | null,
+  ) => {
+    setSelectionLoreCustomFields((current) => setLoreCreateCustomFieldValue(current, field, value));
+  };
+
+  const renderSelectionLoreCustomFieldControl = (field: CustomFieldDefinition) => {
+    const value = selectionLoreCustomFields[field.key] ?? "";
+    if (field.type === "long_text") {
+      return (
+        <textarea
+          aria-label={`${field.name} value`}
+          className="lore-textarea custom-field-textarea"
+          value={formatDraftCustomFieldValue(value)}
+          onChange={(event) => updateSelectionLoreCustomFieldValue(field, event.target.value)}
+          placeholder={field.name}
+          disabled={isCreatingSelectionLore}
+        />
+      );
+    }
+    if (field.type === "checkbox") {
+      return (
+        <label className="meta-tag custom-field-checkbox">
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(event) => updateSelectionLoreCustomFieldValue(field, event.target.checked)}
+            disabled={isCreatingSelectionLore}
+          />
+          {Boolean(value) ? "Yes" : "No"}
+        </label>
+      );
+    }
+    if (field.type === "select") {
+      return (
+        <select
+          aria-label={`${field.name} value`}
+          className="lore-input"
+          value={formatDraftCustomFieldValue(value)}
+          onChange={(event) => updateSelectionLoreCustomFieldValue(field, event.target.value)}
+          disabled={isCreatingSelectionLore}
+        >
+          <option value="">Select {field.name}</option>
+          {field.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <input
+        aria-label={`${field.name} value`}
+        className="lore-input"
+        type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+        value={formatDraftCustomFieldValue(value)}
+        onChange={(event) =>
+          updateSelectionLoreCustomFieldValue(
+            field,
+            field.type === "number" && event.target.value !== "" ? Number(event.target.value) : event.target.value,
+          )
+        }
+        placeholder={field.name}
+        disabled={isCreatingSelectionLore}
+      />
+    );
+  };
+
+  const createLoreFromSelection = async () => {
+    if (!selectionLoreDialog || isCreatingSelectionLore) return;
+    const payload = buildLoreCreateDraftPayload({
+      title: selectionLoreTitle,
+      loreTypeId: selectedSelectionLoreType?.id,
+      templateId: selectionLoreTemplateId,
+      tags: selectionLoreTags,
+      details: selectionLoreDetails,
+      customFields: selectionLoreCustomFields,
+    });
+    if (!payload) {
+      setSelectionLoreError("Enter a title and choose a lore type before creating lore.");
+      return;
+    }
+    setSelectionLoreError("");
+    setIsCreatingSelectionLore(true);
+    const created = await onCreateLoreFromSelection(payload);
+    setIsCreatingSelectionLore(false);
+    if (!created) {
+      setSelectionLoreError("Worldie could not create lore from that selection.");
+      return;
+    }
+    if (shouldReplaceSelectionWithLink) {
+      const capturedSelection = selectionLoreDialog.selection;
+      applyEditorUpdate((content) => replaceSelectionWithLoreLink(content, capturedSelection, payload.title));
+    }
+    closeSelectionLoreDialog();
   };
 
   const requestOpenDocument = (doc: Document) => {
@@ -1260,6 +1464,8 @@ export const EditorView = memo(function EditorView({
             onInsertSceneBreak={insertSceneBreak}
             onInsertNoteBlock={insertNoteBlock}
             onInsertLoreLink={insertLoreLink}
+            onCreateLoreFromSelection={openCreateLoreFromSelectionDialog}
+            canCreateLoreFromSelection={selectionLoreCreateState.canOpen && loreTypes.length > 0}
             selectedLorePageId={selectedLorePageId}
             availableLorePages={availableLorePages}
             onSelectLorePageId={setSelectedLorePageId}
@@ -1328,6 +1534,128 @@ export const EditorView = memo(function EditorView({
               selectedSlashIndex={selectedSlashIndex}
               onApplySlashCommand={applySlashCommand}
             />
+          ) : null}
+
+          {selectionLoreDialog ? (
+            <div className="confirm-overlay selection-lore-overlay" role="presentation">
+              <form
+                className="confirm-card selection-lore-card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="selection-lore-title"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void createLoreFromSelection();
+                }}
+              >
+                <div className="confirm-title" id="selection-lore-title">Create Lore From Selection</div>
+                <div className="selection-lore-source">Selected: {selectionLoreDialog.selectedText}</div>
+                {selectionLoreCreateState.titleWasTruncated ? (
+                  <div className="selection-lore-warning">The selected text was shortened for the title. Edit it before creating.</div>
+                ) : null}
+                {selectionLoreError ? <div className="lore-table-error">{selectionLoreError}</div> : null}
+
+                <label className="lore-label" htmlFor="selection-lore-name">Title</label>
+                <input
+                  id="selection-lore-name"
+                  className="lore-input"
+                  value={selectionLoreTitle}
+                  onChange={(event) => setSelectionLoreTitle(event.target.value)}
+                  disabled={isCreatingSelectionLore}
+                  autoFocus
+                />
+
+                <div className="selection-lore-grid">
+                  <div>
+                    <label className="lore-label" htmlFor="selection-lore-type">Lore Type</label>
+                    <select
+                      id="selection-lore-type"
+                      className="lore-input"
+                      value={selectedSelectionLoreType?.id ?? ""}
+                      onChange={(event) => setSelectionLoreTypeId(event.target.value)}
+                      disabled={isCreatingSelectionLore}
+                    >
+                      {loreTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="lore-label" htmlFor="selection-lore-template">Template</label>
+                    <select
+                      id="selection-lore-template"
+                      className="lore-input"
+                      value={selectionLoreTemplateId ?? ""}
+                      onChange={(event) => setSelectionLoreTemplateId(event.target.value || null)}
+                      disabled={isCreatingSelectionLore}
+                    >
+                      <option value="">No template</option>
+                      {filteredSelectionLoreTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <label className="lore-label" htmlFor="selection-lore-tags">Tags</label>
+                <input
+                  id="selection-lore-tags"
+                  className="lore-input"
+                  value={selectionLoreTags}
+                  onChange={(event) => setSelectionLoreTags(event.target.value)}
+                  placeholder="ex: faction, rumor, chapter-one"
+                  disabled={isCreatingSelectionLore}
+                />
+
+                <label className="lore-label" htmlFor="selection-lore-details">Description</label>
+                <textarea
+                  id="selection-lore-details"
+                  className="lore-textarea selection-lore-details"
+                  value={selectionLoreDetails}
+                  onChange={(event) => setSelectionLoreDetails(event.target.value)}
+                  placeholder="Optional starter notes for this lore page..."
+                  disabled={isCreatingSelectionLore}
+                />
+
+                {selectedSelectionLoreType?.fieldDefinitions.length ? (
+                  <div className="selection-lore-fields">
+                    <div className="linked-lore-label">Custom Fields</div>
+                    {selectedSelectionLoreType.fieldDefinitions.map((field) => (
+                      <div key={field.id} className="custom-field-row selection-lore-field-row">
+                        <div>
+                          <div className="linked-lore-label">{field.name}</div>
+                          <div className="template-list-meta">{field.key} - {field.type}</div>
+                        </div>
+                        {renderSelectionLoreCustomFieldControl(field)}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                <label className="meta-tag selection-lore-link-option">
+                  <input
+                    type="checkbox"
+                    checked={shouldReplaceSelectionWithLink}
+                    onChange={(event) => setShouldReplaceSelectionWithLink(event.target.checked)}
+                    disabled={isCreatingSelectionLore}
+                  />
+                  Replace selection with [[Lore Link]]
+                </label>
+
+                <div className="confirm-actions">
+                  <button className="confirm-btn ghost" type="button" onClick={closeSelectionLoreDialog} disabled={isCreatingSelectionLore}>
+                    Cancel
+                  </button>
+                  <button className="confirm-btn" type="submit" disabled={!selectionLoreCreateState.canCreate}>
+                    {isCreatingSelectionLore ? "Creating..." : selectionLoreCreateState.buttonLabel}
+                  </button>
+                </div>
+              </form>
+            </div>
           ) : null}
         </div>
       </div>

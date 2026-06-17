@@ -3010,6 +3010,50 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   background: rgba(224,92,106,0.2);
 }
 
+.selection-lore-card {
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(82vh, 760px);
+  overflow-y: auto;
+}
+
+.selection-lore-source,
+.selection-lore-warning {
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.selection-lore-warning {
+  color: var(--gold);
+}
+
+.selection-lore-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.selection-lore-details {
+  min-height: 120px;
+}
+
+.selection-lore-fields {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.selection-lore-field-row {
+  grid-template-columns: minmax(130px, 0.55fr) minmax(180px, 1fr);
+}
+
+.selection-lore-link-option {
+  margin-top: 8px;
+  justify-content: flex-start;
+  width: fit-content;
+}
+
 .toast {
   position: fixed;
   right: 24px;

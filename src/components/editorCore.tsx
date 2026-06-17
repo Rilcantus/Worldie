@@ -347,6 +347,20 @@ export function replaceRange(text: string, start: number, end: number, replaceme
   return text.slice(0, start) + replacement + text.slice(end);
 }
 
+export function buildLoreLinkText(title: string) {
+  return `[[${title.trim()}]]`;
+}
+
+export function replaceSelectionWithLoreLink(text: string, selection: SelectionOffsets, title: string) {
+  const linkText = buildLoreLinkText(title);
+  const nextText = replaceRange(text, selection.start, selection.end, linkText);
+  const cursor = selection.start + linkText.length;
+  return {
+    text: nextText,
+    selection: { start: cursor, end: cursor },
+  };
+}
+
 function getSelectedLineBlockRange(text: string, selection: SelectionOffsets) {
   const start = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
   const endSearchFrom = Math.max(selection.end - 1, start);

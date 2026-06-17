@@ -138,6 +138,43 @@ export default function App() {
     ],
   );
 
+  const handleCreateLoreFromSelection = useCallback(
+    ({
+      title,
+      loreTypeId,
+      templateId,
+      tags,
+      details,
+      customFields,
+    }: {
+      title: string;
+      loreTypeId: string;
+      templateId: string | null;
+      tags: string;
+      details?: string;
+      customFields?: LoreCustomFields;
+    }) => {
+      const template = templateId ? loreTemplatesById.get(templateId) ?? null : null;
+      return (async () => {
+        const hasUnsavedChanges = worldStructures.hasUnsavedChanges;
+        if (hasUnsavedChanges) {
+          const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
+            confirmLabel: "Continue",
+            tone: "default",
+          });
+          if (!canContinue) return null;
+        }
+        return content.createLoreItem({ title, loreTypeId, template, tags, details, customFields });
+      })();
+    },
+    [
+      content.createLoreItem,
+      feedback.confirmAction,
+      loreTemplatesById,
+      worldStructures.hasUnsavedChanges,
+    ],
+  );
+
   const handleImportLoreTableCsv = useCallback(
     ({ loreTypeId, drafts }: { loreTypeId: string; drafts: LoreTableCsvImportDraft[] }) => {
       return (async () => {
@@ -401,6 +438,7 @@ export default function App() {
           onDeleteLoreTableView={content.removeLoreTableView}
           onUpdateLoreTableCustomField={content.updateLoreTableCustomField}
           onCreateLoreFromTable={handleCreateLoreItem}
+          onCreateLoreFromSelection={handleCreateLoreFromSelection}
           onExportLoreTableCsv={exportActions.exportLoreTableCsv}
           onImportLoreTableCsv={handleImportLoreTableCsv}
           onUpdateLoreTableCsv={handleUpdateLoreTableCsv}

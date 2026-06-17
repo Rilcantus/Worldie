@@ -5,6 +5,7 @@ import {
   appendTypewriterCommit,
   applyNoteBlockPrefix,
   buildEditorDisplayRepresentation,
+  buildLoreLinkText,
   clearCurrentLinePrefix,
   continueBlockPrefix,
   displaySelectionToSource,
@@ -27,6 +28,7 @@ import {
   trimTypewriterCommit,
   wrapSerializedInlineContent,
   renderPreviewContent,
+  replaceSelectionWithLoreLink,
 } from "../../.tmp-frontend-tests/src/components/editorCore.js";
 
 function normalizeChildren(children) {
@@ -113,6 +115,19 @@ test("trimTypewriterCommit removes trailing blank lines and appendTypewriterComm
   assert.equal(appendTypewriterCommit("", "Draft line\n"), "Draft line");
   assert.equal(appendTypewriterCommit("Base paragraph", "Draft line\n"), "Base paragraph\nDraft line");
   assert.equal(appendTypewriterCommit("Base paragraph\n", "Draft line\n"), "Base paragraph\nDraft line");
+});
+
+test("lore link helpers generate wiki links and replace selected text", () => {
+  assert.equal(buildLoreLinkText(" Blacktooth clan "), "[[Blacktooth clan]]");
+
+  const updated = replaceSelectionWithLoreLink(
+    "The Blacktooth clan crossed the ridge.",
+    { start: 4, end: 19 },
+    "Blacktooth clan",
+  );
+
+  assert.equal(updated.text, "The [[Blacktooth clan]] crossed the ridge.");
+  assert.deepEqual(updated.selection, { start: 23, end: 23 });
 });
 
 test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {

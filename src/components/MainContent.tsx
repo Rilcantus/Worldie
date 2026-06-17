@@ -107,6 +107,14 @@ type MainContentProps = {
   onDeleteLoreTableView: (viewId: string) => Promise<boolean>;
   onUpdateLoreTableCustomField: (loreId: string, field: CustomFieldDefinition, value: LoreCustomFieldValue) => Promise<boolean>;
   onCreateLoreFromTable: (payload: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => Promise<LorePage | null>;
+  onCreateLoreFromSelection: (payload: {
+    title: string;
+    loreTypeId: string;
+    templateId: string | null;
+    tags: string;
+    details?: string;
+    customFields?: LoreCustomFields;
+  }) => Promise<LorePage | null>;
   onExportLoreTableCsv: (payload: { filename: string; csvText: string }) => Promise<boolean>;
   onImportLoreTableCsv: (payload: { loreTypeId: string; drafts: LoreTableCsvImportDraft[] }) => Promise<{ createdCount: number; success: boolean } | null>;
   onUpdateLoreTableCsv: (payload: { loreTypeId: string; drafts: LoreTableCsvUpdateDraft[] }) => Promise<{ updatedCount: number; success: boolean } | null>;
@@ -267,6 +275,8 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               docListWidth={props.docListWidth}
               documents={props.documents}
               availableLorePages={props.allLorePages}
+              templates={props.templates}
+              loreTypes={props.loreTypes}
               activeDocumentId={props.activeDocumentId}
               documentTitle={props.documentTitle}
               documentContent={props.documentContent}
@@ -285,6 +295,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onDuplicateDocument={props.onDuplicateDocument}
               onOpenDocument={props.onOpenDocument}
               onOpenLore={props.onOpenLore}
+              onCreateLoreFromSelection={props.onCreateLoreFromSelection}
               onRemoveDocument={props.onRemoveDocument}
               onSave={props.onSaveDocument}
               onTitleChange={props.onDocumentTitleChange}
