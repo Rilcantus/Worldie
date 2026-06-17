@@ -74,9 +74,11 @@ Each generated world `index.md` includes:
 - Document body text is exported as-is.
 - Lore details are exported as Markdown text.
 - Lore traits are exported as a simple Markdown list.
+- Lore custom fields are exported as a simple Markdown list under `## Custom Fields`.
 - Relationships include source lore, target lore, relationship type, and notes when available.
 - Timeline events include date text, event type, linked lore, and description when available.
 - Wiki-style links such as `[[Some Lore]]` are preserved as text.
+- Empty or cleared lore custom field values are skipped.
 - Linked lore IDs are resolved to lore names when possible.
 - Missing linked lore is exported with a readable fallback instead of stopping the export.
 - Timeline entries in `index.md` are sorted by the first number found in their date text when possible, with unknown dates kept after dated entries.

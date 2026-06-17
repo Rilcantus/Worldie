@@ -19,6 +19,7 @@ export function buildInitialLoreFields(loreTypeId: string | null, template: Lore
           value: "",
         })) ?? [],
       details: "",
+      customFields: {},
     },
     null,
     2,

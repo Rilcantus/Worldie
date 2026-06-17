@@ -188,6 +188,63 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIsNone(event[5])
         self.assertIsNone(event[6])
 
+    def test_lore_page_custom_fields_persist_update_clear_and_reopen(self):
+        project_uuid, project_path = self.db_manager.add_project("Custom Fields", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+        initial_fields = {
+            "loreTypeId": "character",
+            "templateId": "character-sheet",
+            "traits": [{"id": "trait-1", "name": "Role", "value": "Courier"}],
+            "details": "Carries sealed letters.",
+            "customFields": {
+                "Age": 31,
+                "Species": "Human",
+                "Active": True,
+                "Faction": "Ashwake Company",
+            },
+        }
+        lore_id = self.db_manager.create_lore_page(
+            project_uuid,
+            world_id,
+            "Mara Quill",
+            "Character",
+            fields_json=json.dumps(initial_fields),
+        )
+
+        listed = self.db_manager.list_lore_pages(project_uuid, world_id)[0]
+        self.assertEqual(json.loads(listed[5])["customFields"]["Age"], 31)
+        self.assertEqual(json.loads(listed[5])["customFields"]["Active"], True)
+
+        self.db_manager.update_lore_page(project_uuid, lore_id, title="Mara Quill Revised")
+        preserved = self.db_manager.list_lore_pages(project_uuid, world_id)[0]
+        self.assertEqual(json.loads(preserved[5])["customFields"]["Faction"], "Ashwake Company")
+
+        updated_fields = {
+            **initial_fields,
+            "customFields": {
+                "Age": 32,
+                "Species": "Human",
+                "Active": False,
+                "Faction": None,
+                "First appearance": "Chapter 01",
+            },
+        }
+        self.db_manager.update_lore_page(project_uuid, lore_id, fields_json=json.dumps(updated_fields))
+        updated = self.db_manager.list_lore_pages(project_uuid, world_id)[0]
+        updated_custom_fields = json.loads(updated[5])["customFields"]
+        self.assertEqual(updated_custom_fields["Age"], 32)
+        self.assertEqual(updated_custom_fields["Active"], False)
+        self.assertIsNone(updated_custom_fields["Faction"])
+        self.assertEqual(updated_custom_fields["First appearance"], "Chapter 01")
+
+        reopened_uuid, _, _ = self.db_manager.open_project(str(project_path))
+        reopened = self.db_manager.list_lore_pages(reopened_uuid, world_id)[0]
+        self.assertEqual(json.loads(reopened[5])["customFields"]["First appearance"], "Chapter 01")
+
+        self.db_manager.update_lore_page(project_uuid, lore_id, fields_json=None)
+        cleared = self.db_manager.list_lore_pages(project_uuid, world_id)[0]
+        self.assertIsNone(cleared[5])
+
     def test_sidecar_updates_preserve_omitted_fields_and_clear_explicit_nulls(self):
         project_uuid, _ = self.db_manager.add_project("Sidecar Nullable Fields", "")
         world_id = self.db_manager.create_world(project_uuid, "Duskfen")
@@ -580,6 +637,12 @@ class ProjectStoreTests(unittest.TestCase):
                 {
                     "traits": [{"name": "Goal", "value": "Find [[Red Harbor]] answers"}],
                     "details": "Knows the [[Ashwake Company]].",
+                    "customFields": {
+                        "Age": 31,
+                        "Faction": "Ashwake Company",
+                        "Active": True,
+                        "Cleared field": None,
+                    },
                 }
             ),
         )
@@ -618,6 +681,11 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIn("[[Red Harbor]]", document_text)
         self.assertIn("# Mara: Quill*", lore_text)
         self.assertIn("Tags: courier, protagonist", lore_text)
+        self.assertIn("## Custom Fields", lore_text)
+        self.assertIn("- **Age:** 31", lore_text)
+        self.assertIn("- **Faction:** Ashwake Company", lore_text)
+        self.assertIn("- **Active:** true", lore_text)
+        self.assertNotIn("Cleared field", lore_text)
         self.assertIn("- **Goal:** Find [[Red Harbor]] answers", lore_text)
         self.assertIn("Knows the [[Ashwake Company]].", lore_text)
         self.assertIn(lore_id, [row[0] for row in self.db_manager.list_lore_pages(project_uuid, world_id)])

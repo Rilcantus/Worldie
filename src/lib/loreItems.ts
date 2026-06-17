@@ -6,11 +6,15 @@ export type LoreTrait = {
   value: string;
 };
 
+export type LoreCustomFieldValue = string | number | boolean | null;
+export type LoreCustomFields = Record<string, LoreCustomFieldValue>;
+
 export type LoreItemFields = {
   loreTypeId: string | null;
   templateId: string | null;
   traits: LoreTrait[];
   details: string;
+  customFields: LoreCustomFields;
 };
 
 function normalizeTraitName(value: string) {
@@ -28,7 +32,7 @@ export function createTraitsFromTemplate(template: LoreTemplate | null) {
 
 export function parseLoreItemFields(fieldsJson: string | null | undefined): LoreItemFields {
   if (!fieldsJson?.trim()) {
-    return { loreTypeId: null, templateId: null, traits: [], details: "" };
+    return { loreTypeId: null, templateId: null, traits: [], details: "", customFields: {} };
   }
 
   try {
@@ -38,6 +42,7 @@ export function parseLoreItemFields(fieldsJson: string | null | undefined): Lore
           templateId?: string | null;
           traits?: Array<{ id?: string; name?: string; value?: string }>;
           details?: string;
+          customFields?: Record<string, unknown>;
         }
       | Record<string, unknown>;
 
@@ -47,6 +52,7 @@ export function parseLoreItemFields(fieldsJson: string | null | undefined): Lore
         templateId?: string | null;
         traits?: Array<{ id?: string; name?: string; value?: string }>;
         details?: string;
+        customFields?: Record<string, unknown>;
       };
       return {
         loreTypeId: item.loreTypeId ?? null,
@@ -58,6 +64,7 @@ export function parseLoreItemFields(fieldsJson: string | null | undefined): Lore
             value: trait.value ?? "",
           })) ?? [],
         details: item.details ?? "",
+        customFields: normalizeCustomFields(item.customFields),
       };
     }
 
@@ -76,10 +83,27 @@ export function parseLoreItemFields(fieldsJson: string | null | undefined): Lore
       templateId: null,
       traits,
       details,
+      customFields: {},
     };
   } catch {
-    return { loreTypeId: null, templateId: null, traits: [], details: "" };
+    return { loreTypeId: null, templateId: null, traits: [], details: "", customFields: {} };
   }
+}
+
+function normalizeCustomFields(fields: Record<string, unknown> | null | undefined): LoreCustomFields {
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return {};
+  return Object.fromEntries(
+    Object.entries(fields)
+      .map(([key, value]) => [key.trim(), normalizeCustomFieldValue(value)] as const)
+      .filter(([key]) => key.length > 0),
+  );
+}
+
+function normalizeCustomFieldValue(value: unknown): LoreCustomFieldValue {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null) {
+    return value;
+  }
+  return String(value);
 }
 
 export function stringifyLoreItemFields(fields: LoreItemFields) {
@@ -93,6 +117,7 @@ export function stringifyLoreItemFields(fields: LoreItemFields) {
         value: trait.value,
       })),
       details: fields.details,
+      customFields: normalizeCustomFields(fields.customFields),
     },
     null,
     2,

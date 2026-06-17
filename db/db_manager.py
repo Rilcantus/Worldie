@@ -334,14 +334,14 @@ def _write_text_file(path, content):
 
 def _parse_lore_fields(fields_json):
     if not fields_json:
-        return [], ""
+        return [], "", []
     try:
         parsed = json.loads(fields_json)
     except (TypeError, ValueError):
-        return [], ""
+        return [], "", []
     if not isinstance(parsed, dict):
-        return [], ""
-    if isinstance(parsed.get("traits"), list):
+        return [], "", []
+    if isinstance(parsed.get("traits"), list) or "details" in parsed or "customFields" in parsed:
         traits = []
         for trait in parsed.get("traits") or []:
             if not isinstance(trait, dict):
@@ -350,7 +350,7 @@ def _parse_lore_fields(fields_json):
             value = "" if trait.get("value") is None else str(trait.get("value"))
             if value.strip():
                 traits.append((name, value))
-        return traits, str(parsed.get("details") or "")
+        return traits, str(parsed.get("details") or ""), _parse_custom_fields(parsed.get("customFields"))
     traits = []
     for key, value in parsed.items():
         if key == "_details":
@@ -358,7 +358,25 @@ def _parse_lore_fields(fields_json):
         if value is None or str(value).strip() == "":
             continue
         traits.append((str(key), str(value)))
-    return traits, str(parsed.get("_details") or "")
+    return traits, str(parsed.get("_details") or ""), []
+
+
+def _parse_custom_fields(custom_fields):
+    if not isinstance(custom_fields, dict):
+        return []
+    fields = []
+    for name, value in custom_fields.items():
+        label = str(name).strip()
+        if not label:
+            continue
+        if value is None or value == "":
+            continue
+        if isinstance(value, bool):
+            display_value = "true" if value else "false"
+        else:
+            display_value = str(value)
+        fields.append((label, display_value))
+    return fields
 
 
 def _build_document_markdown(document):
@@ -374,12 +392,16 @@ def _build_document_markdown(document):
 
 def _build_lore_markdown(lore_page):
     _, _, title, page_type, tags_json, fields_json, _, created_at, updated_at = lore_page
-    traits, details = _parse_lore_fields(fields_json)
+    traits, details, custom_fields = _parse_lore_fields(fields_json)
     lines = [f"# {title}", "", f"Type: {page_type}"]
     if tags_json:
         lines.append(f"Tags: {tags_json}")
     if created_at or updated_at:
         lines.extend([f"Created: {created_at or ''}", f"Updated: {updated_at or ''}"])
+    if custom_fields:
+        lines.extend(["", "## Custom Fields", ""])
+        for name, value in custom_fields:
+            lines.append(f"- **{name}:** {value}")
     if traits:
         lines.extend(["", "## Traits", ""])
         for name, value in traits:

@@ -1,6 +1,11 @@
 import { memo, useMemo, type MouseEvent as ReactMouseEvent } from "react";
 import type { LorePage } from "../lib/data";
-import { parseLoreItemFields, stringifyLoreItemFields, type LoreTrait } from "../lib/loreItems";
+import {
+  parseLoreItemFields,
+  stringifyLoreItemFields,
+  type LoreCustomFields,
+  type LoreTrait,
+} from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { LoreType } from "../lib/loreTypes";
 import { resolveLoreLinks } from "../lib/loreLinks";
@@ -44,6 +49,10 @@ function createBlankTrait(): LoreTrait {
     name: "New Trait",
     value: "",
   };
+}
+
+function normalizeCustomFieldName(value: string) {
+  return value.trim() || "Custom field";
 }
 
 export const LoreView = memo(function LoreView({
@@ -98,15 +107,24 @@ export const LoreView = memo(function LoreView({
   );
   const filteredLinkedLorePages = linkedLorePages.filter((page) => page.id !== activeLoreId);
 
-  const persistTraits = (traits: LoreTrait[], details = loreItemFields.details) => {
+  const persistFields = (
+    traits = loreItemFields.traits,
+    details = loreItemFields.details,
+    customFields = loreItemFields.customFields,
+  ) => {
     onFieldsChange(
       stringifyLoreItemFields({
         loreTypeId: lorePageTypeId,
         templateId: loreItemFields.templateId,
         traits,
         details,
+        customFields,
       }),
     );
+  };
+
+  const persistTraits = (traits: LoreTrait[], details = loreItemFields.details) => {
+    persistFields(traits, details);
   };
 
   const updateTrait = (traitId: string, updates: Partial<LoreTrait>) => {
@@ -117,6 +135,45 @@ export const LoreView = memo(function LoreView({
 
   const removeTrait = (traitId: string) => {
     persistTraits(loreItemFields.traits.filter((trait) => trait.id !== traitId));
+  };
+
+  const customFieldEntries = Object.entries(loreItemFields.customFields);
+
+  const persistCustomFields = (customFields: LoreCustomFields) => {
+    persistFields(loreItemFields.traits, loreItemFields.details, customFields);
+  };
+
+  const addCustomField = () => {
+    const baseName = "Custom field";
+    let nextName = baseName;
+    let index = 2;
+    while (Object.prototype.hasOwnProperty.call(loreItemFields.customFields, nextName)) {
+      nextName = `${baseName} ${index}`;
+      index += 1;
+    }
+    persistCustomFields({ ...loreItemFields.customFields, [nextName]: "" });
+  };
+
+  const renameCustomField = (previousName: string, nextName: string) => {
+    const normalizedName = normalizeCustomFieldName(nextName);
+    const nextFields: LoreCustomFields = {};
+    for (const [name, value] of customFieldEntries) {
+      if (name === previousName) {
+        nextFields[normalizedName] = value;
+      } else if (name !== normalizedName) {
+        nextFields[name] = value;
+      }
+    }
+    persistCustomFields(nextFields);
+  };
+
+  const updateCustomFieldValue = (name: string, value: string) => {
+    persistCustomFields({ ...loreItemFields.customFields, [name]: value });
+  };
+
+  const removeCustomField = (name: string) => {
+    const { [name]: _removed, ...nextFields } = loreItemFields.customFields;
+    persistCustomFields(nextFields);
   };
 
   return (
@@ -290,6 +347,43 @@ export const LoreView = memo(function LoreView({
                     placeholder="Trait value"
                   />
                   <button className="tb-btn" type="button" onClick={() => removeTrait(trait.id)}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="lore-panel">
+          <div className="lore-panel-header">
+            <div className="linked-lore-label">Custom Fields</div>
+            <button className="tb-btn" type="button" onClick={addCustomField}>
+              Add Field
+            </button>
+          </div>
+          {customFieldEntries.length === 0 ? (
+            <div className="rp-empty">No custom fields yet. Add structured facts like age, faction, role, or first appearance.</div>
+          ) : (
+            <div className="trait-list">
+              {customFieldEntries.map(([name, value]) => (
+                <div key={name} className="trait-row">
+                  <input
+                    aria-label="Custom field name"
+                    className="lore-input trait-name-input"
+                    value={name}
+                    onBlur={(event) => renameCustomField(name, event.target.value)}
+                    onChange={(event) => renameCustomField(name, event.target.value)}
+                    placeholder="Field name"
+                  />
+                  <input
+                    aria-label="Custom field value"
+                    className="lore-input"
+                    value={value == null ? "" : String(value)}
+                    onChange={(event) => updateCustomFieldValue(name, event.target.value)}
+                    placeholder="Field value"
+                  />
+                  <button className="tb-btn" type="button" onClick={() => removeCustomField(name)}>
                     Remove
                   </button>
                 </div>

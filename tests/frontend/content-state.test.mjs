@@ -26,6 +26,7 @@ test("buildInitialLoreFields creates empty details and uses template metadata", 
   assert.equal(fields.templateId, "template-1");
   assert.deepEqual(fields.traits, []);
   assert.equal(fields.details, "");
+  assert.deepEqual(fields.customFields, {});
 });
 
 test("buildLoreTypeCounts totals pages by resolved lore type", () => {

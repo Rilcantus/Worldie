@@ -81,6 +81,9 @@ type World = {
   updatedAt?: string;
 };
 
+type LoreCustomFieldValue = string | number | boolean | null;
+type LoreCustomFields = Record<string, LoreCustomFieldValue>;
+
 type LorePage = {
   id: string;
   worldId: string;
@@ -674,6 +677,8 @@ export type {
   Project,
   World,
   LorePage,
+  LoreCustomFieldValue,
+  LoreCustomFields,
   Document,
   Relationship,
   TimelineEvent,
