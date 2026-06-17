@@ -389,7 +389,69 @@ def _build_lore_markdown(lore_page):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _build_export_index(project_title, world, document_entries, lore_entries):
+def _lore_title(lore_titles_by_id, lore_id):
+    if not lore_id:
+        return "Unlinked lore"
+    return lore_titles_by_id.get(lore_id) or f"Missing lore ({lore_id})"
+
+
+def _relationship_title(relationship, lore_titles_by_id):
+    _, _, source_id, target_id, relation_type, _, _, _ = relationship
+    source = _lore_title(lore_titles_by_id, source_id)
+    target = _lore_title(lore_titles_by_id, target_id)
+    if relation_type:
+        return f"{source} - {relation_type} - {target}"
+    return f"{source} - {target}"
+
+
+def _build_relationship_markdown(relationship, lore_titles_by_id):
+    _, _, source_id, target_id, relation_type, notes, created_at, updated_at = relationship
+    title = _relationship_title(relationship, lore_titles_by_id)
+    lines = [f"# {title}", "", f"Source: {_lore_title(lore_titles_by_id, source_id)}", f"Target: {_lore_title(lore_titles_by_id, target_id)}"]
+    if relation_type:
+        lines.append(f"Type: {relation_type}")
+    if created_at or updated_at:
+        lines.extend([f"Created: {created_at or ''}", f"Updated: {updated_at or ''}"])
+    if notes:
+        lines.extend(["", "## Notes", "", notes])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _timeline_sort_key(event):
+    date_text = event[3] or ""
+    match = re.search(r"-?\d+", str(date_text))
+    if not match:
+        return (1, str(date_text).lower(), str(event[2]).lower(), event[0])
+    return (0, int(match.group(0)), str(date_text).lower(), str(event[2]).lower(), event[0])
+
+
+def _build_timeline_markdown(event, lore_titles_by_id):
+    _, _, title, date_text, event_type, linked_page_id, description, created_at, updated_at = event
+    lines = [f"# {title}", ""]
+    if date_text:
+        lines.append(f"Date: {date_text}")
+    if event_type:
+        lines.append(f"Type: {event_type}")
+    if linked_page_id:
+        lines.append(f"Linked lore: {_lore_title(lore_titles_by_id, linked_page_id)}")
+    if created_at or updated_at:
+        lines.extend([f"Created: {created_at or ''}", f"Updated: {updated_at or ''}"])
+    if description:
+        lines.extend(["", "## Details", "", description])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _append_index_section(lines, title, entries, empty_message):
+    lines.extend(["", f"## {title}", ""])
+    if entries:
+        for entry in entries:
+            detail = f" - {entry['summary']}" if entry.get("summary") else ""
+            lines.append(f"- [{entry['title']}]({entry['relativePath']}){detail}")
+    else:
+        lines.append(f"- {empty_message}")
+
+
+def _build_export_index(project_title, world, document_entries, lore_entries, relationship_entries, timeline_entries):
     _, _, world_title, description, _, _ = world
     lines = [
         f"# {world_title}",
@@ -397,21 +459,15 @@ def _build_export_index(project_title, world, document_entries, lore_entries):
         f"Project: {project_title}",
         f"Documents: {len(document_entries)}",
         f"Lore pages: {len(lore_entries)}",
+        f"Relationships: {len(relationship_entries)}",
+        f"Timeline events: {len(timeline_entries)}",
     ]
     if description:
         lines.extend(["", "## World Notes", "", description])
-    lines.extend(["", "## Documents", ""])
-    if document_entries:
-        for entry in document_entries:
-            lines.append(f"- [{entry['title']}]({entry['relativePath']})")
-    else:
-        lines.append("- No documents exported.")
-    lines.extend(["", "## Lore Pages", ""])
-    if lore_entries:
-        for entry in lore_entries:
-            lines.append(f"- [{entry['title']}]({entry['relativePath']})")
-    else:
-        lines.append("- No lore pages exported.")
+    _append_index_section(lines, "Documents", document_entries, "No documents exported.")
+    _append_index_section(lines, "Lore Pages", lore_entries, "No lore pages exported.")
+    _append_index_section(lines, "Relationships", relationship_entries, "No relationships exported.")
+    _append_index_section(lines, "Timeline", timeline_entries, "No timeline events exported.")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -628,6 +684,26 @@ def export_world_markdown(project_uuid, world_id, export_root):
         (world_id,),
     )
     lore_pages = c.fetchall()
+    c.execute(
+        """
+        SELECT id, world_id, from_id, to_id, type, notes, created_at, updated_at
+        FROM relationships
+        WHERE world_id = ?
+        ORDER BY type COLLATE NOCASE, id
+        """,
+        (world_id,),
+    )
+    relationships = c.fetchall()
+    c.execute(
+        """
+        SELECT id, world_id, title, date_text, event_type, linked_page_id, description, created_at, updated_at
+        FROM timeline_events
+        WHERE world_id = ?
+        ORDER BY title COLLATE NOCASE, id
+        """,
+        (world_id,),
+    )
+    timeline_events = c.fetchall()
     conn.close()
 
     export_folder_name = _safe_export_name(f"{project_title} - {world[2]}", "worldie-export")
@@ -638,6 +714,9 @@ def export_world_markdown(project_uuid, world_id, export_root):
     exported_files = []
     document_entries = []
     lore_entries = []
+    relationship_entries = []
+    timeline_entries = []
+    lore_titles_by_id = {page[0]: page[2] for page in lore_pages}
 
     documents_root = os.path.join(export_path, "Documents")
     for document in documents:
@@ -672,8 +751,43 @@ def export_world_markdown(project_uuid, world_id, export_root):
         exported_files.append(entry)
         lore_entries.append(entry)
 
+    relationships_root = os.path.join(export_path, "Relationships")
+    for relationship in relationships:
+        title = _relationship_title(relationship, lore_titles_by_id)
+        filename = f"{_safe_export_name(title, 'relationship')}.md"
+        file_path = _dedupe_export_path(relationships_root, filename, used_paths)
+        _write_text_file(file_path, _build_relationship_markdown(relationship, lore_titles_by_id))
+        entry = {
+            "kind": "relationship",
+            "title": title,
+            "path": file_path,
+            "relativePath": _relative_export_path(file_path, export_path),
+            "summary": relationship[4] or "",
+        }
+        exported_files.append(entry)
+        relationship_entries.append(entry)
+
+    timeline_root = os.path.join(export_path, "Timeline")
+    for event in sorted(timeline_events, key=_timeline_sort_key):
+        _, _, title, date_text, _, linked_page_id, _, _, _ = event
+        filename = f"{_safe_export_name(title, 'timeline-event')}.md"
+        file_path = _dedupe_export_path(timeline_root, filename, used_paths)
+        _write_text_file(file_path, _build_timeline_markdown(event, lore_titles_by_id))
+        entry = {
+            "kind": "timeline",
+            "title": title,
+            "path": file_path,
+            "relativePath": _relative_export_path(file_path, export_path),
+            "summary": date_text or (_lore_title(lore_titles_by_id, linked_page_id) if linked_page_id else ""),
+        }
+        exported_files.append(entry)
+        timeline_entries.append(entry)
+
     index_path = os.path.join(export_path, "index.md")
-    _write_text_file(index_path, _build_export_index(project_title, world, document_entries, lore_entries))
+    _write_text_file(
+        index_path,
+        _build_export_index(project_title, world, document_entries, lore_entries, relationship_entries, timeline_entries),
+    )
     exported_files.insert(
         0,
         {
@@ -690,6 +804,8 @@ def export_world_markdown(project_uuid, world_id, export_root):
         "worldTitle": world[2],
         "documentCount": len(documents),
         "lorePageCount": len(lore_pages),
+        "relationshipCount": len(relationships),
+        "timelineEventCount": len(timeline_events),
         "files": exported_files,
     }
 

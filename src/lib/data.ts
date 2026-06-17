@@ -34,10 +34,11 @@ type ProjectStoreProjectsResult = {
 };
 
 type ExportedFile = {
-  kind: "index" | "document" | "lore";
+  kind: "index" | "document" | "lore" | "relationship" | "timeline";
   title: string;
   path: string;
   relativePath: string;
+  summary?: string;
 };
 
 type WorldMarkdownExportResult = {
@@ -46,6 +47,8 @@ type WorldMarkdownExportResult = {
   worldTitle: string;
   documentCount: number;
   lorePageCount: number;
+  relationshipCount: number;
+  timelineEventCount: number;
   files: ExportedFile[];
 };
 

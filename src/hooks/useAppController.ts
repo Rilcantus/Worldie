@@ -318,7 +318,7 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
             exportRoot,
           );
           feedback.showToast(
-            `Exported ${result.documentCount} documents and ${result.lorePageCount} lore pages to ${result.exportPath}.`,
+            `Exported ${result.documentCount} documents, ${result.lorePageCount} lore pages, ${result.relationshipCount} relationships, and ${result.timelineEventCount} timeline events to ${result.exportPath}.`,
           );
         } catch (error) {
           await projectWorlds.recoverActiveProjectError(error, "Worldie could not export this world.");

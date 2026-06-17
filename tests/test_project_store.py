@@ -591,6 +591,8 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(result["worldTitle"], "Duskfen/Marsh")
         self.assertEqual(result["documentCount"], 1)
         self.assertEqual(result["lorePageCount"], 1)
+        self.assertEqual(result["relationshipCount"], 0)
+        self.assertEqual(result["timelineEventCount"], 0)
         self.assertTrue(Path(result["exportPath"]).is_dir())
         self.assertEqual(Path(project_path).read_bytes(), source_bytes)
 
@@ -633,6 +635,99 @@ class ProjectStoreTests(unittest.TestCase):
         document_names = sorted(Path(file["path"]).name for file in result["files"] if file["kind"] == "document")
         self.assertEqual(document_names, ["Scene-2.md", "Scene.md"])
 
+    def test_export_world_markdown_writes_relationships_and_timeline(self):
+        project_uuid, project_path = self.db_manager.add_project("World Bible", "")
+        world_id = self.db_manager.create_world(project_uuid, "Emberfall")
+        mara_id = self.db_manager.create_lore_page(project_uuid, world_id, "Mara Quill", "Character")
+        harbor_id = self.db_manager.create_lore_page(project_uuid, world_id, "Red Harbor", "Place")
+        self.db_manager.create_relationship(
+            project_uuid,
+            world_id,
+            mara_id,
+            harbor_id,
+            "investigates",
+            "Mara follows clues toward [[Red Harbor]].",
+        )
+        self.db_manager.create_relationship(
+            project_uuid,
+            world_id,
+            "missing-source",
+            harbor_id,
+            "rumored",
+            "A missing source should not break export.",
+        )
+        first_event = self.db_manager.create_timeline_event(
+            project_uuid,
+            world_id,
+            "Arrival",
+            event_date="847 AE",
+            event_type="arrival",
+            linked_page_id=mara_id,
+            description="Mara reaches [[Red Harbor]].",
+        )
+        self.db_manager.create_timeline_event(
+            project_uuid,
+            world_id,
+            "Founding",
+            event_date="102 AE",
+            event_type="founding",
+            linked_page_id="missing-lore",
+            description="Old records mention a vanished founder.",
+        )
+        source_bytes = Path(project_path).read_bytes()
+
+        result = self.db_manager.export_world_markdown(project_uuid, world_id, str(self.temp_path / "exports"))
+
+        self.assertEqual(result["relationshipCount"], 2)
+        self.assertEqual(result["timelineEventCount"], 2)
+        self.assertEqual(Path(project_path).read_bytes(), source_bytes)
+
+        relationship_files = [Path(file["path"]) for file in result["files"] if file["kind"] == "relationship"]
+        timeline_files = [Path(file["path"]) for file in result["files"] if file["kind"] == "timeline"]
+        self.assertEqual(len(relationship_files), 2)
+        self.assertEqual(len(timeline_files), 2)
+
+        relationship_text = "\n".join(path.read_text(encoding="utf-8") for path in relationship_files)
+        self.assertIn("# Mara Quill - investigates - Red Harbor", relationship_text)
+        self.assertIn("Source: Mara Quill", relationship_text)
+        self.assertIn("Target: Red Harbor", relationship_text)
+        self.assertIn("Type: investigates", relationship_text)
+        self.assertIn("Mara follows clues toward [[Red Harbor]].", relationship_text)
+        self.assertIn("Missing lore (missing-source)", relationship_text)
+
+        timeline_text = "\n".join(path.read_text(encoding="utf-8") for path in timeline_files)
+        self.assertIn("# Arrival", timeline_text)
+        self.assertIn("Date: 847 AE", timeline_text)
+        self.assertIn("Type: arrival", timeline_text)
+        self.assertIn("Linked lore: Mara Quill", timeline_text)
+        self.assertIn("Mara reaches [[Red Harbor]].", timeline_text)
+        self.assertIn("Linked lore: Missing lore (missing-lore)", timeline_text)
+        self.assertIn(first_event, [row[0] for row in self.db_manager.list_timeline_events(project_uuid, world_id)])
+
+        index_text = (Path(result["exportPath"]) / "index.md").read_text(encoding="utf-8")
+        self.assertIn("Relationships: 2", index_text)
+        self.assertIn("Timeline events: 2", index_text)
+        self.assertIn("## Relationships", index_text)
+        self.assertIn("## Timeline", index_text)
+        self.assertLess(index_text.index("[Founding]"), index_text.index("[Arrival]"))
+
+    def test_export_world_markdown_dedupes_duplicate_relationship_and_timeline_titles(self):
+        project_uuid, _ = self.db_manager.add_project("Duplicate World Bible", "")
+        world_id = self.db_manager.create_world(project_uuid, "Mirror World")
+        source_id = self.db_manager.create_lore_page(project_uuid, world_id, "Source", "Character")
+        target_id = self.db_manager.create_lore_page(project_uuid, world_id, "Target", "Character")
+        self.db_manager.create_relationship(project_uuid, world_id, source_id, target_id, "knows", "First.")
+        self.db_manager.create_relationship(project_uuid, world_id, source_id, target_id, "knows", "Second.")
+        self.db_manager.create_timeline_event(project_uuid, world_id, "Discovery", event_date="2 AE")
+        self.db_manager.create_timeline_event(project_uuid, world_id, "Discovery", event_date="3 AE")
+
+        result = self.db_manager.export_world_markdown(project_uuid, world_id, str(self.temp_path / "exports"))
+
+        relationship_names = sorted(Path(file["path"]).name for file in result["files"] if file["kind"] == "relationship")
+        timeline_names = sorted(Path(file["path"]).name for file in result["files"] if file["kind"] == "timeline")
+        self.assertEqual(relationship_names, ["Source - knows - Target-2.md", "Source - knows - Target.md"])
+        self.assertEqual(timeline_names, ["Discovery-2.md", "Discovery.md"])
+
     def test_sidecar_exports_world_markdown_with_metadata(self):
         project_uuid, _ = self.db_manager.add_project("Sidecar Export", "")
         world_id = self.db_manager.create_world(project_uuid, "Test World")
@@ -653,6 +748,8 @@ class ProjectStoreTests(unittest.TestCase):
         export = response["export"]
         self.assertEqual(export["documentCount"], 1)
         self.assertEqual(export["lorePageCount"], 0)
+        self.assertEqual(export["relationshipCount"], 0)
+        self.assertEqual(export["timelineEventCount"], 0)
         self.assertTrue(Path(export["exportPath"]).exists())
         self.assertIn("index.md", [file["relativePath"] for file in export["files"]])
 
