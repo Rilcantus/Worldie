@@ -11,6 +11,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTRY_DB_PATH = os.path.join(ROOT_DIR, "db", "projects_registry.db")
 PROJECTS_DIR = os.path.join(ROOT_DIR, "projects")
 OMITTED = object()
+SURROGATE_PATTERN = re.compile(r"[\ud800-\udfff]")
 
 
 def _now_iso():
@@ -22,6 +23,16 @@ def _ensure_parent_dir(path):
     if not parent_dir:
         return
     os.makedirs(parent_dir, exist_ok=True)
+
+
+def _sanitize_text_for_storage(value):
+    if isinstance(value, str):
+        return SURROGATE_PATTERN.sub("\ufffd", value)
+    return value
+
+
+def _sanitize_text_values(*values):
+    return tuple(_sanitize_text_for_storage(value) for value in values)
 
 
 def _registry_conn():
@@ -63,7 +74,7 @@ def _update_partial(conn, table, id_column, id_value, updates):
         if value is OMITTED:
             continue
         assignments.append(f"{column} = ?")
-        values.append(value)
+        values.append(_sanitize_text_for_storage(value))
     assignments.append("updated_at = ?")
     values.append(_now_iso())
     values.append(id_value)
@@ -649,6 +660,7 @@ def _set_project_meta_title(db_path, title):
     conn = _project_conn(db_path)
     c = conn.cursor()
     now = _now_iso()
+    title = _sanitize_text_for_storage(title)
     c.execute(
         """
         UPDATE project_meta
@@ -680,6 +692,7 @@ def _touch_project(project_uuid):
 
 def add_project(title, filepath):
     project_uuid = str(uuid.uuid4())
+    title = _sanitize_text_for_storage(title)
     resolved_path = _resolve_project_db_path(project_uuid, title, filepath)
     if _get_project_by_filepath(resolved_path) or os.path.exists(resolved_path):
         raise ValueError("Choose a new filepath for project creation.")
@@ -712,6 +725,7 @@ def get_all_projects():
 
 def update_project_title(project_uuid, title):
     filepath = _get_project_filepath(project_uuid)
+    title = _sanitize_text_for_storage(title)
     conn = _registry_conn()
     c = conn.cursor()
     now = _now_iso()
@@ -728,7 +742,7 @@ def open_project(filepath):
         raise FileNotFoundError(resolved_path)
 
     existing = _get_project_by_filepath(resolved_path)
-    title = _get_project_meta_title(resolved_path)
+    title = _sanitize_text_for_storage(_get_project_meta_title(resolved_path))
     if not title or title == "Untitled Project":
         title = os.path.splitext(os.path.basename(resolved_path))[0]
         _set_project_meta_title(resolved_path, title)
@@ -1092,6 +1106,7 @@ def update_world_title(project_uuid, world_id, title):
     conn = _project_conn(db_path)
     c = conn.cursor()
     now = _now_iso()
+    title = _sanitize_text_for_storage(title)
     c.execute("UPDATE worlds SET title = ?, updated_at = ? WHERE id = ?", (title, now, world_id))
     conn.commit()
     conn.close()
@@ -1121,6 +1136,7 @@ def create_world(project_uuid, title, description=None):
     c = conn.cursor()
     now = _now_iso()
     world_id = str(uuid.uuid4())
+    title, description = _sanitize_text_values(title, description)
     c.execute(
         """
         INSERT INTO worlds (id, project_id, title, description, created_at, updated_at)
@@ -1159,6 +1175,13 @@ def create_lore_page(project_uuid, world_id, title, page_type, tags_json=None, f
     c = conn.cursor()
     now = _now_iso()
     lore_id = str(uuid.uuid4())
+    title, page_type, tags_json, fields_json, cover_image_path = _sanitize_text_values(
+        title,
+        page_type,
+        tags_json,
+        fields_json,
+        cover_image_path,
+    )
     c.execute(
         """
         INSERT INTO lore_pages (
@@ -1248,6 +1271,7 @@ def create_document(project_uuid, world_id, title, content_json=None, folder_pat
     c = conn.cursor()
     now = _now_iso()
     doc_id = str(uuid.uuid4())
+    title, content_json, folder_path = _sanitize_text_values(title, content_json, folder_path)
     c.execute(
         """
         INSERT INTO documents (
@@ -1319,6 +1343,12 @@ def create_relationship(project_uuid, world_id, source_page_id, target_page_id, 
     c = conn.cursor()
     now = _now_iso()
     relationship_id = str(uuid.uuid4())
+    source_page_id, target_page_id, relation_type, notes = _sanitize_text_values(
+        source_page_id,
+        target_page_id,
+        relation_type,
+        notes,
+    )
     c.execute(
         """
         INSERT INTO relationships (
@@ -1395,6 +1425,13 @@ def create_timeline_event(project_uuid, world_id, title, event_date=None, event_
     c = conn.cursor()
     now = _now_iso()
     event_id = str(uuid.uuid4())
+    title, event_date, event_type, linked_page_id, description = _sanitize_text_values(
+        title,
+        event_date,
+        event_type,
+        linked_page_id,
+        description,
+    )
     c.execute(
         """
         INSERT INTO timeline_events (
@@ -1483,6 +1520,14 @@ def create_lore_table_view(
     c = conn.cursor()
     now = _now_iso()
     view_id = str(uuid.uuid4())
+    name, lore_type_id, quick_filter, sort_key, sort_direction, visible_columns_json = _sanitize_text_values(
+        name,
+        lore_type_id,
+        quick_filter,
+        sort_key,
+        sort_direction,
+        visible_columns_json,
+    )
     c.execute(
         """
         INSERT INTO lore_table_views (

@@ -19,6 +19,7 @@ import {
   buildLoreTableViewUpdatePayload,
 } from "./loreTableViews";
 import { resolveProjectStoreErrorMessage } from "./projectStoreErrors";
+import { sanitizeTextForPersistence } from "./textSanitizer";
 export {
   buildLoreTableViewPayload,
   buildLoreTableViewUpdatePayload,
@@ -186,10 +187,10 @@ async function invokeProjectStore<T>(action: string, data?: Record<string, unkno
   if (!isTauri()) {
     throw new ProjectStoreError("Project data requires the desktop app and an active .worldie project file.");
   }
-  const { invoke } = await importTauriCore();
+    const { invoke } = await importTauriCore();
   try {
     return (await invoke("sidecar_request", {
-      payload: { action, data },
+      payload: { action, data: sanitizeTextForPersistence(data) },
     })) as T;
   } catch (error) {
     const message = resolveProjectStoreErrorMessage(action, error);

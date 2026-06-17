@@ -1,5 +1,48 @@
 # QA Run Notes
 
+## 2026-06-17 Invalid Unicode Paste Save Failure
+
+Environment:
+
+- Windows managed Codex desktop shell
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+
+Observed failure:
+
+- A large pasted story remained visible in the document editor, but save failed with `Worldie could not update document in the active project file. Detail: 'utf-8' codec can't encode character '\udc9d' in position 167: surrogates not allowed`.
+- The original text used `***` page breaks, but the actual root cause was a lone invalid Unicode surrogate code point from pasted external text.
+
+Pass/fail notes:
+
+- Pass: invalid lone surrogate characters are now replaced with the Unicode replacement character before project-store writes.
+- Pass: backend persistence defensively sanitizes text before SQLite writes for document updates and related text fields.
+- Pass: document saves with smart quotes, em dashes, apostrophes, emoji, newlines, and `***` page breaks preserve those characters.
+- Pass: large pasted document text containing `***` page breaks and an invalid surrogate saves and reopens from a temporary `.worldie` file.
+
+Bugs found:
+
+- Lone surrogate code points from pasted content could reach Python/SQLite and trigger a UTF-8 encoding failure, leaving the document dirty and unsaved.
+
+Bugs fixed:
+
+- Added replacement-based invalid Unicode surrogate sanitization at the frontend project-store boundary and editor paste/input paths.
+- Added backend storage sanitization before SQLite writes so sidecar persistence does not crash on lone surrogates.
+
+Deferred issues:
+
+- Worldie does not yet show a non-blocking UI warning when invalid pasted characters are replaced.
+- Other external import paths should continue to use project-store/sidecar boundaries so they benefit from the same sanitization.
+
+Verification commands run:
+
+- `npm run test:frontend` - first run exposed a frontend test-bundle import issue after adding the sanitizer; rerun passed, 185 frontend tests.
+- `npm run test:python` - passed, 48 Python tests.
+- `npm run typecheck` - passed.
+- `npm run build` - failed with the documented managed-shell Vite access issue.
+- `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
+- `cargo check` - not run; no Tauri/Rust files changed.
+
 ## 2026-06-17 Usage-Readiness QA Pass
 
 Environment:

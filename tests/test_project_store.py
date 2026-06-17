@@ -255,6 +255,63 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(document[3], pasted_text)
         self.assertEqual(document[4], "Drafts")
 
+    def test_document_update_sanitizes_lone_surrogate(self):
+        project_uuid, _ = self.db_manager.add_project("Invalid Unicode Paste", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        document_id = self.db_manager.create_document(project_uuid, world_id, "New Document 1")
+
+        self.db_manager.update_document(
+            project_uuid,
+            document_id,
+            content_json="Before \udc9d after",
+        )
+
+        document = self.db_manager.list_documents(project_uuid, world_id)[0]
+        self.assertEqual(document[3], "Before \ufffd after")
+
+    def test_document_update_preserves_valid_unicode_and_page_breaks(self):
+        project_uuid, _ = self.db_manager.add_project("Valid Unicode Paste", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        document_id = self.db_manager.create_document(project_uuid, world_id, "New Document 1")
+        pasted_text = "Smart \u201cquotes\u201d, apostrophe \u2019, dash \u2014, emoji \U0001f496\n***\nNext page"
+
+        self.db_manager.update_document(
+            project_uuid,
+            document_id,
+            content_json=pasted_text,
+        )
+
+        document = self.db_manager.list_documents(project_uuid, world_id)[0]
+        self.assertEqual(document[3], pasted_text)
+
+    def test_large_pasted_document_with_invalid_surrogate_saves_and_reopens(self):
+        project_uuid, project_path = self.db_manager.add_project("Large Invalid Paste", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        document_id = self.db_manager.create_document(project_uuid, world_id, "New Document 1")
+        pasted_text = "\n***\n".join(
+            f"{index}: Blacktooth clan \u2014 copied text \udc9d with emoji \U0001f496"
+            for index in range(500)
+        )
+        expected_text = pasted_text.replace("\udc9d", "\ufffd")
+
+        response = self.sidecar._handle_request(
+            {
+                "action": "update_document",
+                "data": {
+                    "projectId": project_uuid,
+                    "documentId": document_id,
+                    "contentJson": pasted_text,
+                },
+            }
+        )
+        self.assertEqual(response["status"], "ok")
+
+        reopened_uuid, _, _ = self.db_manager.open_project(project_path)
+        document = self.db_manager.list_documents(reopened_uuid, world_id)[0]
+        self.assertEqual(document[3], expected_text)
+        self.assertIn("\n***\n", document[3])
+        self.assertIn("\U0001f496", document[3])
+
     def test_missing_document_update_returns_clear_error(self):
         project_uuid, _ = self.db_manager.add_project("Missing Document", "")
         world_id = self.db_manager.create_world(project_uuid, "Draft World")

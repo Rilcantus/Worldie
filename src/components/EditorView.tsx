@@ -15,6 +15,7 @@ import type { LoreCustomFieldValue, LoreCustomFields } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import { resolveLoreLinks } from "../lib/loreLinks";
+import { sanitizeInvalidUnicodeSurrogates } from "../lib/textSanitizer";
 import {
   buildLoreCreateDefaultCustomFields,
   buildLoreCreateDraftPayload,
@@ -678,12 +679,13 @@ export const EditorView = memo(function EditorView({
         end: activeEditorText.length,
       };
     const next = transform(activeEditorText, resolveEditorSelection());
+    const sanitizedText = sanitizeInvalidUnicodeSurrogates(next.text);
     pendingSelectionRef.current = next.selection;
     updateSelectionSnapshot(next.selection);
     if (isTypewriterMode) {
-      setTypewriterDraft(next.text);
+      setTypewriterDraft(sanitizedText);
     } else {
-      onContentChange(next.text);
+      onContentChange(sanitizedText);
     }
     window.requestAnimationFrame(() => {
       editor.focus();
@@ -714,7 +716,7 @@ export const EditorView = memo(function EditorView({
       return;
     }
 
-    onContentChange(appendTypewriterCommit(documentContent, currentDraft));
+    onContentChange(sanitizeInvalidUnicodeSurrogates(appendTypewriterCommit(documentContent, currentDraft)));
     setTypewriterDraft("");
     pendingSelectionRef.current = { start: 0, end: 0 };
     updateSelectionSnapshot({ start: 0, end: 0 });
@@ -981,7 +983,7 @@ export const EditorView = memo(function EditorView({
   const handleEditorInput = () => {
     const editor = editorRef.current;
     if (!editor) return;
-    const nextText = serializeEditorDom(editor);
+    const nextText = sanitizeInvalidUnicodeSurrogates(serializeEditorDom(editor));
     const displaySelection = getSelectionOffsets(editor);
     updateSelectionSnapshot(displaySelectionToSource(nextText, displaySelection));
     if (isTypewriterMode) {
@@ -1026,11 +1028,11 @@ export const EditorView = memo(function EditorView({
       temp.innerHTML = html;
       fallbackPlainText = temp.innerText || temp.textContent || "";
     }
-    const normalizedText = resolvePastedEditorText({
+    const normalizedText = sanitizeInvalidUnicodeSurrogates(resolvePastedEditorText({
       html,
       plainText: event.clipboardData.getData("text/plain"),
       fallbackPlainText,
-    });
+    }));
     applyEditorUpdate((content, selection) => {
       const nextText = replaceRange(content, selection.start, selection.end, normalizedText);
       const cursor = selection.start + normalizedText.length;
@@ -1055,7 +1057,7 @@ export const EditorView = memo(function EditorView({
 
     document.execCommand(command);
 
-    const nextText = serializeEditorDom(editor);
+    const nextText = sanitizeInvalidUnicodeSurrogates(serializeEditorDom(editor));
     const nextSelection =
       displaySelectionToSource(nextText, getSelectionOffsets(editor)) ??
       fallbackSelection ?? {
