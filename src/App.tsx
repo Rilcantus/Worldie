@@ -6,7 +6,7 @@ import { AppStatusBar } from "./components/AppStatusBar";
 import { AppOverlays } from "./components/AppOverlays";
 import { StartScreen } from "./components/StartScreen";
 import { useAppController } from "./hooks/useAppController";
-import type { LoreTableCsvImportDraft } from "./lib/loreTable";
+import type { LoreTableCsvImportDraft, LoreTableCsvUpdateDraft } from "./lib/loreTable";
 
 export default function App() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -141,6 +141,30 @@ export default function App() {
     [
       content.hasUnsavedChanges,
       content.importLoreItemsFromCsv,
+      feedback.confirmAction,
+      hasPendingEditorDraft,
+      worldStructures.hasUnsavedChanges,
+    ],
+  );
+
+  const handleUpdateLoreTableCsv = useCallback(
+    ({ loreTypeId, drafts }: { loreTypeId: string; drafts: LoreTableCsvUpdateDraft[] }) => {
+      return (async () => {
+        const hasUnsavedChanges =
+          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+        if (hasUnsavedChanges) {
+          const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
+            confirmLabel: "Continue",
+            tone: "default",
+          });
+          if (!canContinue) return null;
+        }
+        return content.updateLoreItemsFromCsv({ loreTypeId, drafts });
+      })();
+    },
+    [
+      content.hasUnsavedChanges,
+      content.updateLoreItemsFromCsv,
       feedback.confirmAction,
       hasPendingEditorDraft,
       worldStructures.hasUnsavedChanges,
@@ -364,6 +388,7 @@ export default function App() {
           onCreateLoreFromTable={handleCreateLoreItem}
           onExportLoreTableCsv={exportActions.exportLoreTableCsv}
           onImportLoreTableCsv={handleImportLoreTableCsv}
+          onUpdateLoreTableCsv={handleUpdateLoreTableCsv}
           onSaveLorePage={mainContentActions.saveLorePage}
           onLoreTitleChange={content.setLoreTitle}
           onLoreTagsChange={content.setLoreTags}

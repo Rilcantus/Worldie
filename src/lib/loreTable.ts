@@ -114,6 +114,11 @@ export type LoreTableCsvImportDraft = {
   fieldsJson: string;
 };
 
+export type LoreTableCsvUpdateDraft = {
+  loreId: string;
+  fieldsJson: string;
+};
+
 export function getLoreTableCreateState(state: LoreTableCreateState) {
   const title = state.title.trim();
   return {
@@ -527,6 +532,21 @@ export function canApplyLoreTableCsvImport(
   return Boolean(loreType && preview && preview.errors.length === 0 && preview.validRowCount > 0 && !isImporting);
 }
 
+export function canApplyLoreTableCsvUpdate(
+  preview: LoreTableCsvImportPreview | null | undefined,
+  loreType: LoreType | null | undefined,
+  isUpdating = false,
+) {
+  return Boolean(
+    loreType &&
+      preview &&
+      preview.errors.length === 0 &&
+      preview.matchSummary.matched > 0 &&
+      preview.rows.every((row) => row.match.status === "matched") &&
+      !isUpdating,
+  );
+}
+
 export function buildLoreTableCsvImportDrafts(
   preview: LoreTableCsvImportPreview,
   loreType: LoreType,
@@ -551,6 +571,35 @@ export function buildLoreTableCsvImportDrafts(
         },
       }),
     };
+  });
+}
+
+export function buildLoreTableCsvUpdateDrafts(
+  preview: LoreTableCsvImportPreview,
+  loreType: LoreType,
+  existingPages: LorePage[],
+): LoreTableCsvUpdateDraft[] {
+  if (!canApplyLoreTableCsvUpdate(preview, loreType)) return [];
+  const pagesById = new Map(existingPages.map((page) => [page.id, page]));
+  return preview.rows.flatMap((row) => {
+    const loreId = row.match.matchedPageId;
+    const page = loreId ? pagesById.get(loreId) ?? null : null;
+    if (!loreId || !page) return [];
+    const parsedFields = parseLoreItemFields(page.fieldsJson);
+    const nonblankCsvFields = Object.fromEntries(
+      Object.entries(row.customFields).filter(([, value]) => value !== ""),
+    );
+    return [{
+      loreId,
+      fieldsJson: stringifyLoreItemFields({
+        ...parsedFields,
+        loreTypeId: parsedFields.loreTypeId ?? loreType.id,
+        customFields: {
+          ...parsedFields.customFields,
+          ...nonblankCsvFields,
+        },
+      }),
+    }];
   });
 }
 

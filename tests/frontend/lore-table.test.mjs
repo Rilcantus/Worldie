@@ -9,8 +9,10 @@ import {
   buildLoreTableCsvWithOptions,
   buildLoreTableCsvImportDrafts,
   buildLoreTableCsvImportPreview,
+  buildLoreTableCsvUpdateDrafts,
   buildLoreTableUpdateCsvFilename,
   buildLoreTableViewDraft,
+  canApplyLoreTableCsvUpdate,
   buildLoreTableModel,
   canApplyLoreTableCsvImport,
   canExportLoreTableCsv,
@@ -753,6 +755,130 @@ test("CSV import drafts still create new pages and do not update matched Worldie
   assert.equal(drafts[0].title, "Mara Quill");
   assert.notEqual(drafts[0].loreTypeId, existingPages[0].id);
   assert.equal(JSON.parse(drafts[0].fieldsJson).customFields.species, "Human");
+});
+
+test("CSV update apply state requires a selected type clean preview and matched rows only", () => {
+  const existingPages = [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      worldId: "world-1",
+      title: "Mara Quill",
+      type: "Character",
+      fieldsJson: JSON.stringify({ loreTypeId: "type-character", customFields: {} }),
+    },
+  ];
+  const matchedPreview = buildLoreTableCsvImportPreview(
+    "Worldie ID,Name,Species\n11111111-1111-4111-8111-111111111111,Mara Quill,Human\n",
+    characterType,
+    { existingPages },
+  );
+  const noIdPreview = buildLoreTableCsvImportPreview("Name,Species\nMara Quill,Human\n", characterType, { existingPages });
+  const invalidPreview = buildLoreTableCsvImportPreview(
+    "Worldie ID,Name\nnot-a-uuid,Mara Quill\n",
+    characterType,
+    { existingPages },
+  );
+
+  assert.equal(canApplyLoreTableCsvUpdate(null, characterType), false);
+  assert.equal(canApplyLoreTableCsvUpdate(matchedPreview, null), false);
+  assert.equal(canApplyLoreTableCsvUpdate(invalidPreview, characterType), false);
+  assert.equal(canApplyLoreTableCsvUpdate(noIdPreview, characterType), false);
+  assert.equal(canApplyLoreTableCsvUpdate(matchedPreview, characterType, true), false);
+  assert.equal(canApplyLoreTableCsvUpdate(matchedPreview, characterType), true);
+});
+
+test("CSV update apply state blocks unknown ID rows even when create-only import could proceed", () => {
+  const existingPages = [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      worldId: "world-1",
+      title: "Mara Quill",
+      type: "Character",
+      fieldsJson: JSON.stringify({ loreTypeId: "type-character", customFields: {} }),
+    },
+  ];
+  const preview = buildLoreTableCsvImportPreview(
+    [
+      "Worldie ID,Name,Species",
+      "11111111-1111-4111-8111-111111111111,Mara Quill,Human",
+      "22222222-2222-4222-8222-222222222222,Unknown Hero,Elf",
+    ].join("\n"),
+    characterType,
+    { existingPages },
+  );
+
+  assert.equal(preview.errors.length, 0);
+  assert.equal(canApplyLoreTableCsvImport(preview, characterType), true);
+  assert.equal(canApplyLoreTableCsvUpdate(preview, characterType), false);
+  assert.deepEqual(buildLoreTableCsvUpdateDrafts(preview, characterType, existingPages), []);
+});
+
+test("CSV update drafts merge nonblank mapped custom fields and preserve lore metadata", () => {
+  const existingPage = {
+    id: "11111111-1111-4111-8111-111111111111",
+    worldId: "world-1",
+    title: "Mara Quill",
+    type: "Character",
+    tagsJson: "protagonist",
+    fieldsJson: JSON.stringify({
+      loreTypeId: "type-character",
+      templateId: "template-character",
+      traits: [{ id: "trait-1", name: "Role", value: "Courier" }],
+      details: "Carries sealed letters.",
+      customFields: {
+        species: "Human",
+        age: 31,
+        active: true,
+        status: "Active",
+        manual_extra: "keep me",
+        stale_field: "also keep me",
+      },
+    }),
+  };
+  const preview = buildLoreTableCsvImportPreview(
+    "Worldie ID,Name,Species,Age,Active,Status,Type,Updated,Nickname\n11111111-1111-4111-8111-111111111111,Mara Quill,Half-elf,,no,,Character,2026-06-01,Quill\n",
+    characterType,
+    { existingPages: [existingPage] },
+  );
+
+  const drafts = buildLoreTableCsvUpdateDrafts(preview, characterType, [existingPage]);
+  const fields = JSON.parse(drafts[0].fieldsJson);
+
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0].loreId, existingPage.id);
+  assert.equal(fields.loreTypeId, "type-character");
+  assert.equal(fields.templateId, "template-character");
+  assert.deepEqual(fields.traits, [{ id: "trait-1", name: "Role", value: "Courier" }]);
+  assert.equal(fields.details, "Carries sealed letters.");
+  assert.deepEqual(fields.customFields, {
+    species: "Half-elf",
+    age: 31,
+    active: false,
+    status: "Active",
+    manual_extra: "keep me",
+    stale_field: "also keep me",
+  });
+  assert.equal(Object.prototype.hasOwnProperty.call(fields.customFields, "Nickname"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(fields.customFields, "nickname"), false);
+});
+
+test("CSV update drafts do not change titles when applying matched rows", () => {
+  const existingPage = {
+    id: "11111111-1111-4111-8111-111111111111",
+    worldId: "world-1",
+    title: "Mara Quill",
+    type: "Character",
+    fieldsJson: JSON.stringify({ loreTypeId: "type-character", traits: [], details: "", customFields: { species: "Human" } }),
+  };
+  const preview = buildLoreTableCsvImportPreview(
+    "Worldie ID,Name,Species\n11111111-1111-4111-8111-111111111111,Mara Renamed,Elf\n",
+    characterType,
+    { existingPages: [existingPage] },
+  );
+
+  assert.equal(preview.sampleRows[0].match.status, "title_conflict");
+  assert.equal(canApplyLoreTableCsvUpdate(preview, characterType), false);
+  assert.deepEqual(buildLoreTableCsvUpdateDrafts(preview, characterType, [existingPage]), []);
 });
 
 test("CSV import apply state requires a type no blocking errors valid rows and no in-flight import", () => {

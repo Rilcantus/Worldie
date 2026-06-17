@@ -17,7 +17,7 @@ import {
   updateLoreTableView,
 } from "../lib/data";
 import { parseLoreItemFields, stringifyLoreItemFields } from "../lib/loreItems";
-import { applyLoreTableCustomFieldEdit, type LoreTableCsvImportDraft } from "../lib/loreTable";
+import { applyLoreTableCustomFieldEdit, type LoreTableCsvImportDraft, type LoreTableCsvUpdateDraft } from "../lib/loreTable";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import { getDefaultLoreTypeId, slugifyLoreTypeName, sortLoreTypes, type CustomFieldDefinition, type LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
@@ -52,6 +52,11 @@ type CreateLoreItemArgs = {
 type ImportLoreItemsFromCsvArgs = {
   loreTypeId: string;
   drafts: LoreTableCsvImportDraft[];
+};
+
+type UpdateLoreItemsFromCsvArgs = {
+  loreTypeId: string;
+  drafts: LoreTableCsvUpdateDraft[];
 };
 
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
@@ -967,6 +972,78 @@ export function useContentManager({
     return { createdCount: createdItems.length, success: true };
   };
 
+  const updateLoreItemsFromCsv = async ({ loreTypeId, drafts }: UpdateLoreItemsFromCsvArgs) => {
+    if (!activeProjectId || !activeWorldId || drafts.length === 0) return null;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
+    const loreType = getLoreType(loreTypeId);
+    if (!loreType) return null;
+    const updatesById = new Map(drafts.map((draft) => [draft.loreId, draft]));
+    const updatedItems: LorePage[] = [];
+
+    try {
+      for (const draft of drafts) {
+        const page = allLorePagesById.get(draft.loreId);
+        if (!page) throw new Error("CSV update targets a missing lore page.");
+        await updateLorePage(actionProjectId, draft.loreId, {
+          fieldsJson: draft.fieldsJson,
+        });
+        updatedItems.push({
+          ...page,
+          fieldsJson: draft.fieldsJson,
+        });
+      }
+    } catch (error) {
+      if (
+        currentScopeRef.current.projectId === actionProjectId &&
+        currentScopeRef.current.worldId === actionWorldId &&
+        updatedItems.length > 0
+      ) {
+        const partialUpdatesById = new Map(updatedItems.map((page) => [page.id, page]));
+        setAllLorePages((current) => current.map((page) => partialUpdatesById.get(page.id) ?? page));
+        setLorePages((current) => current.map((page) => partialUpdatesById.get(page.id) ?? page));
+        if (activeLoreId) {
+          const activeUpdated = partialUpdatesById.get(activeLoreId);
+          if (activeUpdated) {
+            setLoreFields(activeUpdated.fieldsJson ?? "");
+            markLoreSaved();
+          }
+        }
+      }
+      await recoverActiveProjectError(
+        error,
+        updatedItems.length > 0
+          ? `Worldie updated ${updatedItems.length} lore page${updatedItems.length === 1 ? "" : "s"} before the CSV update failed.`
+          : "Worldie could not update those CSV rows.",
+      );
+      return { updatedCount: updatedItems.length, success: false };
+    }
+
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return { updatedCount: updatedItems.length, success: false };
+    }
+
+    const nextAll = allLorePages.map((page) => updatesById.has(page.id)
+      ? { ...page, fieldsJson: updatesById.get(page.id)?.fieldsJson ?? page.fieldsJson }
+      : page);
+    const nextPages = nextAll.filter((page) => resolveLoreTypeId(page) === loreType.id);
+    setAllLorePages(nextAll);
+    setLorePages(nextPages);
+    setActiveLoreTypeId(loreType.id);
+    if (activeLoreId) {
+      const activeUpdated = updatesById.get(activeLoreId);
+      if (activeUpdated) {
+        setLoreFields(activeUpdated.fieldsJson);
+        markLoreSaved();
+      }
+    }
+    showToast(`Updated ${updatedItems.length} lore page${updatedItems.length === 1 ? "" : "s"} from CSV.`);
+    return { updatedCount: updatedItems.length, success: true };
+  };
+
   const saveLorePage = async () => {
     if (!activeProjectId || !activeLoreId) return;
     const saveProjectId = activeProjectId;
@@ -1423,6 +1500,7 @@ export function useContentManager({
       selectLorePage,
       createLoreItem,
       importLoreItemsFromCsv,
+      updateLoreItemsFromCsv,
       reassignLoreType,
       saveLoreTableView,
       reviseLoreTableView,
@@ -1484,6 +1562,7 @@ export function useContentManager({
       selectLorePage,
       createLoreItem,
       importLoreItemsFromCsv,
+      updateLoreItemsFromCsv,
       reassignLoreType,
       saveLoreTableView,
       reviseLoreTableView,

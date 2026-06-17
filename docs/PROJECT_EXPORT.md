@@ -38,13 +38,15 @@ Preview mapping rules:
 - Missing title/name columns are blocking preview errors.
 - Empty rows are ignored with a warning.
 
-When `Worldie ID` is present, preview shows whether each row matches an existing selected-type lore page, is new/no-ID, has an unknown ID, has a malformed ID, targets another lore type, duplicates another CSV row's ID, or conflicts with the matched page title. The preview also shows matched, new/no-ID, blocked, and warning counts. This remains preview-only for updates: `Import as New Pages` still creates new pages and does not update matched existing pages.
+When `Worldie ID` is present, preview shows whether each row matches an existing selected-type lore page, is new/no-ID, has an unknown ID, has a malformed ID, targets another lore type, duplicates another CSV row's ID, or conflicts with the matched page title. The preview also shows matched, new/no-ID, blocked, and warning counts.
 
 Number fields warn and block import when values cannot be parsed as numbers. Checkbox fields recognize `Yes`/`No`, `true`/`false`, and `1`/`0`; invalid checkbox values warn and block import. Text, long text, date, and select fields preview as strings.
 
-If the preview has no blocking errors, Worldie can import the rows as new lore pages for the selected lore type. This first apply slice only creates new pages; it does not update existing pages or match rows by title/ID. Mapped custom field values are stored in `customFields`, lore type defaults are kept when the CSV omits a value, unmapped columns are ignored, and `Type`/`Updated` remain ignored. Empty rows stay ignored. The preview remains visible after success and shows the created count.
+If the preview has no blocking errors, Worldie can import the rows as new lore pages for the selected lore type. This create apply path only creates new pages; it does not update existing pages. Mapped custom field values are stored in `customFields`, lore type defaults are kept when the CSV omits a value, unmapped columns are ignored, and `Type`/`Updated` remain ignored. Empty rows stay ignored. The preview remains visible after success and shows the created count.
 
-CSV import writes to the `.worldie` project only through the existing lore page creation path.
+Worldie can also update existing pages from CSV, but only when every preview row safely matches an existing selected-type lore page by `Worldie ID`. Update apply changes only mapped custom field keys with nonblank CSV values. Blank cells leave existing values unchanged. Unmapped columns, `Type`, and `Updated` remain ignored. Page titles, tags, traits, details, template metadata, unrelated custom fields, and manual extra fields are preserved.
+
+CSV import writes to the `.worldie` project only through the existing lore page creation and update paths.
 
 Future update-existing CSV import behavior is designed in `docs/CSV_IMPORT_UPDATE_DESIGN.md`.
 
@@ -131,8 +133,8 @@ Each generated world `index.md` includes:
 ## Limitations
 
 - Active-world and full-project export are Markdown only.
-- Lore Table CSV import creates new pages only.
-- Lore Table CSV does not include formulas, bulk edits, update-existing-row apply behavior, title fallback matching, manual mapping UI, an import undo stack, post-import bulk edit review, or a full database workspace.
+- Lore Table CSV update applies by `Worldie ID` only and does not create missing pages.
+- Lore Table CSV does not include formulas, bulk edits, title fallback matching, blank-cell clearing, manual mapping UI, an import undo stack, post-import bulk edit review, or a full database workspace.
 - Media is not exported yet.
 - Exported files are not synced back into the `.worldie` project.
 - Timeline date sorting is intentionally simple and does not yet understand full calendars, eras, date ranges, or custom chronology rules.

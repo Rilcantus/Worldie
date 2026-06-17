@@ -192,11 +192,13 @@ Preview mapping rules:
 - Missing title/name columns are treated as blocking preview errors.
 - Empty rows are ignored with a warning.
 
-When a CSV includes `Worldie ID`, preview matches it against lore pages in the selected active-world lore type and shows row status and summary counts for matched, new/no-ID, blocked, and warning rows. Malformed IDs, duplicate CSV IDs, IDs that belong to another selected lore type, and ID/title conflicts are blocking preview errors. Unknown IDs are reported as warnings in the current create-only flow. `Import as New Pages` remains create-only: matched IDs are shown for review but are not updated.
+When a CSV includes `Worldie ID`, preview matches it against lore pages in the selected active-world lore type and shows row status and summary counts for matched, new/no-ID, blocked, and warning rows. Malformed IDs, duplicate CSV IDs, IDs that belong to another selected lore type, and ID/title conflicts are blocking preview errors. Unknown IDs are reported as warnings in the create-only flow. `Import as New Pages` remains create-only: matched IDs are shown for review but are not updated.
 
 Preview validation checks number fields for numeric values and checkbox fields for `Yes`/`No`, `true`/`false`, or `1`/`0`. Text, long text, date, and select fields preview as strings in this first slice. Checkbox preview values are normalized to `Yes` or `No`; invalid number and checkbox values are reported as row warnings and blocking errors.
 
 CSV import apply is intentionally narrow. If the preview has no blocking errors, `Import as New Pages` creates one new lore page per valid CSV row in the active world using the selected lore type. The import uses the existing lore page create/update persistence path, stores mapped custom field values in `customFields`, keeps lore type default custom field values when the CSV does not provide a value, ignores unmapped columns, and ignores exported core columns such as `Type` and `Updated`. Empty rows remain ignored. If any row has a blocking validation error, the whole import is blocked rather than partially applied. After a successful import, the preview stays visible and shows a success count, while the table updates with the newly created pages.
+
+`Update Existing Pages` is available only when every preview row safely matches an existing selected-type lore page by `Worldie ID` and the preview has no blocking errors. It updates only mapped custom field keys with nonblank CSV values. Blank cells leave existing values unchanged. Unmapped columns, `Type`, and `Updated` are ignored. The update merge preserves unrelated custom fields, manual extra fields, traits, details, template metadata, tags, and page titles.
 
 Future update-existing CSV import rules are designed in `docs/CSV_IMPORT_UPDATE_DESIGN.md`.
 
@@ -205,10 +207,11 @@ Current table limitations:
 - Only custom field cells are editable.
 - Table creation is single-row only.
 - CSV import creates new pages only.
+- CSV update applies to existing pages by `Worldie ID` only.
 - It does not support formulas.
 - It does not support bulk editing.
-- It does not update existing rows from CSV.
-- It previews `Worldie ID` matches but does not apply updates to existing pages.
+- It does not create missing pages during CSV update.
+- It does not clear values from blank CSV cells.
 - It does not match CSV rows to existing pages by title.
 - It does not have manual CSV column mapping UI yet.
 - It does not have an import undo stack or post-import bulk edit review.

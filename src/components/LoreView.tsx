@@ -17,8 +17,10 @@ import {
   buildLoreTableCsvWithOptions,
   buildLoreTableCsvImportPreview,
   buildLoreTableCsvImportDrafts,
+  buildLoreTableCsvUpdateDrafts,
   buildLoreTableUpdateCsvFilename,
   buildLoreTableViewDraft,
+  canApplyLoreTableCsvUpdate,
   canApplyLoreTableCsvImport,
   canExportLoreTableCsv,
   clearHiddenColumnSort,
@@ -30,6 +32,7 @@ import {
   type LoreTableSort,
   type LoreTableCsvImportDraft,
   type LoreTableCsvImportPreview,
+  type LoreTableCsvUpdateDraft,
   type LoreTableViewState,
 } from "../lib/loreTable";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
@@ -72,6 +75,7 @@ type LoreViewProps = {
   onCreateLoreFromTable: (payload: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => Promise<LorePage | null>;
   onExportLoreTableCsv: (payload: { filename: string; csvText: string }) => Promise<boolean>;
   onImportLoreTableCsv: (payload: { loreTypeId: string; drafts: LoreTableCsvImportDraft[] }) => Promise<{ createdCount: number; success: boolean } | null>;
+  onUpdateLoreTableCsv: (payload: { loreTypeId: string; drafts: LoreTableCsvUpdateDraft[] }) => Promise<{ updatedCount: number; success: boolean } | null>;
   onSave: () => void;
   onTitleChange: (value: string) => void;
   onTagsChange: (value: string) => void;
@@ -134,6 +138,7 @@ export const LoreView = memo(function LoreView({
   onCreateLoreFromTable,
   onExportLoreTableCsv,
   onImportLoreTableCsv,
+  onUpdateLoreTableCsv,
   onSave,
   onTitleChange,
   onTagsChange,
@@ -201,6 +206,7 @@ export const LoreView = memo(function LoreView({
   });
   const canExportTableCsv = canExportLoreTableCsv(loreTableModel);
   const canImportTableCsv = canApplyLoreTableCsvImport(csvImportPreview, loreTableModel.loreType, isImportingTableCsv);
+  const canUpdateTableCsv = canApplyLoreTableCsvUpdate(csvImportPreview, loreTableModel.loreType, isImportingTableCsv);
   useEffect(() => {
     setTableSort((current) => clearHiddenColumnSort(current, loreTableModel.columns));
   }, [loreTableModel.columns]);
@@ -372,6 +378,33 @@ export const LoreView = memo(function LoreView({
       return;
     }
     setCsvImportResult(`Imported ${result.createdCount} lore page${result.createdCount === 1 ? "" : "s"} from CSV.`);
+  };
+
+  const updateLoreTableCsvExistingPages = async () => {
+    if (!csvImportPreview || !loreTableModel.loreType || !canUpdateTableCsv) return;
+    setTableEditError("");
+    setCsvImportResult("");
+    const drafts = buildLoreTableCsvUpdateDrafts(csvImportPreview, loreTableModel.loreType, availableLorePages);
+    if (drafts.length === 0) return;
+    setIsImportingTableCsv(true);
+    const result = await onUpdateLoreTableCsv({
+      loreTypeId: loreTableModel.loreType.id,
+      drafts,
+    });
+    setIsImportingTableCsv(false);
+    if (!result) {
+      setTableEditError("Worldie could not update those CSV rows.");
+      return;
+    }
+    if (!result.success) {
+      setTableEditError(
+        result.updatedCount > 0
+          ? `Worldie updated ${result.updatedCount} lore page${result.updatedCount === 1 ? "" : "s"} before the CSV update failed.`
+          : "Worldie could not update those CSV rows.",
+      );
+      return;
+    }
+    setCsvImportResult(`Updated ${result.updatedCount} lore page${result.updatedCount === 1 ? "" : "s"} from CSV.`);
   };
 
   const persistFields = (
@@ -799,6 +832,9 @@ export const LoreView = memo(function LoreView({
                 <div className="lore-table-import-actions">
                   <button className="tb-btn" type="button" onClick={() => void importLoreTableCsvAsNewPages()} disabled={!canImportTableCsv}>
                     {isImportingTableCsv ? "Importing..." : "Import as New Pages"}
+                  </button>
+                  <button className="tb-btn" type="button" onClick={() => void updateLoreTableCsvExistingPages()} disabled={!canUpdateTableCsv}>
+                    {isImportingTableCsv ? "Updating..." : "Update Existing Pages"}
                   </button>
                   <button
                     className="tb-btn"

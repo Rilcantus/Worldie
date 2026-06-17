@@ -2,15 +2,13 @@
 
 ## Purpose
 
-Worldie now supports Lore Table CSV export, CSV import preview, and CSV import apply for creating new lore pages only. The next risky step is updating existing lore pages from CSV. This note defines safe rules before implementation so imports do not accidentally overwrite user-authored lore data.
-
-This is a design note only. It does not implement update-existing imports.
+Worldie now supports Lore Table CSV export, CSV import preview, CSV import apply for creating new lore pages, and an ID-only update apply path for existing lore page custom fields. This note defines safe rules for the update path and future phases so imports do not accidentally overwrite user-authored lore data.
 
 ## Recommended MVP Strategy
 
-The first update-capable import should be ID-first and conservative:
+The first update-capable import is ID-first and conservative:
 
-- Add an optional `Worldie ID` column to Lore Table CSV export.
+- `Export Update CSV` adds a `Worldie ID` column to Lore Table CSV export.
 - Use `Worldie ID` as the primary and only automatic update key for the first update slice.
 - Keep normal table display unchanged; `Worldie ID` should not become a visible table column by default.
 - For update-ready CSV exports, include `Worldie ID` by default once the setting exists.
@@ -19,7 +17,7 @@ The first update-capable import should be ID-first and conservative:
 - Preserve unrelated page data, unrelated custom fields, manual extra fields, traits, details, tags, and template metadata.
 - Default blank-cell behavior for update modes: leave existing values unchanged.
 
-The safest first update implementation is:
+The first update implementation is:
 
 1. Preview recognizes `Worldie ID`.
 2. Update apply works by `Worldie ID` only.
@@ -51,10 +49,10 @@ Current implemented behavior.
 
 ### Update Existing Pages Only
 
-Recommended first update mode.
+Implemented first update mode.
 
 - Rows with matching `Worldie ID`: update the matching page.
-- Rows without matches: block by default, or mark skipped once the UI has clear skip affordances.
+- Rows without matches: block update apply by disabling the action.
 - Unknown IDs: block in the first slice.
 - Invalid rows: block import.
 - Duplicate matches: block import.
@@ -317,12 +315,12 @@ Manual QA:
 
 ### Phase 2: Update Existing By ID Only
 
-- Add update existing pages only mode.
+- Implemented update existing pages only mode.
 - Apply updates only by `Worldie ID`.
 - Blank cells leave unchanged.
 - Preserve unrelated custom fields and manual extras.
 - Preserve traits, details, template metadata, tags unless explicitly mapped later.
-- Block the whole import on blocking errors.
+- Block update apply on blocking errors or any non-matched preview row.
 
 ### Phase 3: Mixed Create And Update
 
@@ -341,9 +339,7 @@ Manual QA:
 
 ## Non-Goals
 
-- No update-existing implementation in this design task.
 - No title matching implementation yet.
-- No ID export implementation yet.
 - No formulas.
 - No media import/export changes.
 - No PDF, DOCX, or HTML export changes.
