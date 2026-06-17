@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Document, LorePage } from "../lib/data";
 import { loadProjectTabs, saveProjectTabs } from "../lib/uiStore";
 import type { TabItem, TabKind } from "../types/ui";
+import { shouldGuardActiveTabRemoval } from "./dirtyState";
 import { WORKBENCH_TAB, isWorkbenchOnlyTabState, pruneTabsForWorlds, removeTabWithFallback, upsertTab } from "./tabState";
 
 type UseTabsArgs = {
@@ -502,7 +503,7 @@ export function useTabs({
   ]);
 
   const handleTabClose = useCallback(async (tab: TabItem, options?: RemoveTabOptions) => {
-    if (tab.id === activeTabId && !options?.skipGuard && !(await canLeaveCurrentView())) {
+    if (shouldGuardActiveTabRemoval(activeTabId, tab.id, options?.skipGuard) && !(await canLeaveCurrentView())) {
       return;
     }
     clearPendingTabRefs(tab.id);
@@ -520,7 +521,7 @@ export function useTabs({
   }, [activeTabId, canLeaveCurrentView, clearPendingTabRefs]);
 
   const removeTabById = useCallback(async (tabId: string, options?: RemoveTabOptions) => {
-    if (tabId === activeTabId && !options?.skipGuard && !(await canLeaveCurrentView())) {
+    if (shouldGuardActiveTabRemoval(activeTabId, tabId, options?.skipGuard) && !(await canLeaveCurrentView())) {
       return;
     }
     clearPendingTabRefs(tabId);

@@ -13,6 +13,7 @@ import { useStatusBarModel } from "./useStatusBarModel";
 import { useTabs } from "./useTabs";
 import { useWorkspaceNavigation } from "./useWorkspaceNavigation";
 import { useWorldStructures } from "./useWorldStructures";
+import { getDirtyNavigationDecision, resolveEditorSaveState, shouldContinueAfterGuard } from "./dirtyState";
 import { getSeededLoreTypes } from "../lib/loreTypes";
 import { setProjectStoreErrorHandler } from "../lib/data";
 
@@ -77,7 +78,8 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
   }, [projectWorlds.activeProjectId]);
 
   const canLeaveCurrentView = useCallback(async () => {
-    if (!hasUnsavedProjectChanges) return true;
+    const decision = getDirtyNavigationDecision(hasUnsavedProjectChanges);
+    if (decision.allowedWithoutConfirmation) return true;
     return feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
       confirmLabel: "Continue",
       tone: "default",
@@ -226,9 +228,7 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
     loreTitle: content.loreTitle,
     saveState:
       tabs.activeNav === "editor"
-        ? hasPendingEditorDraft && content.documentSaveState !== "saving"
-          ? "dirty"
-          : content.documentSaveState
+        ? resolveEditorSaveState(hasPendingEditorDraft, content.documentSaveState)
         : tabs.activeNav === "lore"
           ? content.loreSaveState
           : tabs.activeNav === "rels"
@@ -253,37 +253,37 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
       addProject: async () => {
         const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
-        if (activeProjectIdRef.current !== startingProjectId) return;
+        if (!shouldContinueAfterGuard(startingProjectId, activeProjectIdRef.current)) return;
         await projectWorlds.addProject();
       },
       openProject: async () => {
         const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
-        if (activeProjectIdRef.current !== startingProjectId) return;
+        if (!shouldContinueAfterGuard(startingProjectId, activeProjectIdRef.current)) return;
         await projectWorlds.openProject();
       },
       openRecentProject: async (projectId: string) => {
         const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
-        if (activeProjectIdRef.current !== startingProjectId) return;
+        if (!shouldContinueAfterGuard(startingProjectId, activeProjectIdRef.current)) return;
         await projectWorlds.openRecentProject(projectId);
       },
       saveCurrentProjectAs: async () => {
         const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
-        if (activeProjectIdRef.current !== startingProjectId) return;
+        if (!shouldContinueAfterGuard(startingProjectId, activeProjectIdRef.current)) return;
         await projectWorlds.saveCurrentProjectAs();
       },
       addDemoProject: async () => {
         const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
-        if (activeProjectIdRef.current !== startingProjectId) return;
+        if (!shouldContinueAfterGuard(startingProjectId, activeProjectIdRef.current)) return;
         await projectWorlds.addDemoProject();
       },
       removeProject: async () => {
         const startingProjectId = projectWorlds.activeProjectId;
         if (!(await canLeaveCurrentView())) return;
-        if (activeProjectIdRef.current !== startingProjectId) return;
+        if (!shouldContinueAfterGuard(startingProjectId, activeProjectIdRef.current)) return;
         await projectWorlds.removeProject();
       },
     }),

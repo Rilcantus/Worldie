@@ -21,6 +21,7 @@ import {
   collectLoreStats as collectLoreStatsFromPages,
   countNonEmptyWords,
 } from "./contentState";
+import { hasUnsavedDocumentDraft, isBlockingSaveState, type SaveState } from "./dirtyState";
 
 type UseContentManagerArgs = {
   activeProjectId: string | null;
@@ -41,8 +42,6 @@ type CreateLoreItemArgs = {
   template: LoreTemplate | null;
   tags: string;
 };
-
-type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
   const next: T[] = [];
@@ -220,12 +219,11 @@ export function useContentManager({
   const activeLoreTypeName = activeLore?.type ?? "Lore";
   const selectedLorePageTypeName = selectedLorePageType?.name ?? activeLoreTypeName;
   const hasUnsavedDocumentChanges = useMemo(() => {
-    if (!activeDocument) return false;
-    return (
-      activeDocument.title !== documentTitle ||
-      (activeDocument.contentJson ?? "") !== documentContent ||
-      (activeDocument.folderPath ?? "") !== documentFolderPath
-    );
+    return hasUnsavedDocumentDraft(activeDocument, {
+      title: documentTitle,
+      contentJson: documentContent,
+      folderPath: documentFolderPath,
+    });
   }, [activeDocument, documentContent, documentFolderPath, documentTitle]);
   const hasUnsavedLoreChanges = useMemo(() => {
     if (!activeLoreId) return false;
@@ -1168,7 +1166,11 @@ export function useContentManager({
       recentDocuments,
       recentLorePages,
       totalWordCount,
-      hasUnsavedChanges: hasUnsavedDocumentChanges || hasUnsavedLoreChanges,
+      hasUnsavedChanges:
+        hasUnsavedDocumentChanges ||
+        hasUnsavedLoreChanges ||
+        isBlockingSaveState(documentSaveState) ||
+        isBlockingSaveState(loreSaveState),
       loreTypes: orderedLoreTypes,
       resolveLoreTypeId,
       getLoreType,
@@ -1220,6 +1222,8 @@ export function useContentManager({
       totalWordCount,
       hasUnsavedDocumentChanges,
       hasUnsavedLoreChanges,
+      documentSaveState,
+      loreSaveState,
       orderedLoreTypes,
       documentsById,
       allLorePagesById,
