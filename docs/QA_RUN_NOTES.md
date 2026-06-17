@@ -1,5 +1,65 @@
 # QA Run Notes
 
+## 2026-06-17 Usage-Readiness QA Pass
+
+Environment:
+
+- Windows managed Codex desktop shell
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+- Native Tauri window interaction was not directly controllable from this session. The in-app browser can exercise a local web build, but real project-file create/open/save flows require the Tauri desktop runtime. To stay outside the Vite managed-shell limitation while still testing real persistence, this pass used the Python sidecar/database layer against a temporary `.worldie` project file and temporary registry path.
+
+Checklist sections tested:
+
+- Project file creation: created a new temporary `.worldie` file.
+- World creation: created one world inside the project file.
+- Document writing: created and updated a document containing wiki-style lore links.
+- Lore page writing: created multiple Character lore pages with tags, traits, details, and custom field JSON.
+- Lore type custom field definitions: saved a Character lore type with text, number, checkbox, and select definitions.
+- Create lore page from Lore Table behavior: simulated a table-created page with lore type defaults.
+- Inline table custom field editing: updated custom field values through the normal lore page update path.
+- Saved Lore Table views: created and reopened a saved table view with lore type, filter, sort, and visible column state.
+- Normal CSV export: exported a visible-table CSV without `Worldie ID`.
+- Update-ready CSV export: exported a CSV with leading `Worldie ID`.
+- CSV import as new pages: created a new lore page using the same persisted fields shape used by CSV import drafts.
+- CSV update by Worldie ID: updated matched existing pages, preserving blank-cell age, manual extra fields, traits, details, template metadata, tags, and title.
+- Active-world Markdown export: exported the active world and verified document/lore counts.
+- Full-project Markdown export: exported the full project and verified world/lore counts.
+- Close/reopen persistence: reopened the temporary `.worldie` file and verified documents, lore pages, lore type definitions, table views, and custom field updates persisted.
+
+Pass/fail notes:
+
+- Pass: temporary `.worldie` project file was created and reopened successfully.
+- Pass: world, document, lore pages, lore type definitions, and saved table view persisted after reopen.
+- Pass: normal CSV and update-ready CSV files were written.
+- Pass: CSV-style create-new-page flow produced a new persisted lore page.
+- Pass: update-by-`Worldie ID` changed only nonblank mapped custom field values and preserved unrelated/manual fields and lore metadata.
+- Pass: active-world and full-project Markdown exports wrote expected files and counts.
+- Not fully exercised interactively: native Tauri desktop buttons, file dialogs, and close/reopen UI flow could not be directly driven from this managed session.
+
+Bugs found:
+
+- None in this pass.
+
+Bugs fixed:
+
+- None; no small bugs were found during the pass.
+
+Deferred issues:
+
+- Full native desktop usage QA remains deferred until the Tauri window and native file dialogs can be interactively controlled outside this managed session.
+- Browser-only localhost QA is not sufficient for project-file workflows because the frontend intentionally requires the Tauri runtime for `.worldie` persistence.
+
+Verification commands run:
+
+- Inline Python project-file QA script - passed. Covered temporary `.worldie` create/reopen, world/document/lore CRUD, lore type definitions, saved table views, CSV export, CSV-style create/update flows, and Markdown exports.
+- `npm run test:frontend` - passed, 168 frontend tests.
+- `npm run test:python` - first parallel attempt hit a sandbox helper read issue; rerun passed, 42 Python tests.
+- `npm run typecheck` - passed.
+- `npm run build` - failed with the documented managed-shell Vite access issue.
+- `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
+- `cargo check` - not run; no Tauri/Rust files changed.
+
 ## 2026-06-17 Manual QA And Stabilization Pass
 
 Environment:
