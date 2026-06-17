@@ -6,6 +6,7 @@ import {
   applyLoreTableView,
   buildLoreTableCsv,
   buildLoreTableCsvFilename,
+  buildLoreTableCsvImportPreview,
   buildLoreTableViewDraft,
   buildLoreTableModel,
   canExportLoreTableCsv,
@@ -532,6 +533,83 @@ test("lore table CSV availability and filename stay safe without a selected lore
   assert.equal(canExportLoreTableCsv(emptyModel), false);
   assert.equal(buildLoreTableCsv(emptyModel), "");
   assert.equal(buildLoreTableCsvFilename("Dusk/Fen", "Character: Lead"), "Dusk-Fen - Character- Lead Table.csv");
+});
+
+test("CSV import preview parses simple CSV and maps Name plus custom field display names", () => {
+  const preview = buildLoreTableCsvImportPreview("Name,Species,Age\nMara Quill,Human,31\n", characterType);
+
+  assert.deepEqual(preview.headers, ["Name", "Species", "Age"]);
+  assert.equal(preview.rowCount, 1);
+  assert.deepEqual(
+    preview.mappedColumns.map((column) => [column.header, column.target, column.fieldKey ?? "title"]),
+    [["Name", "title", "title"], ["Species", "custom_field", "species"], ["Age", "custom_field", "age"]],
+  );
+  assert.deepEqual(preview.sampleRows[0], {
+    rowNumber: 2,
+    title: "Mara Quill",
+    customFields: { species: "Human", age: "31" },
+    warnings: [],
+  });
+});
+
+test("CSV import preview parses quoted commas escaped quotes and newlines", () => {
+  const preview = buildLoreTableCsvImportPreview(
+    'Title,Species,Status\n"Mara, ""Ash""","Human\nNorth",Active\n',
+    characterType,
+  );
+
+  assert.equal(preview.sampleRows[0].title, 'Mara, "Ash"');
+  assert.equal(preview.sampleRows[0].customFields.species, "Human\nNorth");
+  assert.equal(preview.sampleRows[0].customFields.status, "Active");
+  assert.deepEqual(preview.errors, []);
+});
+
+test("CSV import preview maps title aliases and custom fields by key", () => {
+  const preview = buildLoreTableCsvImportPreview("Lore Page,first_seen,active\nAsha Reed,2026-01-02,true\n", characterType);
+
+  assert.equal(preview.mappedColumns[0].target, "title");
+  assert.deepEqual(
+    preview.mappedColumns.map((column) => column.fieldKey).filter(Boolean),
+    ["first_seen", "active"],
+  );
+  assert.equal(preview.sampleRows[0].customFields.first_seen, "2026-01-02");
+  assert.equal(preview.sampleRows[0].customFields.active, "Yes");
+});
+
+test("CSV import preview ignores core export columns and reports unmapped columns", () => {
+  const preview = buildLoreTableCsvImportPreview("Name,Type,Updated,Nickname\nMara Quill,Character,2026-06-01,Quill\n", characterType);
+
+  assert.deepEqual(preview.ignoredColumns.map((column) => column.header), ["Type", "Updated"]);
+  assert.deepEqual(preview.unmappedColumns.map((column) => column.header), ["Nickname"]);
+  assert.equal(preview.sampleRows[0].title, "Mara Quill");
+});
+
+test("CSV import preview reports missing title column as a blocking error", () => {
+  const preview = buildLoreTableCsvImportPreview("Species,Age\nHuman,31\n", characterType);
+
+  assert.deepEqual(preview.errors, ["CSV needs a Name, Title, or Lore Page column before it can be imported."]);
+  assert.equal(preview.rowCount, 1);
+});
+
+test("CSV import preview validates number and checkbox fields", () => {
+  const preview = buildLoreTableCsvImportPreview("Name,Age,Active\nMara Quill,old,maybe\nBran Vale,7,0\n", characterType);
+
+  assert.equal(preview.sampleRows[0].customFields.age, "old");
+  assert.equal(preview.sampleRows[0].customFields.active, "maybe");
+  assert.equal(preview.sampleRows[1].customFields.age, "7");
+  assert.equal(preview.sampleRows[1].customFields.active, "No");
+  assert.deepEqual(preview.sampleRows[0].warnings, [
+    "Row 2: Age is not a valid number.",
+    "Row 2: Active is not a recognized checkbox value.",
+  ]);
+});
+
+test("CSV import preview ignores empty rows with a warning", () => {
+  const preview = buildLoreTableCsvImportPreview("Name,Species\n\nMara Quill,Human\n,\n", characterType);
+
+  assert.equal(preview.rowCount, 1);
+  assert.deepEqual(preview.warnings, ["Ignored 2 empty rows."]);
+  assert.equal(preview.sampleRows[0].title, "Mara Quill");
 });
 
 test("saved lore table view payloads preserve explicit nulls and omit undefined fields", () => {

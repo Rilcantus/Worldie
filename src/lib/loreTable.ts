@@ -52,6 +52,34 @@ export type LoreTableCreateState = {
   isCreating: boolean;
 };
 
+export type LoreTableCsvImportColumnMapping = {
+  index: number;
+  header: string;
+  target: "title" | "custom_field" | "ignored" | "unmapped";
+  fieldId?: string;
+  fieldKey?: string;
+  fieldName?: string;
+  reason?: string;
+};
+
+export type LoreTableCsvImportPreviewRow = {
+  rowNumber: number;
+  title: string;
+  customFields: Record<string, string>;
+  warnings: string[];
+};
+
+export type LoreTableCsvImportPreview = {
+  headers: string[];
+  rowCount: number;
+  mappedColumns: LoreTableCsvImportColumnMapping[];
+  unmappedColumns: LoreTableCsvImportColumnMapping[];
+  ignoredColumns: LoreTableCsvImportColumnMapping[];
+  warnings: string[];
+  errors: string[];
+  sampleRows: LoreTableCsvImportPreviewRow[];
+};
+
 export function getLoreTableCreateState(state: LoreTableCreateState) {
   const title = state.title.trim();
   return {
@@ -88,6 +116,202 @@ export function buildLoreTableCsvFilename(worldTitle: string | null | undefined,
     .trim()
     .replace(/[ .-]+$/g, "");
   return `${safeBase || "Lore Table"}.csv`;
+}
+
+function parseCsvRows(csvText: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let inQuotes = false;
+  let index = 0;
+  let error: string | null = null;
+  const text = csvText.replace(/^\uFEFF/, "");
+
+  while (index < text.length) {
+    const char = text[index];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[index + 1] === '"') {
+          cell += '"';
+          index += 2;
+          continue;
+        }
+        inQuotes = false;
+        index += 1;
+        continue;
+      }
+      cell += char;
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+      index += 1;
+      continue;
+    }
+    if (char === ",") {
+      row.push(cell);
+      cell = "";
+      index += 1;
+      continue;
+    }
+    if (char === "\r" || char === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+      if (char === "\r" && text[index + 1] === "\n") {
+        index += 2;
+      } else {
+        index += 1;
+      }
+      continue;
+    }
+    cell += char;
+    index += 1;
+  }
+
+  if (inQuotes) {
+    error = "CSV has an unclosed quoted field.";
+  }
+  row.push(cell);
+  if (row.some((value) => value.length > 0) || rows.length === 0) {
+    rows.push(row);
+  }
+  return { rows, error };
+}
+
+function normalizeCsvHeader(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function isEmptyCsvRow(row: string[]) {
+  return row.every((value) => value.trim() === "");
+}
+
+function buildCsvColumnMappings(headers: string[], loreType: LoreType) {
+  const fieldsByNameOrKey = new Map<string, CustomFieldDefinition>();
+  for (const field of loreType.fieldDefinitions) {
+    fieldsByNameOrKey.set(normalizeCsvHeader(field.name), field);
+    fieldsByNameOrKey.set(normalizeCsvHeader(field.key), field);
+  }
+  return headers.map((header, index): LoreTableCsvImportColumnMapping => {
+    const normalized = normalizeCsvHeader(header);
+    if (["name", "title", "lore page"].includes(normalized)) {
+      return { index, header, target: "title" };
+    }
+    if (["type", "updated"].includes(normalized)) {
+      return { index, header, target: "ignored", reason: "Core export column" };
+    }
+    const field = fieldsByNameOrKey.get(normalized);
+    if (field) {
+      return {
+        index,
+        header,
+        target: "custom_field",
+        fieldId: field.id,
+        fieldKey: field.key,
+        fieldName: field.name,
+      };
+    }
+    return { index, header, target: "unmapped" };
+  });
+}
+
+function normalizeCsvPreviewValue(value: string, field: CustomFieldDefinition, rowNumber: number) {
+  const trimmed = value.trim();
+  if (!trimmed) return { value: "", warning: null };
+  if (field.type === "number") {
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      return { value: trimmed, warning: `Row ${rowNumber}: ${field.name} is not a valid number.` };
+    }
+    return { value: String(parsed), warning: null };
+  }
+  if (field.type === "checkbox") {
+    const normalized = trimmed.toLowerCase();
+    if (["yes", "true", "1"].includes(normalized)) return { value: "Yes", warning: null };
+    if (["no", "false", "0"].includes(normalized)) return { value: "No", warning: null };
+    return { value: trimmed, warning: `Row ${rowNumber}: ${field.name} is not a recognized checkbox value.` };
+  }
+  return { value: trimmed, warning: null };
+}
+
+export function buildLoreTableCsvImportPreview(
+  csvText: string,
+  loreType: LoreType | null,
+  options: { sampleLimit?: number } = {},
+): LoreTableCsvImportPreview {
+  const sampleLimit = options.sampleLimit ?? 5;
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  if (!loreType) {
+    errors.push("Choose a lore type before previewing CSV import.");
+    return { headers: [], rowCount: 0, mappedColumns: [], unmappedColumns: [], ignoredColumns: [], warnings, errors, sampleRows: [] };
+  }
+
+  const parsed = parseCsvRows(csvText);
+  if (parsed.error) errors.push(parsed.error);
+  const [rawHeaders = [], ...rawRows] = parsed.rows;
+  const headers = rawHeaders.map((header) => header.trim());
+  if (headers.length === 0 || headers.every((header) => header === "")) {
+    errors.push("CSV needs a header row.");
+    return { headers: [], rowCount: 0, mappedColumns: [], unmappedColumns: [], ignoredColumns: [], warnings, errors, sampleRows: [] };
+  }
+
+  const mappings = buildCsvColumnMappings(headers, loreType);
+  const mappedColumns = mappings.filter((mapping) => mapping.target === "title" || mapping.target === "custom_field");
+  const unmappedColumns = mappings.filter((mapping) => mapping.target === "unmapped");
+  const ignoredColumns = mappings.filter((mapping) => mapping.target === "ignored");
+  const titleMapping = mappings.find((mapping) => mapping.target === "title");
+  if (!titleMapping) {
+    errors.push("CSV needs a Name, Title, or Lore Page column before it can be imported.");
+  }
+
+  let ignoredEmptyRows = 0;
+  const nonEmptyRows = rawRows.map((row, index) => ({ row, rowNumber: index + 2 })).filter(({ row }) => {
+    if (!isEmptyCsvRow(row)) return true;
+    ignoredEmptyRows += 1;
+    return false;
+  });
+  if (ignoredEmptyRows > 0) {
+    warnings.push(`Ignored ${ignoredEmptyRows} empty row${ignoredEmptyRows === 1 ? "" : "s"}.`);
+  }
+
+  const fieldsById = new Map(loreType.fieldDefinitions.map((field) => [field.id, field]));
+  const sampleRows = nonEmptyRows.slice(0, sampleLimit).map(({ row, rowNumber }) => {
+    const rowWarnings: string[] = [];
+    const title = titleMapping ? (row[titleMapping.index] ?? "").trim() : "";
+    if (titleMapping && !title) {
+      rowWarnings.push(`Row ${rowNumber}: title is blank.`);
+    }
+    const customFields: Record<string, string> = {};
+    for (const mapping of mappings) {
+      if (mapping.target !== "custom_field" || !mapping.fieldId || !mapping.fieldKey) continue;
+      const field = fieldsById.get(mapping.fieldId);
+      if (!field) continue;
+      const normalized = normalizeCsvPreviewValue(row[mapping.index] ?? "", field, rowNumber);
+      customFields[mapping.fieldKey] = normalized.value;
+      if (normalized.warning) rowWarnings.push(normalized.warning);
+    }
+    return { rowNumber, title, customFields, warnings: rowWarnings };
+  });
+
+  for (const row of sampleRows) {
+    warnings.push(...row.warnings);
+  }
+
+  return {
+    headers,
+    rowCount: nonEmptyRows.length,
+    mappedColumns,
+    unmappedColumns,
+    ignoredColumns,
+    warnings,
+    errors,
+    sampleRows,
+  };
 }
 
 export function buildLoreTableViewDraft(name: string, state: LoreTableViewState): LoreTableViewDraft {

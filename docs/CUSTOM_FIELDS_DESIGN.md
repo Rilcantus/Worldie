@@ -137,6 +137,7 @@ Worldie now includes a simple lore table inside the lore area. It reads the same
 - Row creation: when a lore type is selected, the table shows a compact title input and an `Add <Type>` action that creates a normal lore page in the active world using the selected lore type.
 - Inline editing: custom field definition cells can be edited directly in the table.
 - CSV export: when a lore type is selected, `Export CSV` writes the currently visible table to a user-selected folder.
+- CSV import preview: when a lore type is selected, `Import CSV Preview` reads a selected CSV file and shows how columns and sample rows would map before anything is written.
 
 Saved lore table views are stored in the `.worldie` SQLite project file in the world-scoped `lore_table_views` table. A saved view currently remembers:
 
@@ -179,14 +180,28 @@ Creating from the table reuses the existing lore page creation and update path, 
 
 CSV export uses the rendered table model, so it respects the selected lore type, quick filter, sort column/direction, saved view state, and custom column visibility. Exported CSV files include a header row with core columns (`Name`, `Type`, `Updated`) plus the currently visible custom field columns in display order. Hidden custom columns and filtered-out rows are not exported. Missing values export as blank cells, checkbox values export as `Yes`/`No`, and values with commas, quotes, or newlines are quoted using standard CSV escaping. If the selected table has no visible rows, Worldie exports headers only. CSV export writes an external UTF-8 copy and does not mutate lore pages or `.worldie` project data.
 
+CSV import preview is validation-only. It reads UTF-8 CSV text in the frontend after the user chooses a file and does not create pages, update pages, save mappings, or mutate the `.worldie` project file. The preview supports standard CSV quoting, including commas inside quoted fields, doubled quotes, CRLF/LF line endings, and newlines inside quoted values.
+
+Preview mapping rules:
+
+- `Name`, `Title`, and `Lore Page` map to the future lore page title.
+- Lore type custom fields map case-insensitively by display name or field key.
+- Exported core columns `Type` and `Updated` are ignored.
+- Unmatched columns are listed as unmapped.
+- Missing title/name columns are treated as blocking preview errors.
+- Empty rows are ignored with a warning.
+
+Preview validation checks number fields for numeric values and checkbox fields for `Yes`/`No`, `true`/`false`, or `1`/`0`. Text, long text, date, and select fields preview as strings in this first slice. Checkbox preview values are normalized to `Yes` or `No`; invalid number and checkbox values are reported as row warnings.
+
 Current table limitations:
 
 - Only custom field cells are editable.
 - Table creation is single-row only.
-- CSV support is export-only.
+- CSV import support is preview-only; there is no apply/import action yet.
 - It does not support formulas.
 - It does not support bulk editing.
-- It does not support CSV import.
+- It does not update existing rows from CSV.
+- It does not have manual CSV column mapping UI yet.
 - It does not export media files.
 - It does not edit core columns from the table.
 - It does not have advanced validation or a table-specific undo stack.

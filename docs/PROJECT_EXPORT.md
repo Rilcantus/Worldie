@@ -22,6 +22,23 @@ The CSV includes a header row, core columns (`Name`, `Type`, `Updated`), and the
 
 CSV export is an external copy only. It does not mutate lore pages, saved views, or the `.worldie` project file.
 
+## Lore Table CSV Import Preview
+
+The Lore Table can also preview a selected CSV file against the currently selected lore type. Preview is validation-only: it parses the selected file, shows detected headers, row count, mapped columns, unmapped columns, warnings/errors, and sample rows, but it does not create or update lore pages.
+
+Preview mapping rules:
+
+- `Name`, `Title`, and `Lore Page` map to the lore page title.
+- Lore type custom fields map case-insensitively by field display name or field key.
+- `Type` and `Updated` are recognized as exported core columns and ignored.
+- Unmatched headers are listed as unmapped.
+- Missing title/name columns are blocking preview errors.
+- Empty rows are ignored with a warning.
+
+Number fields warn when values cannot be parsed as numbers. Checkbox fields recognize `Yes`/`No`, `true`/`false`, and `1`/`0`; invalid checkbox values produce row warnings. Text, long text, date, and select fields preview as strings.
+
+Import preview reads the chosen CSV text in the app UI and does not write to the `.worldie` project file.
+
 ## Export Shape
 
 Worldie supports two Markdown export scopes:
@@ -105,8 +122,8 @@ Each generated world `index.md` includes:
 ## Limitations
 
 - Active-world and full-project export are Markdown only.
-- Lore Table CSV is export-only; CSV import is not implemented yet.
-- Lore Table CSV does not include formulas, bulk edits, or a full database workspace.
+- Lore Table CSV import is preview-only; applying/importing rows is not implemented yet.
+- Lore Table CSV does not include formulas, bulk edits, update-existing-row behavior, manual mapping UI, or a full database workspace.
 - Media is not exported yet.
 - Exported files are not synced back into the `.worldie` project.
 - Timeline date sorting is intentionally simple and does not yet understand full calendars, eras, date ranges, or custom chronology rules.

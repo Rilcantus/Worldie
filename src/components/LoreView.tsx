@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import type { LorePage, LoreTableView } from "../lib/data";
 import {
   parseLoreItemFields,
@@ -14,6 +14,7 @@ import {
   buildLoreTableModel,
   buildLoreTableCsv,
   buildLoreTableCsvFilename,
+  buildLoreTableCsvImportPreview,
   buildLoreTableViewDraft,
   canExportLoreTableCsv,
   clearHiddenColumnSort,
@@ -23,6 +24,7 @@ import {
   resolveVisibleColumnIds,
   toggleVisibleColumnId,
   type LoreTableSort,
+  type LoreTableCsvImportPreview,
   type LoreTableViewState,
 } from "../lib/loreTable";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
@@ -130,6 +132,7 @@ export const LoreView = memo(function LoreView({
   const templateUsedInputId = "lore-view-template-used";
   const tagsInputId = "lore-view-tags";
   const detailsInputId = "lore-view-details";
+  const csvImportInputRef = useRef<HTMLInputElement | null>(null);
   const loreTypesById = useMemo(() => new Map(loreTypes.map((type) => [type.id, type])), [loreTypes]);
   const templatesById = useMemo(() => new Map(templates.map((template) => [template.id, template])), [templates]);
   const activeLoreType = useMemo(
@@ -145,6 +148,8 @@ export const LoreView = memo(function LoreView({
   const [tableCreateTitle, setTableCreateTitle] = useState("");
   const [isCreatingTableLore, setIsCreatingTableLore] = useState(false);
   const [isExportingTableCsv, setIsExportingTableCsv] = useState(false);
+  const [csvImportFilename, setCsvImportFilename] = useState("");
+  const [csvImportPreview, setCsvImportPreview] = useState<LoreTableCsvImportPreview | null>(null);
   const [tableEditError, setTableEditError] = useState("");
   useEffect(() => {
     if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
@@ -183,6 +188,10 @@ export const LoreView = memo(function LoreView({
   useEffect(() => {
     setTableSort((current) => clearHiddenColumnSort(current, loreTableModel.columns));
   }, [loreTableModel.columns]);
+  useEffect(() => {
+    setCsvImportFilename("");
+    setCsvImportPreview(null);
+  }, [loreTableModel.loreType?.id]);
 
   const toggleTableSort = (columnId: string) => {
     setTableSort((current) =>
@@ -287,6 +296,22 @@ export const LoreView = memo(function LoreView({
     setIsExportingTableCsv(false);
     if (!exported) {
       setTableEditError("Worldie could not export that Lore Table CSV.");
+    }
+  };
+
+  const previewLoreTableCsvImport = async (file: File | null | undefined) => {
+    if (!file || !loreTableModel.loreType) return;
+    setTableEditError("");
+    try {
+      const text = await file.text();
+      setCsvImportFilename(file.name);
+      setCsvImportPreview(buildLoreTableCsvImportPreview(text, loreTableModel.loreType));
+    } catch {
+      setCsvImportFilename(file.name);
+      setCsvImportPreview(null);
+      setTableEditError("Worldie could not read that CSV file.");
+    } finally {
+      if (csvImportInputRef.current) csvImportInputRef.current.value = "";
     }
   };
 
@@ -646,6 +671,16 @@ export const LoreView = memo(function LoreView({
               <button className="tb-btn" type="button" onClick={() => void exportLoreTableCsv()} disabled={!canExportTableCsv || isExportingTableCsv}>
                 {isExportingTableCsv ? "Exporting..." : "Export CSV"}
               </button>
+              <button className="tb-btn" type="button" onClick={() => csvImportInputRef.current?.click()} disabled={!loreTableModel.loreType}>
+                Import CSV Preview
+              </button>
+              <input
+                ref={csvImportInputRef}
+                className="sr-only"
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => void previewLoreTableCsvImport(event.target.files?.[0])}
+              />
             </div>
           </div>
           {loreTableModel.allColumns.some((column) => column.kind === "custom_field") ? (
@@ -685,6 +720,94 @@ export const LoreView = memo(function LoreView({
                 {isCreatingTableLore ? "Adding..." : tableCreateState.buttonLabel}
               </button>
             </form>
+          ) : null}
+          {csvImportPreview ? (
+            <div className="lore-table-import-preview">
+              <div className="lore-table-import-preview-head">
+                <div>
+                  <div className="lore-table-import-title">CSV Import Preview</div>
+                  <div className="lore-table-import-meta">
+                    {csvImportFilename || "CSV file"} - {csvImportPreview.headers.length} headers - {csvImportPreview.rowCount} rows
+                  </div>
+                </div>
+                <button
+                  className="tb-btn"
+                  type="button"
+                  onClick={() => {
+                    setCsvImportFilename("");
+                    setCsvImportPreview(null);
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="lore-table-import-grid">
+                <div>
+                  <div className="lore-table-import-label">Mapped</div>
+                  <div className="lore-table-import-list">
+                    {csvImportPreview.mappedColumns.length > 0
+                      ? csvImportPreview.mappedColumns.map((column) => (
+                          <span key={`${column.index}-${column.header}`} className="meta-tag">
+                            {column.header} -&gt; {column.target === "title" ? "Name" : column.fieldName}
+                          </span>
+                        ))
+                      : "No mapped columns."}
+                  </div>
+                </div>
+                <div>
+                  <div className="lore-table-import-label">Unmapped</div>
+                  <div className="lore-table-import-list">
+                    {csvImportPreview.unmappedColumns.length > 0
+                      ? csvImportPreview.unmappedColumns.map((column) => (
+                          <span key={`${column.index}-${column.header}`} className="meta-tag">
+                            {column.header}
+                          </span>
+                        ))
+                      : "None"}
+                  </div>
+                </div>
+                <div>
+                  <div className="lore-table-import-label">Ignored</div>
+                  <div className="lore-table-import-list">
+                    {csvImportPreview.ignoredColumns.length > 0
+                      ? csvImportPreview.ignoredColumns.map((column) => (
+                          <span key={`${column.index}-${column.header}`} className="meta-tag">
+                            {column.header}
+                          </span>
+                        ))
+                      : "None"}
+                  </div>
+                </div>
+              </div>
+              {csvImportPreview.errors.length > 0 ? (
+                <div className="lore-table-import-messages error">
+                  {csvImportPreview.errors.map((message) => (
+                    <div key={message}>{message}</div>
+                  ))}
+                </div>
+              ) : null}
+              {csvImportPreview.warnings.length > 0 ? (
+                <div className="lore-table-import-messages">
+                  {csvImportPreview.warnings.slice(0, 6).map((message) => (
+                    <div key={message}>{message}</div>
+                  ))}
+                </div>
+              ) : null}
+              {csvImportPreview.sampleRows.length > 0 ? (
+                <div className="lore-table-import-samples">
+                  {csvImportPreview.sampleRows.map((row) => (
+                    <div key={row.rowNumber} className="lore-table-import-sample">
+                      <strong>{row.title || `Row ${row.rowNumber}`}</strong>
+                      {Object.entries(row.customFields).map(([key, value]) => (
+                        <span key={key}>
+                          {key}: {value || "blank"}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           ) : null}
           {tableEditError ? <div className="lore-table-error">{tableEditError}</div> : null}
           {loreTableModel.loreType ? (
