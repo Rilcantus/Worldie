@@ -78,12 +78,7 @@ export const WorkbenchView = memo(function WorkbenchView({
         </div>
       ) : null}
 
-      <div className="editor-toolbar">
-        <span className="tb-btn active" aria-current="page">
-          W
-        </span>
-        <span className="tb-btn">Workbench</span>
-        <div className="tb-sep"></div>
+      <div className="workbench-actions" aria-label="Workbench actions">
         <button className="tb-btn" type="button" onClick={onAddDocument}>
           New Document
         </button>
