@@ -76,6 +76,7 @@ def _update_partial(conn, table, id_column, id_value, updates):
         """,
         values,
     )
+    return c.rowcount
 
 
 def _init_registry_db():
@@ -1283,7 +1284,7 @@ def list_documents(project_uuid, world_id):
 def update_document(project_uuid, doc_id, title=OMITTED, content_json=OMITTED, folder_path=OMITTED):
     db_path = _get_project_filepath(project_uuid)
     conn = _project_conn(db_path)
-    _update_partial(
+    updated_count = _update_partial(
         conn,
         "documents",
         "id",
@@ -1294,6 +1295,9 @@ def update_document(project_uuid, doc_id, title=OMITTED, content_json=OMITTED, f
             ("folder_path", folder_path),
         ],
     )
+    if updated_count == 0:
+        conn.close()
+        raise ValueError(f"Document not found in active project file: {doc_id}")
     conn.commit()
     conn.close()
     _touch_project(project_uuid)

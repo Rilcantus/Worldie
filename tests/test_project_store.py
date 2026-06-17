@@ -188,6 +188,96 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIsNone(event[5])
         self.assertIsNone(event[6])
 
+    def test_document_update_handles_large_unicode_pasted_content(self):
+        project_uuid, project_path = self.db_manager.add_project("Large Paste", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        document_id = self.db_manager.create_document(project_uuid, world_id, "New Document 1")
+        pasted_text = "\n\n".join(
+            [
+                "Chapter opening: Mara said, \u201cWe don\u2019t leave the Blacktooth clan behind.\u201d",
+                "A long road stretched across the valley\u2014wet, silver, and loud with stormwater.",
+                "Line with apostrophes, commas, quotes, and [[Lore Links]] for good measure.",
+            ]
+            * 1200
+        )
+
+        self.db_manager.update_document(
+            project_uuid,
+            document_id,
+            content_json=pasted_text,
+            folder_path="Drafts/Large Paste",
+        )
+
+        documents = self.db_manager.list_documents(project_uuid, world_id)
+        self.assertEqual(len(documents), 1)
+        self.assertEqual(documents[0][0], document_id)
+        self.assertEqual(documents[0][3], pasted_text)
+        self.assertEqual(documents[0][4], "Drafts/Large Paste")
+
+        reopened_uuid, _, _ = self.db_manager.open_project(str(project_path))
+        reopened_documents = self.db_manager.list_documents(reopened_uuid, world_id)
+        self.assertEqual(reopened_documents[0][3], pasted_text)
+
+    def test_sidecar_updates_new_document_with_large_unicode_content(self):
+        project_uuid, _ = self.db_manager.add_project("Sidecar Large Paste", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        create_response = self.sidecar._handle_request(
+            {
+                "action": "create_document",
+                "data": {
+                    "projectId": project_uuid,
+                    "worldId": world_id,
+                    "title": "New Document 1",
+                },
+            }
+        )
+        self.assertEqual(create_response["status"], "ok")
+        document_id = create_response["documentId"]
+        pasted_text = "\n".join(
+            f"{index}: Smart quotes \u201cBlacktooth\u201d, apostrophe \u2019, dash \u2014, link [[Clan]]"
+            for index in range(2500)
+        )
+
+        update_response = self.sidecar._handle_request(
+            {
+                "action": "update_document",
+                "data": {
+                    "projectId": project_uuid,
+                    "documentId": document_id,
+                    "contentJson": pasted_text,
+                    "folderPath": "Drafts",
+                },
+            }
+        )
+
+        self.assertEqual(update_response["status"], "ok")
+        document = self.db_manager.list_documents(project_uuid, world_id)[0]
+        self.assertEqual(document[3], pasted_text)
+        self.assertEqual(document[4], "Drafts")
+
+    def test_missing_document_update_returns_clear_error(self):
+        project_uuid, _ = self.db_manager.add_project("Missing Document", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        missing_document_id = "missing-document-id"
+
+        with self.assertRaisesRegex(ValueError, f"Document not found in active project file: {missing_document_id}"):
+            self.db_manager.update_document(project_uuid, missing_document_id, content_json="Unsaved text")
+
+        response = self.sidecar._handle_request(
+            {
+                "action": "update_document",
+                "data": {
+                    "projectId": project_uuid,
+                    "documentId": missing_document_id,
+                    "contentJson": "Unsaved text",
+                },
+            }
+        )
+
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], f"Document not found in active project file: {missing_document_id}")
+        self.assertEqual(self.db_manager.list_documents(project_uuid, world_id), [])
+
     def test_lore_page_custom_fields_persist_update_clear_and_reopen(self):
         project_uuid, project_path = self.db_manager.add_project("Custom Fields", "")
         world_id = self.db_manager.create_world(project_uuid, "Duskfen")

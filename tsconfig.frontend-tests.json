@@ -13,6 +13,7 @@
     "src/lib/loreTable.ts",
     "src/lib/loreTemplates.ts",
     "src/lib/loreTypes.ts",
+    "src/lib/projectStoreErrors.ts",
     "src/hooks/contentState.ts",
     "src/hooks/appFeedbackState.ts",
     "src/hooks/contextPanelState.ts",

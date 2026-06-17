@@ -18,6 +18,7 @@ import {
   buildLoreTableViewPayload,
   buildLoreTableViewUpdatePayload,
 } from "./loreTableViews";
+import { resolveProjectStoreErrorMessage } from "./projectStoreErrors";
 export {
   buildLoreTableViewPayload,
   buildLoreTableViewUpdatePayload,
@@ -179,21 +180,6 @@ export class ProjectStoreError extends Error {
 
 function reportProjectStoreError(message: string) {
   projectStoreErrorHandler?.(message);
-}
-
-function buildProjectStoreErrorMessage(action: string) {
-  const readableAction = action.split("_").join(" ");
-  return `Worldie could not ${readableAction} in the active project file.`;
-}
-
-function resolveProjectStoreErrorMessage(action: string, error: unknown) {
-  if (error instanceof Error) {
-    const message = error.message.trim();
-    if (message) {
-      return message;
-    }
-  }
-  return buildProjectStoreErrorMessage(action);
 }
 
 async function invokeProjectStore<T>(action: string, data?: Record<string, unknown>) {
