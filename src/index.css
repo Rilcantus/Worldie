@@ -1742,6 +1742,25 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   margin-bottom: 10px;
 }
 
+.workbench-note {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.workbench-checklist {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.workbench-checklist li + li {
+  margin-top: 6px;
+}
+
 .workbench-link {
   width: 100%;
   border: 1px solid transparent;

@@ -12,6 +12,8 @@ The product goal is:
 
 Worldie is a working desktop MVP, not just a static scaffold. It has real `.worldie` project files, project-scoped SQLite persistence, and active writing/worldbuilding workflows.
 
+For a practical first-project workflow, see [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md). It walks through setting up a small test world, creating lore types and custom fields, using the Lore Table, exporting CSV/Markdown, and backing up the `.worldie` file.
+
 The current build supports:
 
 - `.worldie` project file creation, opening, and save-as flows
@@ -139,4 +141,3 @@ The next useful development sequence is:
 ## Continuation Brief
 
 For a handoff document that can be pasted into another ChatGPT/Codex thread, see `CONTINUATION_BRIEF.md`.
-

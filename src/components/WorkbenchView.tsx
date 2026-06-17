@@ -130,6 +130,20 @@ export const WorkbenchView = memo(function WorkbenchView({
 
       <div className="workbench-columns">
         <div className="workbench-panel">
+          <div className="workbench-panel-title">Getting Started</div>
+          <p className="workbench-note">
+            Start with a small test world, then keep full-project Markdown exports and dated `.worldie` backups while Worldie is in beta.
+          </p>
+          <ol className="workbench-checklist">
+            <li>Create a world and add Character, Location, Faction, and Item lore types.</li>
+            <li>Add Character fields such as Species, Age, Faction, Status, and First Appearance.</li>
+            <li>Create 3 to 5 lore pages from the Lore Table and save a useful table view.</li>
+            <li>Write a document, link lore with [[Lore Links]], then export Markdown and update-ready CSV.</li>
+          </ol>
+          <div className="workbench-card-meta">Full guide: docs/GETTING_STARTED.md</div>
+        </div>
+
+        <div className="workbench-panel">
           <div className="workbench-panel-title">Recent Documents</div>
           {recentDocuments.length === 0 ? (
             <div className="doc-empty">No documents yet.</div>
