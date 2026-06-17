@@ -202,6 +202,36 @@ test("applyNoteBlockPrefix converts the current line into a note block", () => {
   assert.equal(multiline.text, "> Note: Alpha\n> Beta\n> Gamma");
 });
 
+test("applyNoteBlockPrefix preserves indentation for nested numbered and quote lines", () => {
+  const fromIndentedNumbered = applyNoteBlockPrefix("    3) Reminder", { start: 7, end: 15 });
+  assert.equal(fromIndentedNumbered.text, "    > Note: Reminder");
+  assert.deepEqual(fromIndentedNumbered.selection, { start: 12, end: 20 });
+
+  const fromIndentedQuote = applyNoteBlockPrefix("  > [[Red Harbor]]", { start: 4, end: 18 });
+  assert.equal(fromIndentedQuote.text, "  > Note: [[Red Harbor]]");
+  assert.deepEqual(fromIndentedQuote.selection, { start: 10, end: 24 });
+});
+
+test("applyNoteBlockPrefix handles whitespace-only nested list items without flattening indentation", () => {
+  const fromWhitespaceBullet = applyNoteBlockPrefix("  -   ", { start: 6, end: 6 });
+  assert.equal(fromWhitespaceBullet.text, "  > Note: ");
+  assert.deepEqual(fromWhitespaceBullet.selection, { start: 10, end: 10 });
+
+  const fromWhitespaceOrdered = applyNoteBlockPrefix("    2)   ", { start: 10, end: 10 });
+  assert.equal(fromWhitespaceOrdered.text, "    > Note: ");
+  assert.deepEqual(fromWhitespaceOrdered.selection, { start: 13, end: 13 });
+});
+
+test("block prefix conversion preserves nested indentation and lore links", () => {
+  const quotedBullet = toggleLinePrefix("  - [[Red Harbor]]", { start: 4, end: 18 }, "> ");
+  assert.equal(quotedBullet.text, "  > [[Red Harbor]]");
+  assert.deepEqual(quotedBullet.selection, { start: 4, end: 18 });
+
+  const unquoted = toggleLinePrefix(quotedBullet.text, quotedBullet.selection, "> ");
+  assert.equal(unquoted.text, "  [[Red Harbor]]");
+  assert.deepEqual(unquoted.selection, { start: 2, end: 16 });
+});
+
 test("continueBlockPrefix advances lists and clears empty prefixes", () => {
   const ordered = continueBlockPrefix("1. Alpha", { start: 8, end: 8 });
   assert.equal(ordered.text, "1. Alpha\n2. ");
@@ -230,6 +260,10 @@ test("continueBlockPrefix advances lists and clears empty prefixes", () => {
   const cleared = continueBlockPrefix("- ", { start: 2, end: 2 });
   assert.equal(cleared.text, "");
   assert.deepEqual(cleared.selection, { start: 0, end: 0 });
+
+  const clearedIndentedBullet = continueBlockPrefix("    -   ", { start: 8, end: 8 });
+  assert.equal(clearedIndentedBullet.text, "");
+  assert.deepEqual(clearedIndentedBullet.selection, { start: 0, end: 0 });
 });
 
 test("duplicateSelectedLineBlock duplicates the active line block below the selection", () => {
@@ -345,6 +379,10 @@ test("normalizePastedText standardizes quote prefixes and list markers", () => {
   assert.equal(normalizePastedText("│ quoted\n| also quoted"), "> quoted\n> also quoted");
   assert.equal(normalizePastedText("  1) First\n  * Second"), "  1. First\n  - Second");
   assert.equal(normalizePastedText("  * Nested bullet\n    2) Nested step"), "  - Nested bullet\n    2. Nested step");
+  assert.equal(
+    normalizePastedText("  * **Bold [[Lore]]**\n    • _Nested [[Place]]_\n      3) __Step__"),
+    "  - **Bold [[Lore]]**\n    - _Nested [[Place]]_\n      3. __Step__",
+  );
 });
 test("normalizePastedText avoids false quote matches and supports heavy bars", () => {
   assert.equal(normalizePastedText("\u00e2lpha"), "\u00e2lpha");
@@ -452,6 +490,26 @@ test("resolvePastedEditorText keeps extracted preformatted html from being renor
   });
 });
 
+test("extractEditorTextFromHtml preserves nested list formatting and lore-link text", () => {
+  withFakeHtmlDocument((FakeElement, FakeTextNode) => [
+    new FakeElement("UL", [], [
+      new FakeElement("LI", [
+        new FakeElement("STRONG", [new FakeTextNode("[[Red Harbor]]")]),
+        new FakeElement("UL", [], [
+          new FakeElement("LI", [
+            new FakeElement("EM", [new FakeTextNode("Nested clue")]),
+          ]),
+        ]),
+      ]),
+    ]),
+  ], () => {
+    assert.equal(
+      extractEditorTextFromHtml("<ul><li><strong>[[Red Harbor]]</strong><ul><li><em>Nested clue</em></li></ul></li></ul>"),
+      "- **[[Red Harbor]]**\n  - _Nested clue_",
+    );
+  });
+});
+
 test("isBoldElement detects semantic and inline-style bold markup", () => {
   assert.equal(isBoldElement({ tagName: "STRONG" }), true);
   assert.equal(isBoldElement({ tagName: "SPAN", style: { fontWeight: "bold" } }), true);
@@ -492,6 +550,19 @@ test("triple-asterisk bold italic markers round-trip through editor display mapp
   assert.equal(representation.html, "<strong><em>Text</em></strong>");
   assert.deepEqual(sourceSelectionToDisplay("***Text***", { start: 3, end: 7 }), { start: 0, end: 4 });
   assert.deepEqual(displaySelectionToSource("***Text***", { start: 0, end: 4 }), { start: 3, end: 7 });
+});
+
+test("indented formatted list text round-trips through display selection mapping", () => {
+  const text = "  - **[[Red Harbor]]**\n    - _Nested clue_";
+  const loreStart = text.indexOf("[[Red Harbor]]");
+  const loreEnd = loreStart + "[[Red Harbor]]".length;
+  const displaySelection = sourceSelectionToDisplay(text, { start: loreStart, end: loreEnd });
+  assert.deepEqual(displaySelectionToSource(text, displaySelection), { start: loreStart, end: loreEnd });
+
+  const nestedStart = text.indexOf("Nested clue");
+  const nestedEnd = nestedStart + "Nested clue".length;
+  const nestedDisplaySelection = sourceSelectionToDisplay(text, { start: nestedStart, end: nestedEnd });
+  assert.deepEqual(displaySelectionToSource(text, nestedDisplaySelection), { start: nestedStart, end: nestedEnd });
 });
 
 test("serializeFormattedInlineContent preserves semantic and inline-style combinations", () => {
@@ -840,6 +911,31 @@ test("renderPreviewContent preserves nested list indentation structure", () => {
   );
 });
 
+test("renderPreviewContent preserves nested bullets with formatting and lore links", () => {
+  const linkedLore = new Map([
+    ["red harbor", { id: "lore-red-harbor", worldId: "world-1", title: "Red Harbor", type: "Place" }],
+  ]);
+  const preview = renderPreviewContent(
+    "- **[[Red Harbor]]**\n  - _Nested clue_\n    - __Underlined detail__",
+    linkedLore,
+    () => {},
+  );
+  const summary = summarizePreviewNode(preview[0]);
+
+  assert.equal(summary.type, "ul");
+  assert.equal(summary.children[0].children[0].children[0].type, "strong");
+  assert.equal(summary.children[0].children[0].children[0].children[0].type, "button");
+  assert.equal(summary.children[0].children[0].children[0].children[0].className, "editor-inline-link");
+  assert.deepEqual(summary.children[0].children[0].children[0].children[0].children, ["Red Harbor"]);
+  assert.equal(summary.children[0].children[1].type, "ul");
+  assert.equal(summary.children[0].children[1].children[0].children[0].children[0].type, "em");
+  assert.equal(summary.children[0].children[1].children[0].children[1].type, "ul");
+  assert.equal(
+    summary.children[0].children[1].children[0].children[1].children[0].children[0].children[0].className,
+    "editor-preview-underline",
+  );
+});
+
 test("renderPreviewContent accepts alternate typed list markers", () => {
   const preview = renderPreviewContent("* Parent\n  • Child bullet\n  3) Child step", new Map(), () => {});
   assert.deepEqual(
@@ -1084,6 +1180,24 @@ test("renderPreviewContent preserves multiline note block spacing and indentatio
       ],
     },
   );
+});
+
+test("renderPreviewContent preserves nested note content with lore links and formatting", () => {
+  const linkedLore = new Map([
+    ["red harbor", { id: "lore-red-harbor", worldId: "world-1", title: "Red Harbor", type: "Place" }],
+  ]);
+  const preview = renderPreviewContent("  > Note: **[[Red Harbor]]**\n  >   _Nested detail_", linkedLore, () => {});
+  const summary = summarizePreviewNode(preview[0]);
+
+  assert.equal(summary.type, "div");
+  assert.equal(summary.className, "editor-preview-note");
+  assert.equal(summary.children[1].className, "editor-preview-note-body");
+  assert.equal(summary.children[1].children[0].children[0].type, "strong");
+  assert.equal(summary.children[1].children[0].children[0].children[0].type, "button");
+  assert.deepEqual(summary.children[1].children[0].children[0].children[0].children, ["Red Harbor"]);
+  assert.deepEqual(summary.children[1].children[2].children[0].children, ["  "]);
+  assert.equal(summary.children[1].children[2].children[1].type, "em");
+  assert.deepEqual(summary.children[1].children[2].children[1].children[0].children, ["Nested detail"]);
 });
 
 test("isUnderlineElement detects tag, class, and inline-style underline markup", () => {
