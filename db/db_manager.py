@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import shutil
+import tempfile
 import uuid
 from datetime import datetime
 
@@ -258,6 +259,42 @@ def _normalize_filepath_for_match(filepath):
     return os.path.normcase(os.path.abspath(filepath))
 
 
+def _timestamped_backup_path(filepath):
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    base_backup_path = f"{filepath}.bak-{timestamp}"
+    backup_path = base_backup_path
+    suffix = 1
+    while os.path.exists(backup_path):
+        suffix += 1
+        backup_path = f"{base_backup_path}-{suffix}"
+    return backup_path
+
+
+def _copy_project_file_safely(source_path, destination_path):
+    _ensure_parent_dir(destination_path)
+    destination_dir = os.path.dirname(destination_path) or "."
+    temp_path = None
+    backup_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=f".{os.path.basename(destination_path)}.",
+            suffix=".tmp",
+            dir=destination_dir,
+            delete=False,
+        ) as temp_file:
+            temp_path = temp_file.name
+        shutil.copy2(source_path, temp_path)
+        if os.path.exists(destination_path):
+            backup_path = _timestamped_backup_path(destination_path)
+            shutil.copy2(destination_path, backup_path)
+        os.replace(temp_path, destination_path)
+        temp_path = None
+        return backup_path
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
 def _get_project_filepath(project_uuid):
     conn = _registry_conn()
     c = conn.cursor()
@@ -411,10 +448,7 @@ def save_project_as(project_uuid, filepath):
     resolved_path = os.path.abspath(filepath)
     if _normalize_filepath_for_match(source_path) == _normalize_filepath_for_match(resolved_path):
         raise ValueError("Choose a different project filepath for Save As.")
-    if os.path.exists(resolved_path):
-        raise ValueError("Choose a new filepath for Save As.")
-    _ensure_parent_dir(resolved_path)
-    shutil.copy2(source_path, resolved_path)
+    _copy_project_file_safely(source_path, resolved_path)
     _init_project_db(resolved_path)
     _set_project_meta_title(resolved_path, title)
     return open_project(resolved_path)

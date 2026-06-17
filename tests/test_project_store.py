@@ -496,13 +496,69 @@ class ProjectStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Choose a different project filepath for Save As."):
             self.db_manager.save_project_as(project_uuid, project_path)
 
-    def test_save_project_as_rejects_existing_destination_filepath(self):
+    def test_save_project_as_backs_up_existing_destination_before_replace(self):
         project_uuid, _ = self.db_manager.add_project("Source Project", "")
         existing_path = self.temp_path / "existing-copy.worldie"
-        self.db_manager.add_project("Existing Destination", str(existing_path))
+        existing_uuid, _ = self.db_manager.add_project("Existing Destination", str(existing_path))
+        old_world_id = self.db_manager.create_world(existing_uuid, "Old World")
+        source_world_id = self.db_manager.create_world(project_uuid, "Source World")
 
-        with self.assertRaisesRegex(ValueError, "Choose a new filepath for Save As."):
-            self.db_manager.save_project_as(project_uuid, str(existing_path))
+        reopened_uuid, reopened_title, reopened_path = self.db_manager.save_project_as(project_uuid, str(existing_path))
+
+        self.assertEqual(reopened_uuid, existing_uuid)
+        self.assertEqual(reopened_title, "Source Project")
+        self.assertEqual(Path(reopened_path), existing_path.resolve())
+        backups = list(existing_path.parent.glob("existing-copy.worldie.bak-*"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(self.db_manager._get_project_meta_title(str(backups[0])), "Existing Destination")
+        self.assertEqual(self.db_manager.list_worlds(reopened_uuid)[0][0], source_world_id)
+        self.assertEqual(self.db_manager.list_worlds(existing_uuid)[0][2], "Source World")
+        self.assertNotIn(old_world_id, [row[0] for row in self.db_manager.list_worlds(existing_uuid)])
+
+    def test_save_project_as_backup_failure_prevents_overwrite(self):
+        project_uuid, _ = self.db_manager.add_project("Source Project", "")
+        self.db_manager.create_world(project_uuid, "Source World")
+        existing_path = self.temp_path / "existing-copy.worldie"
+        existing_uuid, _ = self.db_manager.add_project("Existing Destination", str(existing_path))
+        self.db_manager.create_world(existing_uuid, "Old World")
+        original_bytes = existing_path.read_bytes()
+
+        original_copy2 = self.db_manager.shutil.copy2
+
+        def fail_destination_backup(src, dst, *args, **kwargs):
+            if Path(src).resolve() == existing_path.resolve():
+                raise OSError("backup failed")
+            return original_copy2(src, dst, *args, **kwargs)
+
+        with patch.object(self.db_manager.shutil, "copy2", side_effect=fail_destination_backup):
+            with self.assertRaisesRegex(OSError, "backup failed"):
+                self.db_manager.save_project_as(project_uuid, str(existing_path))
+
+        self.assertEqual(existing_path.read_bytes(), original_bytes)
+        self.assertEqual(self.db_manager._get_project_meta_title(str(existing_path)), "Existing Destination")
+        self.assertEqual(self.db_manager.list_worlds(existing_uuid)[0][2], "Old World")
+        self.assertEqual(list(existing_path.parent.glob("existing-copy.worldie.bak-*")), [])
+
+    def test_save_project_as_copy_failure_does_not_corrupt_source_or_destination(self):
+        project_uuid, source_path = self.db_manager.add_project("Source Project", "")
+        existing_path = self.temp_path / "existing-copy.worldie"
+        self.db_manager.add_project("Existing Destination", str(existing_path))
+        source_bytes = Path(source_path).read_bytes()
+        destination_bytes = existing_path.read_bytes()
+        original_copy2 = self.db_manager.shutil.copy2
+
+        def fail_source_copy(src, dst, *args, **kwargs):
+            if Path(src).resolve() == Path(source_path).resolve():
+                raise OSError("copy failed")
+            return original_copy2(src, dst, *args, **kwargs)
+
+        with patch.object(self.db_manager.shutil, "copy2", side_effect=fail_source_copy):
+            with self.assertRaisesRegex(OSError, "copy failed"):
+                self.db_manager.save_project_as(project_uuid, str(existing_path))
+
+        self.assertEqual(Path(source_path).read_bytes(), source_bytes)
+        self.assertEqual(existing_path.read_bytes(), destination_bytes)
+        self.assertEqual(list(existing_path.parent.glob("existing-copy.worldie.bak-*")), [])
 
     def test_open_project_uses_filename_when_project_meta_is_untitled(self):
         manual_path = self.temp_path / "manual" / "ashen-sky.worldie"
@@ -589,16 +645,18 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(response["status"], "error")
         self.assertEqual(response["message"], "Choose a different project filepath for Save As.")
 
-    def test_sidecar_returns_structured_error_for_existing_save_as_destination(self):
+    def test_sidecar_save_as_replaces_existing_destination_with_backup(self):
         project_uuid, _ = self.db_manager.add_project("Source Copy", "")
         existing_path = self.temp_path / "existing-sidecar-copy.worldie"
-        self.db_manager.add_project("Existing Copy", str(existing_path))
+        existing_uuid, _ = self.db_manager.add_project("Existing Copy", str(existing_path))
         response = self.sidecar._handle_request(
             {"action": "save_project_as", "data": {"projectId": project_uuid, "filepath": str(existing_path)}}
         )
 
-        self.assertEqual(response["status"], "error")
-        self.assertEqual(response["message"], "Choose a new filepath for Save As.")
+        self.assertEqual(response["status"], "ok")
+        self.assertEqual(response["project"]["id"], existing_uuid)
+        self.assertEqual(Path(response["project"]["filepath"]), existing_path.resolve())
+        self.assertEqual(len(list(existing_path.parent.glob("existing-sidecar-copy.worldie.bak-*"))), 1)
 
     def test_sidecar_main_returns_error_payload_when_request_read_fails(self):
         with patch.object(self.sidecar, "_read_request", side_effect=ValueError("bad request payload")):
