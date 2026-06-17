@@ -223,8 +223,9 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
                     "name": row[1],
                     "slug": row[2],
                     "icon": row[3],
-                    "order": row[4],
-                    "isSystem": bool(row[5]),
+                    "fieldDefinitions": json.loads(row[4]) if row[4] else [],
+                    "order": row[5],
+                    "isSystem": bool(row[6]),
                 }
                 for row in rows
             ],

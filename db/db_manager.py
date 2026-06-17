@@ -202,6 +202,7 @@ def _init_project_db(db_path, create_if_missing=False):
             name TEXT NOT NULL,
             slug TEXT NOT NULL,
             icon TEXT,
+            field_definitions_json TEXT,
             display_order INTEGER NOT NULL,
             is_system INTEGER NOT NULL,
             created_at TEXT NOT NULL,
@@ -227,6 +228,7 @@ def _init_project_db(db_path, create_if_missing=False):
     _ensure_column(conn, "timeline_events", "event_type", "TEXT")
     _ensure_column(conn, "timeline_events", "linked_page_id", "TEXT")
     _ensure_column(conn, "lore_types", "icon", "TEXT")
+    _ensure_column(conn, "lore_types", "field_definitions_json", "TEXT")
     c.execute("SELECT id FROM project_meta WHERE id = 1")
     if c.fetchone() is None:
         now = _now_iso()
@@ -332,7 +334,7 @@ def _write_text_file(path, content):
         file.write(content)
 
 
-def _parse_lore_fields(fields_json):
+def _parse_lore_fields(fields_json, field_definitions=None):
     if not fields_json:
         return [], "", []
     try:
@@ -350,7 +352,7 @@ def _parse_lore_fields(fields_json):
             value = "" if trait.get("value") is None else str(trait.get("value"))
             if value.strip():
                 traits.append((name, value))
-        return traits, str(parsed.get("details") or ""), _parse_custom_fields(parsed.get("customFields"))
+        return traits, str(parsed.get("details") or ""), _parse_custom_fields(parsed.get("customFields"), field_definitions)
     traits = []
     for key, value in parsed.items():
         if key == "_details":
@@ -361,22 +363,70 @@ def _parse_lore_fields(fields_json):
     return traits, str(parsed.get("_details") or ""), []
 
 
-def _parse_custom_fields(custom_fields):
+def _parse_lore_type_field_definitions(field_definitions_json):
+    if not field_definitions_json:
+        return []
+    try:
+        parsed = json.loads(field_definitions_json)
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    definitions = []
+    for index, definition in enumerate(parsed):
+        if not isinstance(definition, dict):
+            continue
+        name = str(definition.get("name") or "Custom Field").strip() or "Custom Field"
+        key = str(definition.get("key") or name).strip() or name
+        definitions.append(
+            {
+                "name": name,
+                "key": key,
+                "order": definition.get("order", index),
+            }
+        )
+    return sorted(definitions, key=lambda definition: (definition["order"], definition["name"]))
+
+
+def _parse_custom_fields(custom_fields, field_definitions=None):
     if not isinstance(custom_fields, dict):
         return []
     fields = []
-    for name, value in custom_fields.items():
-        label = str(name).strip()
-        if not label:
-            continue
-        if value is None or value == "":
-            continue
-        if isinstance(value, bool):
-            display_value = "true" if value else "false"
+    used_names = set()
+    for definition in field_definitions or []:
+        key = definition.get("key")
+        name = definition.get("name")
+        if key in custom_fields:
+            value = custom_fields.get(key)
+            used_names.add(key)
+        elif name in custom_fields:
+            value = custom_fields.get(name)
+            used_names.add(name)
         else:
-            display_value = str(value)
-        fields.append((label, display_value))
+            continue
+        parsed = _format_custom_field_value(name, value)
+        if parsed:
+            fields.append(parsed)
+    for name, value in custom_fields.items():
+        if name in used_names:
+            continue
+        parsed = _format_custom_field_value(name, value)
+        if parsed:
+            fields.append(parsed)
     return fields
+
+
+def _format_custom_field_value(name, value):
+    label = str(name).strip()
+    if not label:
+        return None
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        display_value = "true" if value else "false"
+    else:
+        display_value = str(value)
+    return (label, display_value)
 
 
 def _build_document_markdown(document):
@@ -390,9 +440,9 @@ def _build_document_markdown(document):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _build_lore_markdown(lore_page):
+def _build_lore_markdown(lore_page, field_definitions=None):
     _, _, title, page_type, tags_json, fields_json, _, created_at, updated_at = lore_page
-    traits, details, custom_fields = _parse_lore_fields(fields_json)
+    traits, details, custom_fields = _parse_lore_fields(fields_json, field_definitions)
     lines = [f"# {title}", "", f"Type: {page_type}"]
     if tags_json:
         lines.append(f"Tags: {tags_json}")
@@ -723,6 +773,13 @@ def _fetch_world_export_data(conn, project_uuid, world_id):
     lore_pages = c.fetchall()
     c.execute(
         """
+        SELECT name, slug, field_definitions_json
+        FROM lore_types
+        """
+    )
+    lore_types = c.fetchall()
+    c.execute(
+        """
         SELECT id, world_id, from_id, to_id, type, notes, created_at, updated_at
         FROM relationships
         WHERE world_id = ?
@@ -745,6 +802,7 @@ def _fetch_world_export_data(conn, project_uuid, world_id):
         "world": world,
         "documents": documents,
         "lorePages": lore_pages,
+        "loreTypes": lore_types,
         "relationships": relationships,
         "timelineEvents": timeline_events,
     }
@@ -756,6 +814,7 @@ def _write_world_markdown_export(project_title, world_data, export_path):
     world = world_data["world"]
     documents = world_data["documents"]
     lore_pages = world_data["lorePages"]
+    lore_types = world_data["loreTypes"]
     relationships = world_data["relationships"]
     timeline_events = world_data["timelineEvents"]
     used_paths = set()
@@ -765,6 +824,11 @@ def _write_world_markdown_export(project_title, world_data, export_path):
     relationship_entries = []
     timeline_entries = []
     lore_titles_by_id = {page[0]: page[2] for page in lore_pages}
+    field_definitions_by_type = {}
+    for name, slug, field_definitions_json in lore_types:
+        definitions = _parse_lore_type_field_definitions(field_definitions_json)
+        field_definitions_by_type[str(name).strip().lower()] = definitions
+        field_definitions_by_type[str(slug).strip().lower()] = definitions
 
     documents_root = os.path.join(export_path, "Documents")
     for document in documents:
@@ -789,7 +853,8 @@ def _write_world_markdown_export(project_title, world_data, export_path):
         lore_dir = os.path.join(lore_root, _safe_export_name(page_type, "Lore"))
         filename = f"{_safe_export_name(title, 'lore-page')}.md"
         file_path = _dedupe_export_path(lore_dir, filename, used_paths)
-        _write_text_file(file_path, _build_lore_markdown(lore_page))
+        field_definitions = field_definitions_by_type.get(str(page_type).strip().lower(), [])
+        _write_text_file(file_path, _build_lore_markdown(lore_page, field_definitions))
         entry = {
             "kind": "lore",
             "title": title,
@@ -1353,7 +1418,7 @@ def list_lore_types(project_uuid):
     c = conn.cursor()
     c.execute(
         """
-        SELECT id, name, slug, icon, display_order, is_system
+        SELECT id, name, slug, icon, field_definitions_json, display_order, is_system
         FROM lore_types
         ORDER BY display_order ASC, name ASC
         """
@@ -1369,11 +1434,13 @@ def replace_lore_types(project_uuid, lore_types):
     conn = _project_conn(db_path)
     c = conn.cursor()
     now = _now_iso()
+    c.execute("SELECT id, field_definitions_json FROM lore_types")
+    existing_field_definitions = {row[0]: row[1] for row in c.fetchall()}
     c.execute("DELETE FROM lore_types")
     c.executemany(
         """
-        INSERT INTO lore_types (id, name, slug, icon, display_order, is_system, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO lore_types (id, name, slug, icon, field_definitions_json, display_order, is_system, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         [
             (
@@ -1381,6 +1448,10 @@ def replace_lore_types(project_uuid, lore_types):
                 lore_type["name"],
                 lore_type["slug"],
                 lore_type.get("icon"),
+                _resolve_lore_type_field_definitions_json(
+                    lore_type,
+                    existing_field_definitions.get(lore_type["id"]),
+                ),
                 lore_type["order"],
                 1 if lore_type.get("isSystem") else 0,
                 now,
@@ -1392,6 +1463,15 @@ def replace_lore_types(project_uuid, lore_types):
     conn.commit()
     conn.close()
     _touch_project(project_uuid)
+
+
+def _resolve_lore_type_field_definitions_json(lore_type, existing_value):
+    if "fieldDefinitions" not in lore_type:
+        return existing_value
+    field_definitions = lore_type.get("fieldDefinitions")
+    if field_definitions is None:
+        return None
+    return json.dumps(field_definitions)
 
 
 def list_lore_templates(project_uuid):

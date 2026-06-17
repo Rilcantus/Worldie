@@ -2,7 +2,7 @@
 
 ## Status
 
-This note describes the first small custom-fields slice for lore pages. It establishes a portable storage shape and a basic editing/export path. It does not implement a spreadsheet view, formulas, filtering, sorting, or a full field-definition manager.
+This note describes the first small custom-fields slices for lore pages. Worldie now has portable page-level custom field values and reusable lore-type field definitions. It does not implement a spreadsheet view, formulas, filtering, sorting, bulk editing, or advanced validation.
 
 ## Goals
 
@@ -35,15 +35,40 @@ This avoids a migration-heavy first step and keeps each lore page portable in th
 
 ## Field Definitions
 
-The first slice stores field values but does not introduce first-class field definition records in the UI.
+Lore types now store reusable custom field definitions in `lore_types.field_definitions_json`. This keeps definitions project-file scoped and portable inside the `.worldie` SQLite database.
 
-Future field definitions should likely be tied to lore types first, with optional template defaults:
+Definitions are tied to lore types first:
 
 - Lore type: defines reusable fields for all pages of that type, such as Character fields or Location fields.
-- Lore template: can provide starter values, ordering, and recommended fields when creating a page.
+- Lore template: can later provide starter values, ordering, and recommended fields when creating a page.
 - Lore page: stores the actual values in `customFields`.
 
-The existing `custom_field_schemas` table can be revisited when Worldie adds a full definition manager. Until then, stable field names are enough for the MVP editor and export path.
+Definition shape:
+
+```json
+{
+  "id": "field-age",
+  "name": "Age",
+  "key": "age",
+  "type": "number",
+  "options": [],
+  "required": false,
+  "order": 0,
+  "defaultValue": null
+}
+```
+
+Rules:
+
+- `id` is stable and UUID-friendly.
+- `name` is the display label.
+- `key` is the stable machine key used by lore page `customFields`.
+- `type` is one of the supported MVP field types.
+- `options` is used for select fields.
+- `required`, `order`, and `defaultValue` are stored for future validation/table views.
+- Existing lore types without definitions load with an empty list.
+
+The existing `custom_field_schemas` table can be revisited if Worldie later needs world-scoped or cross-type schema presets. It is not used for the current lore-type definition slice.
 
 ## MVP Field Types
 
@@ -56,7 +81,16 @@ The stored value shape supports JSON-friendly scalar values:
 - `select`
 - `date`
 
-The MVP editor writes simple text values. Backend and frontend parsing preserve string, number, boolean, and null values when they already exist in `fields_json`, so future typed controls can be added without changing the storage format.
+The lore type editor can add, rename, re-key, type, and delete definitions. It supports basic select options as comma-separated text.
+
+The lore page editor shows fields from the selected lore type first and renders simple controls by type:
+
+- text/date/number use inputs.
+- long text uses a textarea.
+- checkbox uses a checkbox.
+- select uses a dropdown.
+
+Manual page-specific custom fields remain supported and are shown after definition-backed fields. Worldie does not delete existing values just because a definition changes.
 
 `lore_link` fields are a likely later addition. For now, users can still type `[[Lore Links]]` into text values, traits, and details.
 
@@ -70,6 +104,12 @@ Worldie already treats lore page updates as partial updates:
 
 This matches the nullable-field persistence semantics used elsewhere in the project store.
 
+Lore type definitions follow the same intent:
+
+- Omitted `fieldDefinitions` during backend lore type replacement preserves existing definitions for that lore type.
+- Explicit `fieldDefinitions: null` clears definitions.
+- Existing lore types without definitions load as `[]`.
+
 ## Export Behavior
 
 Markdown export includes non-empty custom field values in each lore page under:
@@ -81,31 +121,32 @@ Markdown export includes non-empty custom field values in each lore page under:
 - **Species:** Human
 ```
 
-Null and empty-string values are skipped in Markdown export so cleared fields do not appear as filled data. Wiki-style links inside field values remain readable as text.
+When lore type definitions are available, export uses definition order and display labels. Extra page-specific fields are exported after definition-backed fields. Null and empty-string values are skipped in Markdown export so cleared fields do not appear as filled data. Wiki-style links inside field values remain readable as text.
 
 ## Future Table Views
 
 A future table/database view can read the same `customFields` object across lore pages:
 
 - Rows: lore pages.
-- Columns: field names or lore-type field definitions.
+- Columns: lore-type field definitions first, then extra page-level fields.
 - Cells: values from each page's `customFields`.
 - Filters and sorting: derived from scalar value types.
 
-When field definitions are added, they should use stable IDs for field identity. The storage can then evolve from name-keyed values to ID-keyed values, or store both a stable ID and display label during migration.
+Field definitions already use stable IDs. Lore page values are currently keyed by definition `key`, not by definition ID. A future table view can use definition IDs for column identity while continuing to read/write page values through stable keys.
 
 ## Migration Concerns
 
 - Existing legacy lore JSON without `traits` is still interpreted as traits, not custom fields.
 - Existing modern lore JSON without `customFields` loads with `{}`.
-- If future field IDs replace display-name keys, Worldie needs a migration that preserves user-visible labels and avoids merging unrelated fields with the same name.
+- Existing lore types without `field_definitions_json` load with `[]`.
+- If future page values become keyed by field ID instead of definition key, Worldie needs a migration that preserves user-visible labels and avoids merging unrelated fields with the same name.
 - Export and table views should tolerate missing definitions because `.worldie` files may contain older pages.
 
 ## Open Questions
 
-- Should lore type field definitions be stored in the existing `custom_field_schemas` table or a new lore-type-scoped table?
-- Should field values eventually be keyed by stable field ID instead of display name?
+- Should field values eventually be keyed by stable field ID instead of field key?
 - How should field ordering be represented before a full table view exists?
-- Which typed controls should ship first: number, checkbox, select, or date?
 - Should select options live on lore types, templates, or both?
 - How should `lore_link` fields store links: title text, lore page UUID, or both?
+- How should bulk editing handle manual extra fields that are not part of a lore type definition?
+- What validation UI should required fields use without interrupting writing flow?

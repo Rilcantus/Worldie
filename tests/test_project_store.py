@@ -451,6 +451,184 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(len(list_templates_response["templates"]), 1)
         self.assertEqual(list_templates_response["templates"][0]["name"], "Hero")
 
+    def test_lore_type_field_definitions_persist_update_clear_and_preserve_omitted(self):
+        project_uuid, _ = self.db_manager.add_project("Lore Type Field Definitions", "")
+        field_definitions = [
+            {
+                "id": "field-age",
+                "name": "Age",
+                "key": "age",
+                "type": "number",
+                "options": [],
+                "required": False,
+                "order": 1,
+            },
+            {
+                "id": "field-status",
+                "name": "Status",
+                "key": "status",
+                "type": "select",
+                "options": ["Active", "Missing"],
+                "required": True,
+                "order": 0,
+            },
+        ]
+        self.db_manager.replace_lore_types(
+            project_uuid,
+            [
+                {
+                    "id": "type-character",
+                    "name": "Character",
+                    "slug": "character",
+                    "icon": "C",
+                    "order": 0,
+                    "isSystem": True,
+                    "fieldDefinitions": field_definitions,
+                }
+            ],
+        )
+
+        listed = self.db_manager.list_lore_types(project_uuid)
+        self.assertEqual(len(listed), 1)
+        self.assertEqual(json.loads(listed[0][4])[0]["id"], "field-age")
+
+        self.db_manager.replace_lore_types(
+            project_uuid,
+            [
+                {
+                    "id": "type-character",
+                    "name": "Character Revised",
+                    "slug": "character",
+                    "icon": "C",
+                    "order": 0,
+                    "isSystem": True,
+                }
+            ],
+        )
+        preserved = self.db_manager.list_lore_types(project_uuid)
+        self.assertEqual(preserved[0][1], "Character Revised")
+        self.assertEqual(json.loads(preserved[0][4])[1]["name"], "Status")
+
+        updated_definitions = [
+            {
+                **field_definitions[0],
+                "name": "Current age",
+                "order": 0,
+            }
+        ]
+        self.db_manager.replace_lore_types(
+            project_uuid,
+            [
+                {
+                    "id": "type-character",
+                    "name": "Character Revised",
+                    "slug": "character",
+                    "icon": "C",
+                    "order": 0,
+                    "isSystem": True,
+                    "fieldDefinitions": updated_definitions,
+                }
+            ],
+        )
+        updated = self.db_manager.list_lore_types(project_uuid)
+        self.assertEqual(json.loads(updated[0][4])[0]["name"], "Current age")
+
+        self.db_manager.replace_lore_types(
+            project_uuid,
+            [
+                {
+                    "id": "type-character",
+                    "name": "Character Revised",
+                    "slug": "character",
+                    "icon": "C",
+                    "order": 0,
+                    "isSystem": True,
+                    "fieldDefinitions": None,
+                }
+            ],
+        )
+        cleared = self.db_manager.list_lore_types(project_uuid)
+        self.assertIsNone(cleared[0][4])
+
+    def test_sidecar_lore_type_field_definitions_load_empty_for_legacy_and_clear_explicit_nulls(self):
+        project_uuid, _ = self.db_manager.add_project("Sidecar Field Definitions", "")
+        self.db_manager.replace_lore_types(
+            project_uuid,
+            [
+                {
+                    "id": "type-place",
+                    "name": "Place",
+                    "slug": "place",
+                    "icon": "P",
+                    "order": 0,
+                    "isSystem": False,
+                }
+            ],
+        )
+
+        legacy_response = self.sidecar._handle_request(
+            {"action": "list_lore_types", "data": {"projectId": project_uuid}}
+        )
+        self.assertEqual(legacy_response["loreTypes"][0]["fieldDefinitions"], [])
+
+        self.sidecar._handle_request(
+            {
+                "action": "save_lore_types",
+                "data": {
+                    "projectId": project_uuid,
+                    "loreTypes": [
+                        {
+                            "id": "type-place",
+                            "name": "Place",
+                            "slug": "place",
+                            "icon": "P",
+                            "order": 0,
+                            "isSystem": False,
+                            "fieldDefinitions": [
+                                {
+                                    "id": "field-region",
+                                    "name": "Region",
+                                    "key": "region",
+                                    "type": "text",
+                                    "options": [],
+                                    "required": False,
+                                    "order": 0,
+                                }
+                            ],
+                        }
+                    ],
+                },
+            }
+        )
+        saved_response = self.sidecar._handle_request(
+            {"action": "list_lore_types", "data": {"projectId": project_uuid}}
+        )
+        self.assertEqual(saved_response["loreTypes"][0]["fieldDefinitions"][0]["key"], "region")
+
+        self.sidecar._handle_request(
+            {
+                "action": "save_lore_types",
+                "data": {
+                    "projectId": project_uuid,
+                    "loreTypes": [
+                        {
+                            "id": "type-place",
+                            "name": "Place",
+                            "slug": "place",
+                            "icon": "P",
+                            "order": 0,
+                            "isSystem": False,
+                            "fieldDefinitions": None,
+                        }
+                    ],
+                },
+            }
+        )
+        cleared_response = self.sidecar._handle_request(
+            {"action": "list_lore_types", "data": {"projectId": project_uuid}}
+        )
+        self.assertEqual(cleared_response["loreTypes"][0]["fieldDefinitions"], [])
+
     def test_sidecar_returns_structured_error_for_existing_create_project_filepath(self):
         existing_path = self.temp_path / "existing-sidecar.worldie"
         self.db_manager.add_project("Existing Project", str(existing_path))
@@ -621,6 +799,39 @@ class ProjectStoreTests(unittest.TestCase):
         project_uuid, project_path = self.db_manager.add_project("Iron Age: Chronicles", "")
         world_id = self.db_manager.create_world(project_uuid, "Duskfen/Marsh", "A wet and watchful borderland.")
         doc_id = self.db_manager.create_document(project_uuid, world_id, "Chapter: 01 / Arrival?")
+        self.db_manager.replace_lore_types(
+            project_uuid,
+            [
+                {
+                    "id": "type-character",
+                    "name": "Character",
+                    "slug": "character",
+                    "icon": "C",
+                    "order": 0,
+                    "isSystem": True,
+                    "fieldDefinitions": [
+                        {
+                            "id": "field-faction",
+                            "name": "Faction",
+                            "key": "faction",
+                            "type": "text",
+                            "options": [],
+                            "required": False,
+                            "order": 0,
+                        },
+                        {
+                            "id": "field-age",
+                            "name": "Age",
+                            "key": "age",
+                            "type": "number",
+                            "options": [],
+                            "required": False,
+                            "order": 1,
+                        },
+                    ],
+                }
+            ],
+        )
         self.db_manager.update_document(
             project_uuid,
             doc_id,
@@ -638,8 +849,8 @@ class ProjectStoreTests(unittest.TestCase):
                     "traits": [{"name": "Goal", "value": "Find [[Red Harbor]] answers"}],
                     "details": "Knows the [[Ashwake Company]].",
                     "customFields": {
-                        "Age": 31,
-                        "Faction": "Ashwake Company",
+                        "age": 31,
+                        "faction": "Ashwake Company",
                         "Active": True,
                         "Cleared field": None,
                     },
@@ -685,6 +896,8 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIn("- **Age:** 31", lore_text)
         self.assertIn("- **Faction:** Ashwake Company", lore_text)
         self.assertIn("- **Active:** true", lore_text)
+        self.assertLess(lore_text.index("- **Faction:** Ashwake Company"), lore_text.index("- **Age:** 31"))
+        self.assertLess(lore_text.index("- **Age:** 31"), lore_text.index("- **Active:** true"))
         self.assertNotIn("Cleared field", lore_text)
         self.assertIn("- **Goal:** Find [[Red Harbor]] answers", lore_text)
         self.assertIn("Knows the [[Ashwake Company]].", lore_text)

@@ -4,10 +4,11 @@ import {
   parseLoreItemFields,
   stringifyLoreItemFields,
   type LoreCustomFields,
+  type LoreCustomFieldValue,
   type LoreTrait,
 } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
-import type { LoreType } from "../lib/loreTypes";
+import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import { resolveLoreLinks } from "../lib/loreLinks";
 import type { WorldUI } from "../types/ui";
 
@@ -53,6 +54,10 @@ function createBlankTrait(): LoreTrait {
 
 function normalizeCustomFieldName(value: string) {
   return value.trim() || "Custom field";
+}
+
+function formatCustomFieldInputValue(value: LoreCustomFieldValue | undefined) {
+  return value == null ? "" : String(value);
 }
 
 export const LoreView = memo(function LoreView({
@@ -137,7 +142,12 @@ export const LoreView = memo(function LoreView({
     persistTraits(loreItemFields.traits.filter((trait) => trait.id !== traitId));
   };
 
-  const customFieldEntries = Object.entries(loreItemFields.customFields);
+  const fieldDefinitions = activeLoreType?.fieldDefinitions ?? [];
+  const definitionKeys = useMemo(
+    () => new Set(fieldDefinitions.flatMap((field) => [field.key, field.name])),
+    [fieldDefinitions],
+  );
+  const manualCustomFieldEntries = Object.entries(loreItemFields.customFields).filter(([name]) => !definitionKeys.has(name));
 
   const persistCustomFields = (customFields: LoreCustomFields) => {
     persistFields(loreItemFields.traits, loreItemFields.details, customFields);
@@ -157,7 +167,7 @@ export const LoreView = memo(function LoreView({
   const renameCustomField = (previousName: string, nextName: string) => {
     const normalizedName = normalizeCustomFieldName(nextName);
     const nextFields: LoreCustomFields = {};
-    for (const [name, value] of customFieldEntries) {
+    for (const [name, value] of manualCustomFieldEntries) {
       if (name === previousName) {
         nextFields[normalizedName] = value;
       } else if (name !== normalizedName) {
@@ -171,9 +181,72 @@ export const LoreView = memo(function LoreView({
     persistCustomFields({ ...loreItemFields.customFields, [name]: value });
   };
 
+  const updateDefinedCustomFieldValue = (field: CustomFieldDefinition, value: LoreCustomFieldValue) => {
+    persistCustomFields({ ...loreItemFields.customFields, [field.key]: value });
+  };
+
   const removeCustomField = (name: string) => {
     const { [name]: _removed, ...nextFields } = loreItemFields.customFields;
     persistCustomFields(nextFields);
+  };
+
+  const renderDefinedCustomFieldControl = (field: CustomFieldDefinition) => {
+    const value = loreItemFields.customFields[field.key] ?? loreItemFields.customFields[field.name] ?? field.defaultValue ?? "";
+    if (field.type === "long_text") {
+      return (
+        <textarea
+          aria-label={`${field.name} value`}
+          className="lore-textarea custom-field-textarea"
+          value={formatCustomFieldInputValue(value)}
+          onChange={(event) => updateDefinedCustomFieldValue(field, event.target.value)}
+          placeholder={field.name}
+        />
+      );
+    }
+    if (field.type === "checkbox") {
+      return (
+        <label className="meta-tag custom-field-checkbox">
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(event) => updateDefinedCustomFieldValue(field, event.target.checked)}
+          />
+          {Boolean(value) ? "Yes" : "No"}
+        </label>
+      );
+    }
+    if (field.type === "select") {
+      return (
+        <select
+          aria-label={`${field.name} value`}
+          className="lore-input"
+          value={formatCustomFieldInputValue(value)}
+          onChange={(event) => updateDefinedCustomFieldValue(field, event.target.value)}
+        >
+          <option value="">No value</option>
+          {field.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <input
+        aria-label={`${field.name} value`}
+        className="lore-input"
+        type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+        value={formatCustomFieldInputValue(value)}
+        onChange={(event) =>
+          updateDefinedCustomFieldValue(
+            field,
+            field.type === "number" && event.target.value !== "" ? Number(event.target.value) : event.target.value,
+          )
+        }
+        placeholder={field.name}
+      />
+    );
   };
 
   return (
@@ -362,11 +435,20 @@ export const LoreView = memo(function LoreView({
               Add Field
             </button>
           </div>
-          {customFieldEntries.length === 0 ? (
+          {fieldDefinitions.length === 0 && manualCustomFieldEntries.length === 0 ? (
             <div className="rp-empty">No custom fields yet. Add structured facts like age, faction, role, or first appearance.</div>
           ) : (
             <div className="trait-list">
-              {customFieldEntries.map(([name, value]) => (
+              {fieldDefinitions.map((field) => (
+                <div key={field.id} className="custom-field-row">
+                  <div>
+                    <div className="linked-lore-label">{field.name}</div>
+                    <div className="template-list-meta">{field.key} · {field.type}{field.required ? " · required" : ""}</div>
+                  </div>
+                  {renderDefinedCustomFieldControl(field)}
+                </div>
+              ))}
+              {manualCustomFieldEntries.map(([name, value]) => (
                 <div key={name} className="trait-row">
                   <input
                     aria-label="Custom field name"

@@ -1,10 +1,18 @@
 import { canUseBrowserStorage, readStoredJson } from "./browserStorage";
+import { normalizeCustomFieldDefinitions, type CustomFieldDefinition } from "./customFieldDefinitions";
+export {
+  normalizeCustomFieldDefinitions,
+  slugifyCustomFieldKey,
+  type CustomFieldDefinition,
+  type CustomFieldDefinitionType,
+} from "./customFieldDefinitions";
 
 export type LoreType = {
   id: string;
   name: string;
   slug: string;
   icon?: string;
+  fieldDefinitions: CustomFieldDefinition[];
   order: number;
   isSystem: boolean;
 };
@@ -12,13 +20,13 @@ export type LoreType = {
 const STORAGE_KEY = "worldie.loreTypes";
 
 export const SYSTEM_LORE_TYPES: LoreType[] = [
-  { id: "loretype-character", name: "Character", slug: "character", order: 0, isSystem: true },
-  { id: "loretype-place", name: "Place", slug: "place", order: 1, isSystem: true },
-  { id: "loretype-faction", name: "Faction", slug: "faction", order: 2, isSystem: true },
-  { id: "loretype-creature", name: "Creature", slug: "creature", order: 3, isSystem: true },
-  { id: "loretype-item", name: "Item", slug: "item", order: 4, isSystem: true },
-  { id: "loretype-event", name: "Event", slug: "event", order: 5, isSystem: true },
-  { id: "loretype-concept", name: "Concept", slug: "concept", order: 6, isSystem: true },
+  { id: "loretype-character", name: "Character", slug: "character", fieldDefinitions: [], order: 0, isSystem: true },
+  { id: "loretype-place", name: "Place", slug: "place", fieldDefinitions: [], order: 1, isSystem: true },
+  { id: "loretype-faction", name: "Faction", slug: "faction", fieldDefinitions: [], order: 2, isSystem: true },
+  { id: "loretype-creature", name: "Creature", slug: "creature", fieldDefinitions: [], order: 3, isSystem: true },
+  { id: "loretype-item", name: "Item", slug: "item", fieldDefinitions: [], order: 4, isSystem: true },
+  { id: "loretype-event", name: "Event", slug: "event", fieldDefinitions: [], order: 5, isSystem: true },
+  { id: "loretype-concept", name: "Concept", slug: "concept", fieldDefinitions: [], order: 6, isSystem: true },
 ];
 
 export function slugifyLoreTypeName(value: string) {
@@ -35,6 +43,7 @@ function normalizeLoreType(type: LoreType, index: number): LoreType {
     ...type,
     name: type.name.trim() || "Untitled Type",
     slug: slugifyLoreTypeName(type.slug || type.name),
+    fieldDefinitions: normalizeCustomFieldDefinitions(type.fieldDefinitions),
     order: type.order ?? index,
   };
 }

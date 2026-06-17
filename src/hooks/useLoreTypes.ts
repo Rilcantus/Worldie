@@ -96,6 +96,7 @@ export function useLoreTypes(
       id: crypto.randomUUID(),
       name: "New Lore Type",
       slug: slugifyLoreTypeName("New Lore Type"),
+      fieldDefinitions: [],
       order: loreTypes.length,
       isSystem: false,
     };

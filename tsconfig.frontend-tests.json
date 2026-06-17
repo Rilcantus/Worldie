@@ -8,6 +8,7 @@
   },
   "include": [
     "src/lib/browserStorage.ts",
+    "src/lib/customFieldDefinitions.ts",
     "src/lib/loreItems.ts",
     "src/lib/loreTemplates.ts",
     "src/lib/loreTypes.ts",

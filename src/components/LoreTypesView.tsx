@@ -1,5 +1,10 @@
 import type { LoreTemplate } from "../lib/loreTemplates";
-import type { LoreType } from "../lib/loreTypes";
+import {
+  slugifyCustomFieldKey,
+  type CustomFieldDefinition,
+  type CustomFieldDefinitionType,
+  type LoreType,
+} from "../lib/loreTypes";
 import { memo, useEffect, useMemo, useState } from "react";
 
 type LoreTypesViewProps = {
@@ -19,6 +24,8 @@ type LoreTypesViewProps = {
   onReassignAndDeleteLoreType: (loreTypeId: string, replacementLoreTypeId: string) => void;
   onMoveLoreType: (loreTypeId: string, direction: -1 | 1) => void;
 };
+
+const FIELD_TYPES: CustomFieldDefinitionType[] = ["text", "long_text", "number", "checkbox", "select", "date"];
 
 export const LoreTypesView = memo(function LoreTypesView({
   isSidebarCollapsed,
@@ -65,6 +72,54 @@ export const LoreTypesView = memo(function LoreTypesView({
     if (replacementLoreTypeId && replacementOptions.some((type) => type.id === replacementLoreTypeId)) return;
     setReplacementLoreTypeId(replacementOptions[0]?.id ?? "");
   }, [replacementLoreTypeId, replacementOptions]);
+
+  const updateFieldDefinitions = (fieldDefinitions: CustomFieldDefinition[]) => {
+    if (!selectedLoreType) return;
+    onUpdateLoreType(selectedLoreType.id, {
+      fieldDefinitions: fieldDefinitions.map((definition, order) => ({ ...definition, order })),
+    });
+  };
+
+  const addFieldDefinition = () => {
+    if (!selectedLoreType) return;
+    const nextIndex = selectedLoreType.fieldDefinitions.length + 1;
+    const nextField: CustomFieldDefinition = {
+      id: crypto.randomUUID(),
+      name: `Field ${nextIndex}`,
+      key: `field_${nextIndex}`,
+      type: "text",
+      options: [],
+      required: false,
+      order: selectedLoreType.fieldDefinitions.length,
+    };
+    updateFieldDefinitions([...selectedLoreType.fieldDefinitions, nextField]);
+  };
+
+  const updateFieldDefinition = (fieldId: string, updates: Partial<CustomFieldDefinition>) => {
+    if (!selectedLoreType) return;
+    updateFieldDefinitions(
+      selectedLoreType.fieldDefinitions.map((definition) => {
+        if (definition.id !== fieldId) return definition;
+        const name = updates.name ?? definition.name;
+        return {
+          ...definition,
+          ...updates,
+          name,
+          key:
+            updates.key !== undefined
+              ? slugifyCustomFieldKey(updates.key)
+              : updates.name !== undefined
+                ? slugifyCustomFieldKey(name)
+                : definition.key,
+        };
+      }),
+    );
+  };
+
+  const deleteFieldDefinition = (fieldId: string) => {
+    if (!selectedLoreType) return;
+    updateFieldDefinitions(selectedLoreType.fieldDefinitions.filter((definition) => definition.id !== fieldId));
+  };
 
   return (
     <div className="editor-pane">
@@ -204,6 +259,80 @@ export const LoreTypesView = memo(function LoreTypesView({
                     </div>
                   </>
                 ) : null}
+              </div>
+
+              <div className="lore-panel">
+                <div className="lore-panel-header">
+                  <div className="linked-lore-label">Custom Field Definitions</div>
+                  <button className="tb-btn" type="button" onClick={addFieldDefinition}>
+                    Add Field
+                  </button>
+                </div>
+                {selectedLoreType.fieldDefinitions.length === 0 ? (
+                  <div className="rp-empty">No reusable fields yet. Add fields like Age, Species, Faction, or First appearance.</div>
+                ) : (
+                  <div className="trait-list">
+                    {selectedLoreType.fieldDefinitions.map((field) => (
+                      <div key={field.id} className="field-definition-row">
+                        <input
+                          aria-label="Field name"
+                          className="lore-input trait-name-input"
+                          value={field.name}
+                          onChange={(event) => updateFieldDefinition(field.id, { name: event.target.value })}
+                          placeholder="Field label"
+                        />
+                        <input
+                          aria-label="Field key"
+                          className="lore-input trait-name-input"
+                          value={field.key}
+                          onChange={(event) => updateFieldDefinition(field.id, { key: event.target.value })}
+                          placeholder="field_key"
+                        />
+                        <select
+                          aria-label="Field type"
+                          className="lore-input"
+                          value={field.type}
+                          onChange={(event) => updateFieldDefinition(field.id, { type: event.target.value as CustomFieldDefinitionType })}
+                        >
+                          {FIELD_TYPES.map((fieldType) => (
+                            <option key={fieldType} value={fieldType}>
+                              {fieldType}
+                            </option>
+                          ))}
+                        </select>
+                        {field.type === "select" ? (
+                          <input
+                            aria-label="Select options"
+                            className="lore-input"
+                            value={field.options.join(", ")}
+                            onChange={(event) =>
+                              updateFieldDefinition(field.id, {
+                                options: event.target.value
+                                  .split(",")
+                                  .map((option) => option.trim())
+                                  .filter(Boolean),
+                              })
+                            }
+                            placeholder="Option A, Option B"
+                          />
+                        ) : (
+                          <div></div>
+                        )}
+                        <label className="meta-tag">
+                          <input
+                            type="checkbox"
+                            checked={field.required}
+                            onChange={(event) => updateFieldDefinition(field.id, { required: event.target.checked })}
+                          />
+                          Required
+                        </label>
+                        <button className="tb-btn" type="button" onClick={() => deleteFieldDefinition(field.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="lore-panel">
