@@ -1,26 +1,32 @@
 # Worldie
 
-Offline-first desktop app for building fictional worlds.
+Worldie is an offline-first desktop app for building fictional worlds.
+
+It is aimed at writers, dungeon masters, and narrative game designers who want a fast local workspace for lore, characters, documents, timelines, relationships, and story planning.
+
+The product goal is:
+
+> Obsidian and Scrivener built specifically for fantasy world-building.
 
 ## Current Status
 
-Worldie is now a working desktop MVP with real `.worldie` project files, project-scoped persistence, and active writing/worldbuilding workflows. The app is no longer a static scaffold or browser-only mockup.
+Worldie is a working desktop MVP, not just a static scaffold. It has real `.worldie` project files, project-scoped SQLite persistence, and active writing/worldbuilding workflows.
 
-Current implemented features:
+The current build supports:
 
 - `.worldie` project file creation, opening, and save-as flows
-- Recent projects and current project file awareness
+- Recent projects and active project file awareness
 - Project CRUD
 - World CRUD
 - Document CRUD
 - Lore item CRUD
 - Lore template CRUD
-- Lore type CRUD with user-defined categories
+- Lore type CRUD with user-defined lore categories
 - Relationship CRUD
 - Timeline event CRUD
-- Dynamic tab bar with persisted tabs
 - Workbench dashboard view
-- Sidebar-driven workspace navigation
+- Dynamic tab bar with project-scoped tab persistence
+- Sidebar navigation with active-state handling
 - Resizable and collapsible panels
 - Search and quick-open across current-world documents and lore
 - Demo project generation with seeded sample data
@@ -31,57 +37,61 @@ Current implemented features:
 - Focus mode and typewriter mode in the editor
 - Keyboard-heavy editor workflow with toolbar, slash commands, undo/redo, and block tools
 - Save-state feedback across editor and workspace flows
-- Richer relationship and timeline workspace views with filters, focus panels, and linked-page actions
-- Project-scoped tab persistence and cross-world tab restore behavior
-- Clear persistence boundary: project data in `.worldie`, UI/session state local to the app
+- Relationship workspace with filters, focus panels, summaries, and lightweight network preview
+- Timeline workspace with filters, summary cards, visual canvas, chronological outline, type tracks, and era grouping
+- Clear persistence boundary: project data lives in `.worldie` files, while UI/session state stays local to the app
 
 ## Current Limitations
 
-The app is still in MVP transition, not final production shape.
+Worldie is in MVP hardening, not final production shape.
 
 Known gaps:
 
 - The editor uses a custom contenteditable path, not TipTap yet
-- Relationship view is a richer workspace now, but not a full interactive graph editor
-- Timeline view is a richer workspace now, but not a full multi-track timeline system
-- Cover image and broader media support are still missing
-- The editor still needs broader long-session reliability testing
-- Export and publishing flows are still not implemented
-- Automated QA coverage is still light beyond typecheck/build verification
+- The editor needs broader long-session reliability testing
+- Relationship visualization is useful but not a full graph editor
+- Timeline visualization is useful but not a full multi-track timeline system
+- Cover image and broader media support are not implemented yet
+- Export and publishing flows are not implemented yet
+- Automated QA coverage exists but should be expanded around full app workflows
+- Some nullable database fields currently use partial-update behavior that makes explicit clearing harder than it should be
 
-## MVP Scope
+## Architecture
 
-Current MVP direction:
+Worldie uses:
 
-- Project file management
-- World management
-- Basic writing editor
-- Lore item CRUD
-- Lore template CRUD
-- Lore type management
-- Relationship CRUD
-- Timeline CRUD
-- Local SQLite-backed persistence
-- Sidebar navigation
-- Workbench
-- Search and quick-open
+- Tauri for the desktop shell
+- React for the frontend
+- Tailwind CSS for styling
+- Python sidecar for project-file and persistence operations
+- SQLite-backed `.worldie` files for portable project data
 
-## Architecture Direction
+Current storage model:
 
-Target product direction:
+- Each project is stored as a portable `.worldie` SQLite database
+- Project entities persist through the active `.worldie` file
+- Browser/local storage is reserved for UI state, session state, and legacy migration helpers
 
-- Tauri desktop shell
-- React frontend
-- Python sidecar for file and export operations
-- SQLite-backed portable `.worldie` files
+## Data Model
 
-Current reality:
+Core project entities:
 
-- React app with Tauri-oriented structure
-- Python sidecar handling project-file and persistence operations
-- Portable per-project `.worldie` SQLite files as the main storage boundary
-- Project data persists through `.worldie` files, while UI/session state stays local to the app
-- The editor, relationship workspace, and timeline workspace are currently custom in-app implementations
+- `projects`
+- `worlds`
+- `lore_pages`
+- `documents`
+- `relationships`
+- `timeline_events`
+- `lore_types`
+- `lore_templates`
+
+Important data principles:
+
+- Keep project files portable
+- Use UUIDs for major entities
+- Store rich/editor content in JSON-friendly fields where useful
+- Keep normal project content out of browser storage
+- Preserve offline-first behavior
 
 ## Run
 
@@ -95,45 +105,38 @@ Quick verification:
 
 1. `npm run verify`
 
-## Data Model
+If `npm run verify` fails only during the final Vite build because the managed shell cannot access a directory outside the workspace, run the build directly:
 
-The current data model centers on these entities:
+```powershell
+& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build
+```
 
-- `projects`
-- `worlds`
-- `lore_pages`
-- `documents`
-- `relationships`
-- `timeline_events`
-- `lore_types`
-- `lore_templates`
+The direct Vite build is the useful check for whether the production bundle itself works in that case.
 
-Notes:
+## Useful Commands
 
-- IDs remain UUID-based
-- Rich content stays JSON-friendly where needed
-- Each project is intended to live in a single portable `.worldie` SQLite database
+```powershell
+npm run test:python
+npm run test:frontend
+npm run typecheck
+npm run build
+npm run verify
+```
 
-## Where The Build Is Going
+## Recommended Next Work
 
-Near-term roadmap:
+The next useful development sequence is:
 
-1. Harden the current editor path and long-term editing model
-2. Add broader QA coverage around startup, switching, and workspace flows
-3. Improve relationship visualization beyond the current network workspace
-4. Improve timeline visualization beyond the current narrative timeline workspace
-5. Add cover image and broader media support
-6. Strengthen export and publishing boundaries for future Spaci integration
+1. Harden the current editor path with more paste, selection, formatting, autosave, and long-session tests
+2. Improve persistence semantics for nullable fields so users can explicitly clear optional values
+3. Add broader workflow QA around project switching, dirty editor state, missing project files, startup recovery, and tab restore
+4. Decide whether to continue hardening the custom editor or migrate deliberately to TipTap
+5. Add cover image/media support with portable project-file rules
+6. Deepen relationship visualization beyond the current lightweight network preview
+7. Deepen timeline visualization beyond the current narrative canvas
+8. Define export bundle boundaries for future Spaci integration
 
-Longer-term direction:
+## Continuation Brief
 
-- Graph-based relationship map
-- Richer timeline visualization
-- Export bundles for Spaci
-- Better publishing and export pipeline
+For a handoff document that can be pasted into another ChatGPT/Codex thread, see `CONTINUATION_BRIEF.md`.
 
-## Philosophy
-
-Worldie should feel like:
-
-"Obsidian and Scrivener built specifically for fantasy world-building."

@@ -116,6 +116,195 @@ class ProjectStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(FileNotFoundError, "Project not found: missing-project"):
             self.db_manager.list_worlds("missing-project")
 
+    def test_project_entity_updates_can_clear_optional_fields(self):
+        project_uuid, _ = self.db_manager.add_project("Nullable Fields", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+        lore_id = self.db_manager.create_lore_page(
+            project_uuid,
+            world_id,
+            "Mara Quill",
+            "Character",
+            tags_json="protagonist",
+            fields_json='{"status":"active"}',
+            cover_image_path="covers/mara.png",
+        )
+        document_id = self.db_manager.create_document(
+            project_uuid,
+            world_id,
+            "Chapter 01",
+            content_json="Draft text",
+            folder_path="Scenes",
+        )
+        relationship_id = self.db_manager.create_relationship(
+            project_uuid,
+            world_id,
+            lore_id,
+            lore_id,
+            "self",
+            notes="Intentional test relationship",
+        )
+        event_id = self.db_manager.create_timeline_event(
+            project_uuid,
+            world_id,
+            "The Quiet Arrival",
+            event_date="847 AE",
+            event_type="arrival",
+            linked_page_id=lore_id,
+            description="Mara arrives in Duskfen.",
+        )
+
+        self.db_manager.update_document(project_uuid, document_id, content_json=None, folder_path=None)
+        document = self.db_manager.list_documents(project_uuid, world_id)[0]
+        self.assertIsNone(document[3])
+        self.assertIsNone(document[4])
+
+        self.db_manager.update_lore_page(
+            project_uuid,
+            lore_id,
+            tags_json=None,
+            fields_json=None,
+            cover_image_path=None,
+        )
+        lore_page = self.db_manager.list_lore_pages(project_uuid, world_id)[0]
+        self.assertIsNone(lore_page[4])
+        self.assertIsNone(lore_page[5])
+        self.assertIsNone(lore_page[6])
+
+        self.db_manager.update_relationship(project_uuid, relationship_id, notes=None)
+        relationship = self.db_manager.list_relationships(project_uuid, world_id)[0]
+        self.assertIsNone(relationship[5])
+
+        self.db_manager.update_timeline_event(
+            project_uuid,
+            event_id,
+            event_date=None,
+            event_type=None,
+            linked_page_id=None,
+            description=None,
+        )
+        event = self.db_manager.list_timeline_events(project_uuid, world_id)[0]
+        self.assertIsNone(event[3])
+        self.assertIsNone(event[4])
+        self.assertIsNone(event[5])
+        self.assertIsNone(event[6])
+
+    def test_sidecar_updates_preserve_omitted_fields_and_clear_explicit_nulls(self):
+        project_uuid, _ = self.db_manager.add_project("Sidecar Nullable Fields", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+        lore_id = self.db_manager.create_lore_page(
+            project_uuid,
+            world_id,
+            "Mara Quill",
+            "Character",
+            tags_json="protagonist",
+            fields_json='{"status":"active"}',
+            cover_image_path="covers/mara.png",
+        )
+        document_id = self.db_manager.create_document(
+            project_uuid,
+            world_id,
+            "Chapter 01",
+            content_json="Draft text",
+            folder_path="Scenes",
+        )
+        relationship_id = self.db_manager.create_relationship(
+            project_uuid,
+            world_id,
+            lore_id,
+            lore_id,
+            "self",
+            notes="Intentional test relationship",
+        )
+        event_id = self.db_manager.create_timeline_event(
+            project_uuid,
+            world_id,
+            "The Quiet Arrival",
+            event_date="847 AE",
+            event_type="arrival",
+            linked_page_id=lore_id,
+            description="Mara arrives in Duskfen.",
+        )
+
+        preserve_document_response = self.sidecar._handle_request(
+            {
+                "action": "update_document",
+                "data": {
+                    "projectId": project_uuid,
+                    "documentId": document_id,
+                    "title": "Chapter 01 Revised",
+                },
+            }
+        )
+        self.assertEqual(preserve_document_response["status"], "ok")
+        document = self.db_manager.list_documents(project_uuid, world_id)[0]
+        self.assertEqual(document[2], "Chapter 01 Revised")
+        self.assertEqual(document[3], "Draft text")
+        self.assertEqual(document[4], "Scenes")
+
+        self.sidecar._handle_request(
+            {
+                "action": "update_document",
+                "data": {
+                    "projectId": project_uuid,
+                    "documentId": document_id,
+                    "contentJson": None,
+                    "folderPath": None,
+                },
+            }
+        )
+        document = self.db_manager.list_documents(project_uuid, world_id)[0]
+        self.assertIsNone(document[3])
+        self.assertIsNone(document[4])
+
+        self.sidecar._handle_request(
+            {
+                "action": "update_lore_page",
+                "data": {
+                    "projectId": project_uuid,
+                    "loreId": lore_id,
+                    "tagsJson": None,
+                    "fieldsJson": None,
+                    "coverImagePath": None,
+                },
+            }
+        )
+        lore_page = self.db_manager.list_lore_pages(project_uuid, world_id)[0]
+        self.assertIsNone(lore_page[4])
+        self.assertIsNone(lore_page[5])
+        self.assertIsNone(lore_page[6])
+
+        self.sidecar._handle_request(
+            {
+                "action": "update_relationship",
+                "data": {
+                    "projectId": project_uuid,
+                    "relationshipId": relationship_id,
+                    "notes": None,
+                },
+            }
+        )
+        relationship = self.db_manager.list_relationships(project_uuid, world_id)[0]
+        self.assertIsNone(relationship[5])
+
+        self.sidecar._handle_request(
+            {
+                "action": "update_timeline_event",
+                "data": {
+                    "projectId": project_uuid,
+                    "eventId": event_id,
+                    "eventDate": None,
+                    "eventType": None,
+                    "linkedPageId": None,
+                    "description": None,
+                },
+            }
+        )
+        event = self.db_manager.list_timeline_events(project_uuid, world_id)[0]
+        self.assertIsNone(event[3])
+        self.assertIsNone(event[4])
+        self.assertIsNone(event[5])
+        self.assertIsNone(event[6])
+
     def test_sidecar_request_flow_persists_project_entities(self):
         create_response = self.sidecar._handle_request(
             {

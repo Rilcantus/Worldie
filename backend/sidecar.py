@@ -8,6 +8,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 from db.db_manager import (
+    OMITTED,
     add_project,
     create_document,
     create_lore_page,
@@ -65,6 +66,10 @@ def _serialize_project(row: Any) -> Dict[str, Any]:
 
 def _serialize_projects(rows: Any) -> list[Dict[str, Any]]:
     return [_serialize_project(row) for row in rows]
+
+
+def _optional(data: Dict[str, Any], key: str) -> Any:
+    return data[key] if key in data else OMITTED
 
 
 def _handle_request(request: Dict[str, Any]) -> Dict[str, Any]:
@@ -289,11 +294,11 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         update_lore_page(
             project_id,
             lore_id,
-            title=data.get("title"),
-            page_type=data.get("type"),
-            tags_json=data.get("tagsJson"),
-            fields_json=data.get("fieldsJson"),
-            cover_image_path=data.get("coverImagePath"),
+            title=_optional(data, "title"),
+            page_type=_optional(data, "type"),
+            tags_json=_optional(data, "tagsJson"),
+            fields_json=_optional(data, "fieldsJson"),
+            cover_image_path=_optional(data, "coverImagePath"),
         )
         return {"status": "ok"}
 
@@ -345,9 +350,9 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         update_document(
             project_id,
             doc_id,
-            title=data.get("title"),
-            content_json=data.get("contentJson"),
-            folder_path=data.get("folderPath"),
+            title=_optional(data, "title"),
+            content_json=_optional(data, "contentJson"),
+            folder_path=_optional(data, "folderPath"),
         )
         return {"status": "ok"}
 
@@ -423,10 +428,10 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         update_relationship(
             project_id,
             relationship_id,
-            source_page_id=data.get("sourcePageId"),
-            target_page_id=data.get("targetPageId"),
-            relation_type=data.get("relationType"),
-            notes=data.get("notes"),
+            source_page_id=_optional(data, "sourcePageId"),
+            target_page_id=_optional(data, "targetPageId"),
+            relation_type=_optional(data, "relationType"),
+            notes=_optional(data, "notes"),
         )
         return {"status": "ok"}
 
@@ -487,11 +492,11 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         update_timeline_event(
             project_id,
             event_id,
-            title=data.get("title"),
-            event_date=data.get("eventDate"),
-            event_type=data.get("eventType"),
-            linked_page_id=data.get("linkedPageId"),
-            description=data.get("description"),
+            title=_optional(data, "title"),
+            event_date=_optional(data, "eventDate"),
+            event_type=_optional(data, "eventType"),
+            linked_page_id=_optional(data, "linkedPageId"),
+            description=_optional(data, "description"),
         )
         return {"status": "ok"}
 

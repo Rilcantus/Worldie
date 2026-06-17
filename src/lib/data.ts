@@ -141,6 +141,10 @@ async function invokeProjectStore<T>(action: string, data?: Record<string, unkno
   }
 }
 
+function omitUndefined<T extends Record<string, unknown>>(data: T): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
+}
+
 export function getProjectFilename(project: Pick<Project, "filepath" | "title"> | null | undefined) {
   if (!project?.filepath) return `${project?.title ?? "Project"}.worldie`;
   const normalized = project.filepath.split("\\").join("/");
@@ -473,14 +477,14 @@ export async function updateLorePage(
   loreId: string,
   updates: Partial<Pick<LorePage, "title" | "type" | "tagsJson" | "fieldsJson">>
 ): Promise<void> {
-  await invokeProjectStore("update_lore_page", {
+  await invokeProjectStore("update_lore_page", omitUndefined({
     loreId,
     projectId,
     title: updates.title,
     type: updates.type,
     tagsJson: updates.tagsJson,
     fieldsJson: updates.fieldsJson,
-  });
+  }));
 }
 
 export async function deleteLorePage(projectId: string, loreId: string): Promise<void> {
@@ -503,13 +507,13 @@ export async function updateDocument(
   documentId: string,
   updates: Partial<Pick<Document, "title" | "contentJson" | "folderPath">>
 ): Promise<void> {
-  await invokeProjectStore("update_document", {
+  await invokeProjectStore("update_document", omitUndefined({
     documentId,
     projectId,
     title: updates.title,
     contentJson: updates.contentJson,
     folderPath: updates.folderPath,
-  });
+  }));
 }
 
 export async function deleteDocument(projectId: string, documentId: string): Promise<void> {
@@ -545,7 +549,7 @@ export async function updateRelationship(
   relationshipId: string,
   updates: Partial<Pick<Relationship, "sourcePageId" | "targetPageId" | "relationType" | "notes">>,
 ): Promise<void> {
-  await invokeProjectStore("update_relationship", { projectId, relationshipId, ...updates });
+  await invokeProjectStore("update_relationship", omitUndefined({ projectId, relationshipId, ...updates }));
 }
 
 export async function deleteRelationship(projectId: string, relationshipId: string): Promise<void> {
@@ -581,7 +585,7 @@ export async function updateTimelineEvent(
   eventId: string,
   updates: Partial<Pick<TimelineEvent, "title" | "eventDate" | "eventType" | "linkedPageId" | "description">>,
 ): Promise<void> {
-  await invokeProjectStore("update_timeline_event", { projectId, eventId, ...updates });
+  await invokeProjectStore("update_timeline_event", omitUndefined({ projectId, eventId, ...updates }));
 }
 
 export async function deleteTimelineEvent(projectId: string, eventId: string): Promise<void> {

@@ -483,12 +483,13 @@ export function applyNoteBlockPrefix(text: string, selection: SelectionOffsets) 
     if (lineInExistingNote[index] && selectionStartsInNote) {
       return line;
     }
-    const normalized = stripKnownLinePrefix(line);
+    const indentation = getLineIndentation(line);
+    const normalized = stripKnownLinePrefixContent(line);
     const nextPrefix = selectionStartsInNote || index > 0 ? "> " : "> Note: ";
     if (normalized.length > 0) {
-      return `${nextPrefix}${normalized}`;
+      return `${indentation}${nextPrefix}${normalized}`;
     }
-    return index === 0 && !selectionStartsInNote ? nextPrefix : nextPrefix.trimEnd();
+    return index === 0 && !selectionStartsInNote ? `${indentation}${nextPrefix}` : `${indentation}${nextPrefix.trimEnd()}`;
   });
   const updated = updatedLines.join("\n");
   const nextText = replaceRange(text, lineStart, lineEnd, updated);

@@ -7,6 +7,7 @@ from datetime import datetime
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTRY_DB_PATH = os.path.join(ROOT_DIR, "db", "projects_registry.db")
 PROJECTS_DIR = os.path.join(ROOT_DIR, "projects")
+OMITTED = object()
 
 
 def _now_iso():
@@ -50,6 +51,28 @@ def _ensure_unique_index(conn, table, column, index_name):
     if c.fetchone() is None:
         c.execute(f"CREATE UNIQUE INDEX IF NOT EXISTS {index_name} ON {table} ({column})")
         conn.commit()
+
+
+def _update_partial(conn, table, id_column, id_value, updates):
+    assignments = []
+    values = []
+    for column, value in updates:
+        if value is OMITTED:
+            continue
+        assignments.append(f"{column} = ?")
+        values.append(value)
+    assignments.append("updated_at = ?")
+    values.append(_now_iso())
+    values.append(id_value)
+    c = conn.cursor()
+    c.execute(
+        f"""
+        UPDATE {table}
+        SET {", ".join(assignments)}
+        WHERE {id_column} = ?
+        """,
+        values,
+    )
 
 
 def _init_registry_db():
@@ -523,23 +546,29 @@ def list_lore_pages(project_uuid, world_id, page_type=None):
     return rows
 
 
-def update_lore_page(project_uuid, lore_id, title=None, page_type=None, tags_json=None, fields_json=None, cover_image_path=None):
+def update_lore_page(
+    project_uuid,
+    lore_id,
+    title=OMITTED,
+    page_type=OMITTED,
+    tags_json=OMITTED,
+    fields_json=OMITTED,
+    cover_image_path=OMITTED,
+):
     db_path = _get_project_filepath(project_uuid)
     conn = _project_conn(db_path)
-    c = conn.cursor()
-    now = _now_iso()
-    c.execute(
-        """
-        UPDATE lore_pages
-        SET title = COALESCE(?, title),
-            type = COALESCE(?, type),
-            tags_json = COALESCE(?, tags_json),
-            fields_json = COALESCE(?, fields_json),
-            cover_image_path = COALESCE(?, cover_image_path),
-            updated_at = ?
-        WHERE id = ?
-        """,
-        (title, page_type, tags_json, fields_json, cover_image_path, now, lore_id),
+    _update_partial(
+        conn,
+        "lore_pages",
+        "id",
+        lore_id,
+        [
+            ("title", title),
+            ("type", page_type),
+            ("tags_json", tags_json),
+            ("fields_json", fields_json),
+            ("cover_image_path", cover_image_path),
+        ],
     )
     conn.commit()
     conn.close()
@@ -595,21 +624,19 @@ def list_documents(project_uuid, world_id):
     return rows
 
 
-def update_document(project_uuid, doc_id, title=None, content_json=None, folder_path=None):
+def update_document(project_uuid, doc_id, title=OMITTED, content_json=OMITTED, folder_path=OMITTED):
     db_path = _get_project_filepath(project_uuid)
     conn = _project_conn(db_path)
-    c = conn.cursor()
-    now = _now_iso()
-    c.execute(
-        """
-        UPDATE documents
-        SET title = COALESCE(?, title),
-            content_json = COALESCE(?, content_json),
-            folder_path = COALESCE(?, folder_path),
-            updated_at = ?
-        WHERE id = ?
-        """,
-        (title, content_json, folder_path, now, doc_id),
+    _update_partial(
+        conn,
+        "documents",
+        "id",
+        doc_id,
+        [
+            ("title", title),
+            ("content_json", content_json),
+            ("folder_path", folder_path),
+        ],
     )
     conn.commit()
     conn.close()
@@ -665,22 +692,27 @@ def list_relationships(project_uuid, world_id):
     return rows
 
 
-def update_relationship(project_uuid, relationship_id, source_page_id=None, target_page_id=None, relation_type=None, notes=None):
+def update_relationship(
+    project_uuid,
+    relationship_id,
+    source_page_id=OMITTED,
+    target_page_id=OMITTED,
+    relation_type=OMITTED,
+    notes=OMITTED,
+):
     db_path = _get_project_filepath(project_uuid)
     conn = _project_conn(db_path)
-    c = conn.cursor()
-    now = _now_iso()
-    c.execute(
-        """
-        UPDATE relationships
-        SET from_id = COALESCE(?, from_id),
-            to_id = COALESCE(?, to_id),
-            type = COALESCE(?, type),
-            notes = COALESCE(?, notes),
-            updated_at = ?
-        WHERE id = ?
-        """,
-        (source_page_id, target_page_id, relation_type, notes, now, relationship_id),
+    _update_partial(
+        conn,
+        "relationships",
+        "id",
+        relationship_id,
+        [
+            ("from_id", source_page_id),
+            ("to_id", target_page_id),
+            ("type", relation_type),
+            ("notes", notes),
+        ],
     )
     conn.commit()
     conn.close()
@@ -736,23 +768,29 @@ def list_timeline_events(project_uuid, world_id):
     return rows
 
 
-def update_timeline_event(project_uuid, event_id, title=None, event_date=None, event_type=None, linked_page_id=None, description=None):
+def update_timeline_event(
+    project_uuid,
+    event_id,
+    title=OMITTED,
+    event_date=OMITTED,
+    event_type=OMITTED,
+    linked_page_id=OMITTED,
+    description=OMITTED,
+):
     db_path = _get_project_filepath(project_uuid)
     conn = _project_conn(db_path)
-    c = conn.cursor()
-    now = _now_iso()
-    c.execute(
-        """
-        UPDATE timeline_events
-        SET title = COALESCE(?, title),
-            date_text = COALESCE(?, date_text),
-            event_type = COALESCE(?, event_type),
-            linked_page_id = COALESCE(?, linked_page_id),
-            description = COALESCE(?, description),
-            updated_at = ?
-        WHERE id = ?
-        """,
-        (title, event_date, event_type, linked_page_id, description, now, event_id),
+    _update_partial(
+        conn,
+        "timeline_events",
+        "id",
+        event_id,
+        [
+            ("title", title),
+            ("date_text", event_date),
+            ("event_type", event_type),
+            ("linked_page_id", linked_page_id),
+            ("description", description),
+        ],
     )
     conn.commit()
     conn.close()

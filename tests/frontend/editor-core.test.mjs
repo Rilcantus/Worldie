@@ -164,6 +164,10 @@ test("applyNoteBlockPrefix converts the current line into a note block", () => {
   assert.equal(fromBullet.text, "> Note: Reminder");
   assert.deepEqual(fromBullet.selection, { start: 8, end: 16 });
 
+  const fromIndentedBullet = applyNoteBlockPrefix("  - Reminder", { start: 4, end: 12 });
+  assert.equal(fromIndentedBullet.text, "  > Note: Reminder");
+  assert.deepEqual(fromIndentedBullet.selection, { start: 10, end: 18 });
+
   const alreadyNote = applyNoteBlockPrefix("> Note: Reminder", { start: 8, end: 16 });
   assert.equal(alreadyNote.text, "> Note: Reminder");
   assert.deepEqual(alreadyNote.selection, { start: 8, end: 16 });
