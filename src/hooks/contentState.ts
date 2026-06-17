@@ -165,6 +165,20 @@ export function setLoreCreateCustomFieldValue(
   };
 }
 
+export function getDocumentEditorModeState({
+  isPreviewOpen,
+  readableLoreLinks,
+}: {
+  isPreviewOpen: boolean;
+  readableLoreLinks: boolean;
+}) {
+  return {
+    mode: isPreviewOpen ? "preview" : "write",
+    canUseReadableLinks: isPreviewOpen,
+    readableLoreLinksActive: Boolean(isPreviewOpen && readableLoreLinks),
+  };
+}
+
 export function buildLoreEditorDraftPage(
   page: LorePage,
   updates: Pick<LorePage, "title" | "type"> & { tagsJson: string; fieldsJson: string },

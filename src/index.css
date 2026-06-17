@@ -929,6 +929,37 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 .tb-btn:hover { background: var(--bg-hover); color: var(--text-secondary); }
 .tb-btn.active { background: var(--accent-glow); color: var(--accent-bright); }
+.editor-mode-segment {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(11, 9, 20, 0.62);
+  flex: 0 0 auto;
+}
+.editor-mode-btn {
+  min-height: 26px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+.editor-mode-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+.editor-mode-btn.active {
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
 .tb-select {
   min-width: 190px;
   padding: 5px 9px;
@@ -1406,11 +1437,29 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   background: var(--bg-card);
 }
 
+.editor-preview-reading-mode {
+  margin-top: 0;
+  min-height: 420px;
+  padding: clamp(22px, 4vw, 42px);
+  background:
+    linear-gradient(180deg, rgba(20, 17, 31, 0.96), rgba(14, 12, 22, 0.98)),
+    var(--bg-card);
+  border-color: rgba(157, 125, 232, 0.22);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+}
+
 .editor-preview-body {
   word-break: break-word;
   line-height: 1.8;
   color: var(--text-secondary);
   font-size: 16px;
+}
+
+.editor-preview-reading-mode .editor-preview-body {
+  max-width: 760px;
+  margin: 0 auto;
+  color: var(--text-primary);
+  line-height: 1.86;
 }
 
 .editor-preview-text {
@@ -1427,7 +1476,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   font-size: 22px;
 }
 .editor-preview-paragraph {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .editor-preview-quote {
   margin-bottom: 12px;

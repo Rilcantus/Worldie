@@ -122,27 +122,26 @@ export const EditorSurface = memo(function EditorSurface({
         </div>
       ) : (
         <>
-          <div
-            ref={editorRef}
-            className={`doc-editor ${isFocusMode ? "doc-editor-focus" : ""}`}
-            contentEditable
-            suppressContentEditableWarning
-            data-placeholder="Start writing..."
-            onInput={onEditorInput}
-            onKeyDown={onEditorKeyDown}
-            onPaste={onEditorPaste}
-            onBlur={onEditorBlur}
-            onMouseUp={onSyncSelection}
-            onKeyUp={onSyncSelection}
-            spellCheck
-          />
-
           {isPreviewOpen ? (
-            <div className="editor-preview">
-              <div className="linked-lore-label">Preview</div>
+            <div className="editor-preview editor-preview-reading-mode">
               <div className="editor-preview-body">{renderedPreview}</div>
             </div>
-          ) : null}
+          ) : (
+            <div
+              ref={editorRef}
+              className={`doc-editor ${isFocusMode ? "doc-editor-focus" : ""}`}
+              contentEditable
+              suppressContentEditableWarning
+              data-placeholder="Start writing..."
+              onInput={onEditorInput}
+              onKeyDown={onEditorKeyDown}
+              onPaste={onEditorPaste}
+              onBlur={onEditorBlur}
+              onMouseUp={onSyncSelection}
+              onKeyUp={onSyncSelection}
+              spellCheck
+            />
+          )}
         </>
       )}
 

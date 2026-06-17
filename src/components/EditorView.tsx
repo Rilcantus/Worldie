@@ -224,6 +224,7 @@ export const EditorView = memo(function EditorView({
   const documentMenuRef = useRef<HTMLDivElement | null>(null);
   const pendingSelectionRef = useRef<SelectionOffsets | null>(null);
   const lastEditorSelectionRef = useRef<SelectionOffsets | null>(null);
+  const suppressNextEditorBlurSaveRef = useRef(false);
   const focusStateRef = useRef<{
     sidebarCollapsed: boolean;
     docListCollapsed: boolean;
@@ -451,7 +452,7 @@ export const EditorView = memo(function EditorView({
       setSelectionOffsets(editor, displaySelection.start, displaySelection.end);
       pendingSelectionRef.current = null;
     }
-  }, [activeDocumentId, activeEditorText, editorDisplay.html]);
+  }, [activeDocumentId, activeEditorText, editorDisplay.html, isPreviewOpen]);
 
   useEffect(() => {
     const syncSelection = () => {
@@ -953,6 +954,9 @@ export const EditorView = memo(function EditorView({
 
   const changeEditorMode = (nextMode: EditorPresentationMode) => {
     if (nextMode === editorMode) return;
+    if (nextMode === "typewriter") {
+      setIsPreviewOpen(false);
+    }
     if (editorMode === "typewriter" && nextMode === "standard") {
       runAfterTypewriterDraftCommit(() => {
         setEditorMode((current) => (current === nextMode ? current : nextMode));
@@ -960,6 +964,14 @@ export const EditorView = memo(function EditorView({
       return;
     }
     setEditorMode((current) => (current === nextMode ? current : nextMode));
+  };
+
+  const setPreviewMode = (isOpen: boolean) => {
+    if (isOpen === isPreviewOpen) return;
+    if (isOpen && !isTypewriterMode) {
+      suppressNextEditorBlurSaveRef.current = true;
+    }
+    setIsPreviewOpen(isOpen);
   };
 
   const applySlashCommand = (commandId: string) => {
@@ -1033,6 +1045,11 @@ export const EditorView = memo(function EditorView({
     updateSelectionSnapshot(null);
     updateSelectionLoreActionPosition(null);
     clearSlashSession();
+
+    if (suppressNextEditorBlurSaveRef.current) {
+      suppressNextEditorBlurSaveRef.current = false;
+      return;
+    }
 
     if (isTypewriterMode) {
       const editor = editorRef.current;
@@ -1246,7 +1263,7 @@ export const EditorView = memo(function EditorView({
       }
       if (normalizedKey === "p") {
         event.preventDefault();
-        setIsPreviewOpen((current) => !current);
+        setPreviewMode(!isPreviewOpen);
         return;
       }
       if (normalizedKey === "d" && !isFocusMode) {
@@ -1563,7 +1580,7 @@ export const EditorView = memo(function EditorView({
             orderedDocuments={orderedDocuments}
             onOpenDocument={requestOpenDocument}
             isPreviewOpen={isPreviewOpen}
-            onTogglePreview={() => setIsPreviewOpen((current) => !current)}
+            onSetPreviewOpen={setPreviewMode}
             readableLoreLinks={readableLoreLinks}
             onToggleReadableLoreLinks={() => setReadableLoreLinks((current) => !current)}
             isDetailsOpen={isDetailsOpen}

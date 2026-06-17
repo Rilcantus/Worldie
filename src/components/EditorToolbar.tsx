@@ -27,7 +27,7 @@ type EditorToolbarProps = {
   orderedDocuments: Document[];
   onOpenDocument: (doc: Document) => void;
   isPreviewOpen: boolean;
-  onTogglePreview: () => void;
+  onSetPreviewOpen: (isOpen: boolean) => void;
   readableLoreLinks: boolean;
   onToggleReadableLoreLinks: () => void;
   isDetailsOpen: boolean;
@@ -68,7 +68,7 @@ export const EditorToolbar = memo(function EditorToolbar({
   orderedDocuments,
   onOpenDocument,
   isPreviewOpen,
-  onTogglePreview,
+  onSetPreviewOpen,
   readableLoreLinks,
   onToggleReadableLoreLinks,
   isDetailsOpen,
@@ -287,24 +287,39 @@ export const EditorToolbar = memo(function EditorToolbar({
       </div>
 
       <div className="editor-toolbar-side">
-        <button
-          className={`tb-btn ${isPreviewOpen ? "active" : ""}`}
-          type="button"
-          onMouseDown={preserveEditorSelection}
-          onClick={onTogglePreview}
-          title="Toggle preview (Ctrl/Cmd+Shift+P)"
-        >
-          Preview
-        </button>
-        <button
-          className={`tb-btn ${readableLoreLinks ? "active" : ""}`}
-          type="button"
-          onMouseDown={preserveEditorSelection}
-          onClick={onToggleReadableLoreLinks}
-          title="Show lore links without wiki brackets in preview"
-        >
-          Readable Links
-        </button>
+        <div className="editor-mode-segment" role="group" aria-label="Editor mode">
+          <button
+            className={`editor-mode-btn ${!isPreviewOpen ? "active" : ""}`}
+            type="button"
+            onMouseDown={preserveEditorSelection}
+            onClick={() => onSetPreviewOpen(false)}
+            aria-pressed={!isPreviewOpen}
+            title="Write source text with raw [[Lore Links]]"
+          >
+            Write
+          </button>
+          <button
+            className={`editor-mode-btn ${isPreviewOpen ? "active" : ""}`}
+            type="button"
+            onMouseDown={preserveEditorSelection}
+            onClick={() => onSetPreviewOpen(true)}
+            aria-pressed={isPreviewOpen}
+            title="Preview rendered prose (Ctrl/Cmd+Shift+P)"
+          >
+            Preview
+          </button>
+        </div>
+        {isPreviewOpen ? (
+          <button
+            className={`tb-btn ${readableLoreLinks ? "active" : ""}`}
+            type="button"
+            onMouseDown={preserveEditorSelection}
+            onClick={onToggleReadableLoreLinks}
+            title="Show lore links without wiki brackets in Preview"
+          >
+            Readable Links
+          </button>
+        ) : null}
         <button
           className={`tb-btn ${isDetailsOpen ? "active" : ""}`}
           type="button"

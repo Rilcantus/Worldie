@@ -8,6 +8,7 @@ import {
   getLoreCreateDraftState,
   getLoreSelectionActionState,
   getLoreSelectionCreateState,
+  getDocumentEditorModeState,
   buildInitialLoreFields,
   buildLoreTypeCounts,
   collectLoreStats,
@@ -190,6 +191,35 @@ test("selected text lore floating action only shows for valid editor selection s
     loreType: factionType,
     isDialogOpen: true,
   }).canShow, false);
+});
+
+test("document editor mode state scopes readable links to preview", () => {
+  assert.deepEqual(getDocumentEditorModeState({
+    isPreviewOpen: false,
+    readableLoreLinks: true,
+  }), {
+    mode: "write",
+    canUseReadableLinks: false,
+    readableLoreLinksActive: false,
+  });
+
+  assert.deepEqual(getDocumentEditorModeState({
+    isPreviewOpen: true,
+    readableLoreLinks: false,
+  }), {
+    mode: "preview",
+    canUseReadableLinks: true,
+    readableLoreLinksActive: false,
+  });
+
+  assert.deepEqual(getDocumentEditorModeState({
+    isPreviewOpen: true,
+    readableLoreLinks: true,
+  }), {
+    mode: "preview",
+    canUseReadableLinks: true,
+    readableLoreLinksActive: true,
+  });
 });
 
 test("new lore draft payload uses entered title selected type template and tags", () => {

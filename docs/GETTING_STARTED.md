@@ -78,7 +78,7 @@ When a name, place, faction, creature, or object appears naturally in a document
 
 If the link option is enabled, the highlighted text is replaced with a `[[Lore Link]]` after the lore page is created. When Worldie finds other exact, unlinked mentions of the same title in the current document, it offers a small follow-up action to link those too. This first slice works inside the main document editor and only scans the current document; global operating-system context menus and project-wide auto-linking are not implemented yet.
 
-The saved document source still uses wiki-style brackets. In Preview, use the Readable Links toggle to switch between raw `[[Lore Link]]` text and cleaner linked title text for easier reading. This display option does not change the saved document content.
+The editor has two document modes. Write mode is the editable source view and shows the saved wiki-style `[[Lore Link]]` text. Preview mode is the rendered reading view. In Preview, use Readable Links to switch between raw `[[Lore Link]]` text and cleaner linked title text for easier reading. This display option does not change the saved document content.
 
 ## How To Use CSV Export And Import Safely
 
