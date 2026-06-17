@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildLoreCreateDraftPayload,
+  buildLoreEditorDraftPage,
+  getLoreCreateDraftState,
   buildInitialLoreFields,
   buildLoreTypeCounts,
   collectLoreStats,
@@ -54,6 +57,93 @@ test("buildInitialLoreFields seeds custom fields from lore type defaults only", 
     status: "Draft",
     active: false,
   });
+});
+
+test("new lore draft state requires a title and uses the selected lore type label", () => {
+  const characterType = {
+    id: "type-character",
+    name: "Character",
+    slug: "character",
+    order: 0,
+    isSystem: true,
+    fieldDefinitions: [],
+  };
+
+  assert.deepEqual(getLoreCreateDraftState({ title: "   ", loreType: characterType }), {
+    title: "",
+    canCreate: false,
+    buttonLabel: "Create Character",
+    titlePlaceholder: "New Character title",
+  });
+
+  assert.deepEqual(getLoreCreateDraftState({ title: " Mara Quill ", loreType: characterType }), {
+    title: "Mara Quill",
+    canCreate: true,
+    buttonLabel: "Create Character",
+    titlePlaceholder: "New Character title",
+  });
+});
+
+test("new lore draft payload uses entered title selected type template and tags", () => {
+  assert.equal(
+    buildLoreCreateDraftPayload({
+      title: " ",
+      loreTypeId: "type-character",
+      templateId: "template-character",
+      tags: "lead",
+    }),
+    null,
+  );
+
+  assert.deepEqual(
+    buildLoreCreateDraftPayload({
+      title: " Mara Quill ",
+      loreTypeId: "type-character",
+      templateId: "template-character",
+      tags: "lead, courier",
+    }),
+    {
+      title: "Mara Quill",
+      loreTypeId: "type-character",
+      templateId: "template-character",
+      tags: "lead, courier",
+    },
+  );
+});
+
+test("existing lore page title edits preserve fields custom fields and metadata", () => {
+  const fieldsJson = JSON.stringify({
+    loreTypeId: "type-character",
+    templateId: "template-character",
+    traits: [{ id: "trait-role", name: "Role", value: "Scout" }],
+    details: "Carries sealed letters.",
+    customFields: {
+      species: "Human",
+      active: true,
+    },
+  });
+  const page = {
+    id: "lore-mara",
+    worldId: "world-1",
+    title: "Mara",
+    type: "Character",
+    tagsJson: "lead",
+    fieldsJson,
+    coverImagePath: "covers/mara.png",
+  };
+
+  const updated = buildLoreEditorDraftPage(page, {
+    title: "Mara Quill",
+    type: "Character",
+    tagsJson: "lead",
+    fieldsJson,
+  });
+
+  assert.equal(updated.title, "Mara Quill");
+  assert.equal(updated.fieldsJson, fieldsJson);
+  assert.equal(updated.tagsJson, "lead");
+  assert.equal(updated.coverImagePath, "covers/mara.png");
+  assert.notEqual(updated, page);
 });
 
 test("buildLoreTypeCounts totals pages by resolved lore type", () => {

@@ -22,10 +22,12 @@ import type { LoreTemplate } from "../lib/loreTemplates";
 import { getDefaultLoreTypeId, slugifyLoreTypeName, sortLoreTypes, type CustomFieldDefinition, type LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
 import {
+  buildLoreEditorDraftPage,
   buildInitialLoreFields,
   buildLoreTypeCounts as buildLoreTypeCountsFromPages,
   collectLoreStats as collectLoreStatsFromPages,
   countNonEmptyWords,
+  normalizeLoreTitleDraft,
 } from "./contentState";
 import { hasUnsavedDocumentDraft, isBlockingSaveState, type SaveState } from "./dirtyState";
 
@@ -530,28 +532,24 @@ export function useContentManager({
     setLorePages((prev) =>
       prev.map((page) =>
         page.id === activeLoreId
-          ? (
-            page.title === loreTitle &&
-            page.type === nextTypeName &&
-            (page.tagsJson ?? "") === loreTags &&
-            (page.fieldsJson ?? "") === loreFields
-          )
-            ? page
-            : { ...page, title: loreTitle, type: nextTypeName, tagsJson: loreTags, fieldsJson: loreFields }
+          ? buildLoreEditorDraftPage(page, {
+              title: loreTitle,
+              type: nextTypeName,
+              tagsJson: loreTags,
+              fieldsJson: loreFields,
+            })
           : page,
       ),
     );
     setAllLorePages((prev) =>
       prev.map((page) =>
         page.id === activeLoreId
-          ? (
-            page.title === loreTitle &&
-            page.type === nextTypeName &&
-            (page.tagsJson ?? "") === loreTags &&
-            (page.fieldsJson ?? "") === loreFields
-          )
-            ? page
-            : { ...page, title: loreTitle, type: nextTypeName, tagsJson: loreTags, fieldsJson: loreFields }
+          ? buildLoreEditorDraftPage(page, {
+              title: loreTitle,
+              type: nextTypeName,
+              tagsJson: loreTags,
+              fieldsJson: loreFields,
+            })
           : page,
       ),
     );
@@ -844,12 +842,14 @@ export function useContentManager({
     const actionWorldId = activeWorldId;
     const loreType = getLoreType(loreTypeId);
     if (!loreType) return null;
+    const normalizedTitle = normalizeLoreTitleDraft(title);
+    if (!normalizedTitle) return null;
     let created: LorePage;
     const fieldsJson = buildInitialLoreFields(loreType.id, template, loreType);
     try {
-      created = await createLorePage(actionProjectId, actionWorldId, title.trim() || `New ${loreType.name}`, loreType.name);
+      created = await createLorePage(actionProjectId, actionWorldId, normalizedTitle, loreType.name);
       await updateLorePage(actionProjectId, created.id, {
-        title: title.trim() || created.title,
+        title: normalizedTitle,
         type: loreType.name,
         tagsJson: tags,
         fieldsJson,
@@ -866,7 +866,7 @@ export function useContentManager({
     }
     const createdItem = {
       ...created,
-      title: title.trim() || created.title,
+      title: normalizedTitle,
       type: loreType.name,
       tagsJson: tags,
       fieldsJson,

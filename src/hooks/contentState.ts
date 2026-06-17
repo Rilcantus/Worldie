@@ -39,6 +39,70 @@ export function buildInitialLoreFields(
   );
 }
 
+export function normalizeLoreTitleDraft(value: string | null | undefined) {
+  return value?.trim() ?? "";
+}
+
+export function buildLoreCreateDraftPayload({
+  title,
+  loreTypeId,
+  templateId,
+  tags,
+}: {
+  title: string;
+  loreTypeId: string | null | undefined;
+  templateId: string | null;
+  tags: string;
+}) {
+  const normalizedTitle = normalizeLoreTitleDraft(title);
+  if (!normalizedTitle || !loreTypeId) return null;
+  return {
+    title: normalizedTitle,
+    loreTypeId,
+    templateId,
+    tags,
+  };
+}
+
+export function getLoreCreateDraftState({
+  title,
+  loreType,
+  isCreating = false,
+}: {
+  title: string;
+  loreType: LoreType | null | undefined;
+  isCreating?: boolean;
+}) {
+  const normalizedTitle = normalizeLoreTitleDraft(title);
+  return {
+    title: normalizedTitle,
+    canCreate: Boolean(loreType && normalizedTitle && !isCreating),
+    buttonLabel: loreType ? `Create ${loreType.name}` : "Create Lore Item",
+    titlePlaceholder: loreType ? `New ${loreType.name} title` : "New lore item title",
+  };
+}
+
+export function buildLoreEditorDraftPage(
+  page: LorePage,
+  updates: Pick<LorePage, "title" | "type"> & { tagsJson: string; fieldsJson: string },
+) {
+  if (
+    page.title === updates.title &&
+    page.type === updates.type &&
+    (page.tagsJson ?? "") === updates.tagsJson &&
+    (page.fieldsJson ?? "") === updates.fieldsJson
+  ) {
+    return page;
+  }
+  return {
+    ...page,
+    title: updates.title,
+    type: updates.type,
+    tagsJson: updates.tagsJson,
+    fieldsJson: updates.fieldsJson,
+  };
+}
+
 export function buildLoreTypeCounts(
   pages: LorePage[],
   orderedLoreTypes: LoreType[],

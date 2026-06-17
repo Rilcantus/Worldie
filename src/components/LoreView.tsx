@@ -147,7 +147,6 @@ export const LoreView = memo(function LoreView({
 }: LoreViewProps) {
   const loreTypeInputId = "lore-view-type";
   const tableLoreTypeInputId = "lore-table-type";
-  const templateUsedInputId = "lore-view-template-used";
   const tagsInputId = "lore-view-tags";
   const detailsInputId = "lore-view-details";
   const csvImportInputRef = useRef<HTMLInputElement | null>(null);
@@ -991,14 +990,11 @@ export const LoreView = memo(function LoreView({
             ))}
           </select>
 
-          <label className="lore-label" htmlFor={templateUsedInputId}>Template Used</label>
-          <input
-            id={templateUsedInputId}
-            className="lore-input lore-readonly"
-            value={templateUsed?.name ?? "No template"}
-            readOnly
-            placeholder="No template"
-          />
+          <div className="lore-label">Template</div>
+          <div className="rp-empty">
+            {templateUsed ? `Created from ${templateUsed.name}. ` : "No template was applied at creation. "}
+            Templates are applied when creating a lore page; existing pages are independent.
+          </div>
 
           <label className="lore-label" htmlFor={tagsInputId}>Tags (comma-separated)</label>
           <input

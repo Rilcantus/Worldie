@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
+import { buildLoreCreateDraftPayload, getLoreCreateDraftState } from "../hooks/contentState";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
@@ -35,7 +36,12 @@ export const LoreCreateView = memo(function LoreCreateView({
   const [loreTypeId, setLoreTypeId] = useState(loreTypes[0]?.id ?? "");
   const [tags, setTags] = useState("");
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const [createError, setCreateError] = useState("");
   const loreTypeIds = useMemo(() => new Set(loreTypes.map((type) => type.id)), [loreTypes]);
+  const selectedLoreType = useMemo(
+    () => loreTypes.find((type) => type.id === loreTypeId) ?? null,
+    [loreTypeId, loreTypes],
+  );
   const templatesByLoreTypeId = useMemo(() => {
     const grouped = new Map<string, LoreTemplate[]>();
     for (const template of templates) {
@@ -58,18 +64,26 @@ export const LoreCreateView = memo(function LoreCreateView({
   const hasLoreTypes = loreTypes.length > 0;
 
   useEffect(() => {
-    if (templateId && filteredTemplates.some((template) => template.id === templateId)) return;
-    setTemplateId(filteredTemplates[0]?.id ?? null);
+    if (templateId === null) return;
+    if (filteredTemplates.some((template) => template.id === templateId)) return;
+    setTemplateId(null);
   }, [filteredTemplates, templateId]);
 
+  const createState = getLoreCreateDraftState({ title, loreType: selectedLoreType });
+
   const handleCreate = () => {
-    if (!loreTypeId) return;
-    onCreateLoreItem({
+    const payload = buildLoreCreateDraftPayload({
       title,
       loreTypeId,
       templateId,
       tags,
     });
+    if (!payload) {
+      setCreateError("Enter a title before creating this lore page.");
+      return;
+    }
+    setCreateError("");
+    onCreateLoreItem(payload);
   };
 
   return (
@@ -102,16 +116,20 @@ export const LoreCreateView = memo(function LoreCreateView({
         <button className="tb-btn" type="button" onClick={onOpenTemplates}>
           Manage Templates
         </button>
-        <button className="tb-btn tb-save" type="button" onClick={handleCreate} disabled={!hasLoreTypes}>
-          Create Lore Item
+        <button className="tb-btn tb-save" type="button" onClick={handleCreate} disabled={!createState.canCreate}>
+          {createState.buttonLabel}
         </button>
       </div>
 
       <input
         className="doc-title-input"
         value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        placeholder="New lore item title"
+        onChange={(event) => {
+          setTitle(event.target.value);
+          if (createError) setCreateError("");
+        }}
+        placeholder={createState.titlePlaceholder}
+        aria-label={createState.titlePlaceholder}
       />
       <div className="doc-meta">
         <div className="meta-tag">
@@ -129,6 +147,7 @@ export const LoreCreateView = memo(function LoreCreateView({
             Create a lore type first. Lore items need a real lore type before they can be created.
           </div>
         ) : null}
+        {createError ? <div className="lore-table-error">{createError}</div> : null}
         <label className="lore-label" htmlFor={loreTypeInputId}>Lore Type</label>
         <select
           id={loreTypeInputId}
