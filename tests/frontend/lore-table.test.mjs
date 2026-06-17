@@ -8,6 +8,7 @@ import {
   buildLoreTableModel,
   clearHiddenColumnSort,
   formatLoreTableValue,
+  getLoreTableCreateState,
   getLoreTableCustomFieldValue,
   isLoreTableColumnEditable,
   normalizeLoreTableEditValue,
@@ -197,6 +198,32 @@ test("only custom field lore table columns are editable", () => {
 
   assert.deepEqual(editable, ["field-species", "field-age", "field-active", "field-status", "field-first-seen"]);
   assert.deepEqual(readonly, ["title", "type", "updated"]);
+});
+
+test("lore table create state disables creation without a selected type or title", () => {
+  assert.deepEqual(getLoreTableCreateState({ title: "Mara Quill", loreType: null, isCreating: false }), {
+    title: "Mara Quill",
+    buttonLabel: "Add Lore Page",
+    canCreate: false,
+  });
+  assert.deepEqual(getLoreTableCreateState({ title: "   ", loreType: characterType, isCreating: false }), {
+    title: "",
+    buttonLabel: "Add Character",
+    canCreate: false,
+  });
+  assert.deepEqual(getLoreTableCreateState({ title: "Mara Quill", loreType: characterType, isCreating: true }), {
+    title: "Mara Quill",
+    buttonLabel: "Add Character",
+    canCreate: false,
+  });
+});
+
+test("lore table create state allows a titled page for the selected lore type", () => {
+  assert.deepEqual(getLoreTableCreateState({ title: "  Mara Quill  ", loreType: characterType, isCreating: false }), {
+    title: "Mara Quill",
+    buttonLabel: "Add Character",
+    canCreate: true,
+  });
 });
 
 const sortablePages = [
@@ -402,6 +429,33 @@ test("saved lore table view drafts serialize current table state", () => {
     sortDirection: "asc",
     visibleColumnsJson: JSON.stringify(["field-species", "field-age"]),
   });
+});
+
+test("created lore table page appears in selected type rows while preserving filter and sort options", () => {
+  const createdPage = {
+    id: "lore-new",
+    worldId: "world-1",
+    title: "Mara Ash",
+    type: "Character",
+    fieldsJson: JSON.stringify({
+      loreTypeId: "type-character",
+      traits: [],
+      details: "",
+      customFields: { species: "Human", age: 19 },
+    }),
+  };
+  const model = buildLoreTableModel([createdPage, ...sortablePages], [characterType, placeType], "type-character", {
+    filterText: "mara",
+    sort: { columnId: "field-age", direction: "asc" },
+    visibleColumnIds: ["field-species", "field-age"],
+  });
+
+  assert.deepEqual(
+    model.columns.map((column) => column.id),
+    ["title", "type", "field-species", "field-age", "updated"],
+  );
+  assert.deepEqual(model.rows.map((row) => row.page.id), ["lore-new", "lore-mara"]);
+  assert.equal(model.rows[0].cells["field-age"], "19");
 });
 
 test("saved lore table view payloads preserve explicit nulls and omit undefined fields", () => {

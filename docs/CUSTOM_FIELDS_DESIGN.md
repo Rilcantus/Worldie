@@ -134,6 +134,7 @@ Worldie now includes a simple lore table inside the lore area. It reads the same
 - Quick filtering: case-insensitive text search across page titles and visible custom field values.
 - Sorting: click table headers to sort ascending or descending by title, updated date text, or visible custom field values.
 - Row action: clicking a page title opens the existing lore editor for that page.
+- Row creation: when a lore type is selected, the table shows a compact title input and an `Add <Type>` action that creates a normal lore page in the active world using the selected lore type.
 - Inline editing: custom field definition cells can be edited directly in the table.
 
 Saved lore table views are stored in the `.worldie` SQLite project file in the world-scoped `lore_table_views` table. A saved view currently remembers:
@@ -173,11 +174,15 @@ Supported inline controls:
 
 Edits update the lore page's existing `customFields` object through the normal lore page update path. Unrelated custom fields, manual extra fields, traits, details, and template metadata are preserved. Empty text-like values are stored as empty strings, which render as blank table cells and are skipped by Markdown export.
 
+Creating from the table reuses the existing lore page creation and update path, so the page is persisted inside the active `.worldie` project file. Table-created pages start with empty traits and details, no template, and a `customFields` object seeded only from lore-type field definitions that have a non-null `defaultValue`. Field definitions without defaults are left absent/blank, matching existing custom-field behavior. The created page opens in the existing lore editor after creation; the table's current filter, sort, saved-view selection, and column visibility state are not reset.
+
 Current table limitations:
 
 - Only custom field cells are editable.
+- Table creation is single-row only.
 - It does not support formulas.
 - It does not support bulk editing.
+- It does not support CSV import.
 - It does not edit core columns from the table.
 - It does not have advanced validation or a table-specific undo stack.
 - It does not have advanced filters yet.

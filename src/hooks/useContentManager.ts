@@ -835,7 +835,7 @@ export function useContentManager({
     const loreType = getLoreType(loreTypeId);
     if (!loreType) return null;
     let created: LorePage;
-    const fieldsJson = buildInitialLoreFields(loreType.id, template);
+    const fieldsJson = buildInitialLoreFields(loreType.id, template, loreType);
     try {
       created = await createLorePage(actionProjectId, actionWorldId, title.trim() || `New ${loreType.name}`, loreType.name);
       await updateLorePage(actionProjectId, created.id, {
@@ -862,7 +862,10 @@ export function useContentManager({
       fieldsJson,
     };
     const nextAll = [createdItem, ...allLorePages];
-    const nextPages = loreType.id === activeLoreTypeId ? [createdItem, ...lorePages] : lorePages;
+    const nextPages = [
+      createdItem,
+      ...allLorePages.filter((page) => resolveLoreTypeId(page) === loreType.id),
+    ];
     setAllLorePages(nextAll);
     setLorePages(nextPages);
     setActiveLoreTypeId(loreType.id);

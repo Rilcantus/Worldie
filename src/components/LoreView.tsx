@@ -14,6 +14,7 @@ import {
   buildLoreTableModel,
   buildLoreTableViewDraft,
   clearHiddenColumnSort,
+  getLoreTableCreateState,
   getLoreTableCustomFieldValue,
   isLoreTableColumnEditable,
   resolveVisibleColumnIds,
@@ -58,6 +59,7 @@ type LoreViewProps = {
   ) => Promise<boolean>;
   onDeleteLoreTableView: (viewId: string) => Promise<boolean>;
   onUpdateLoreTableCustomField: (loreId: string, field: CustomFieldDefinition, value: LoreCustomFieldValue) => Promise<boolean>;
+  onCreateLoreFromTable: (payload: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => Promise<LorePage | null>;
   onSave: () => void;
   onTitleChange: (value: string) => void;
   onTagsChange: (value: string) => void;
@@ -111,6 +113,7 @@ export const LoreView = memo(function LoreView({
   onUpdateLoreTableView,
   onDeleteLoreTableView,
   onUpdateLoreTableCustomField,
+  onCreateLoreFromTable,
   onSave,
   onTitleChange,
   onTagsChange,
@@ -134,6 +137,8 @@ export const LoreView = memo(function LoreView({
   const [visibleTableColumnIds, setVisibleTableColumnIds] = useState<string[] | null>(null);
   const [selectedTableViewId, setSelectedTableViewId] = useState("");
   const [tableViewName, setTableViewName] = useState("");
+  const [tableCreateTitle, setTableCreateTitle] = useState("");
+  const [isCreatingTableLore, setIsCreatingTableLore] = useState(false);
   const [tableEditError, setTableEditError] = useState("");
   useEffect(() => {
     if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
@@ -163,6 +168,11 @@ export const LoreView = memo(function LoreView({
     () => resolveVisibleColumnIds(loreTableModel.allColumns, visibleTableColumnIds),
     [loreTableModel.allColumns, visibleTableColumnIds],
   );
+  const tableCreateState = getLoreTableCreateState({
+    title: tableCreateTitle,
+    loreType: loreTableModel.loreType,
+    isCreating: isCreatingTableLore,
+  });
   useEffect(() => {
     setTableSort((current) => clearHiddenColumnSort(current, loreTableModel.columns));
   }, [loreTableModel.columns]);
@@ -239,6 +249,24 @@ export const LoreView = memo(function LoreView({
     if (!saved) {
       setTableEditError("Worldie could not save that table edit.");
     }
+  };
+
+  const createLoreFromTable = async () => {
+    if (!loreTableModel.loreType || !tableCreateState.canCreate) return;
+    setTableEditError("");
+    setIsCreatingTableLore(true);
+    const created = await onCreateLoreFromTable({
+      title: tableCreateState.title,
+      loreTypeId: loreTableModel.loreType.id,
+      templateId: null,
+      tags: "",
+    });
+    setIsCreatingTableLore(false);
+    if (!created) {
+      setTableEditError("Worldie could not create that lore page from the table.");
+      return;
+    }
+    setTableCreateTitle("");
   };
 
   const persistFields = (
@@ -610,8 +638,29 @@ export const LoreView = memo(function LoreView({
                     />
                     {column.label}
                   </label>
-                ))}
+              ))}
             </div>
+          ) : null}
+          {loreTableModel.loreType ? (
+            <form
+              className="lore-table-create-row"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createLoreFromTable();
+              }}
+            >
+              <input
+                className="lore-input lore-table-create-input"
+                value={tableCreateTitle}
+                onChange={(event) => setTableCreateTitle(event.target.value)}
+                placeholder={`New ${loreTableModel.loreType.name} title`}
+                aria-label={`New ${loreTableModel.loreType.name} title`}
+                disabled={isCreatingTableLore}
+              />
+              <button className="tb-btn" type="submit" disabled={!tableCreateState.canCreate}>
+                {isCreatingTableLore ? "Adding..." : tableCreateState.buttonLabel}
+              </button>
+            </form>
           ) : null}
           {tableEditError ? <div className="lore-table-error">{tableEditError}</div> : null}
           {loreTableModel.loreType ? (

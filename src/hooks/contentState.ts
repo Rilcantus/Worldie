@@ -2,12 +2,25 @@ import type { LorePage } from "../lib/data";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { LoreType } from "../lib/loreTypes";
 
+function buildDefaultCustomFields(loreType: LoreType | null | undefined) {
+  const customFields: Record<string, string | number | boolean | null> = {};
+  for (const field of loreType?.fieldDefinitions ?? []) {
+    if (field.defaultValue === undefined || field.defaultValue === null) continue;
+    customFields[field.key] = field.defaultValue;
+  }
+  return customFields;
+}
+
 export function countNonEmptyWords(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed.split(/\s+/).length : 0;
 }
 
-export function buildInitialLoreFields(loreTypeId: string | null, template: LoreTemplate | null) {
+export function buildInitialLoreFields(
+  loreTypeId: string | null,
+  template: LoreTemplate | null,
+  loreType?: LoreType | null,
+) {
   return JSON.stringify(
     {
       loreTypeId,
@@ -19,7 +32,7 @@ export function buildInitialLoreFields(loreTypeId: string | null, template: Lore
           value: "",
         })) ?? [],
       details: "",
-      customFields: {},
+      customFields: buildDefaultCustomFields(loreType),
     },
     null,
     2,

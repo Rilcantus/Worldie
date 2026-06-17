@@ -94,7 +94,7 @@ export default function App() {
   const handleCreateLoreItem = useCallback(
     ({ title, loreTypeId, templateId, tags }: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => {
       const template = templateId ? loreTemplatesById.get(templateId) ?? null : null;
-      void (async () => {
+      return (async () => {
         const hasUnsavedChanges =
           hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
         if (hasUnsavedChanges) {
@@ -102,12 +102,13 @@ export default function App() {
             confirmLabel: "Continue",
             tone: "default",
           });
-          if (!canContinue) return;
+          if (!canContinue) return null;
         }
         const created = await content.createLoreItem({ title, loreTypeId, template, tags });
         if (created) {
           tabs.openLoreTab(created);
         }
+        return created;
       })();
     },
     [
@@ -335,6 +336,7 @@ export default function App() {
           onUpdateLoreTableView={content.reviseLoreTableView}
           onDeleteLoreTableView={content.removeLoreTableView}
           onUpdateLoreTableCustomField={content.updateLoreTableCustomField}
+          onCreateLoreFromTable={handleCreateLoreItem}
           onSaveLorePage={mainContentActions.saveLorePage}
           onLoreTitleChange={content.setLoreTitle}
           onLoreTagsChange={content.setLoreTags}

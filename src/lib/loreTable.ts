@@ -46,6 +46,21 @@ export type LoreTableViewState = {
 
 export type LoreTableViewDraft = Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">;
 
+export type LoreTableCreateState = {
+  title: string;
+  loreType: LoreType | null;
+  isCreating: boolean;
+};
+
+export function getLoreTableCreateState(state: LoreTableCreateState) {
+  const title = state.title.trim();
+  return {
+    title,
+    buttonLabel: state.loreType ? `Add ${state.loreType.name}` : "Add Lore Page",
+    canCreate: Boolean(state.loreType && title && !state.isCreating),
+  };
+}
+
 export function buildLoreTableViewDraft(name: string, state: LoreTableViewState): LoreTableViewDraft {
   return {
     name: name.trim() || "Untitled Table View",

@@ -29,6 +29,33 @@ test("buildInitialLoreFields creates empty details and uses template metadata", 
   assert.deepEqual(fields.customFields, {});
 });
 
+test("buildInitialLoreFields seeds custom fields from lore type defaults only", () => {
+  const fieldsJson = buildInitialLoreFields(
+    "type-character",
+    null,
+    {
+      id: "type-character",
+      name: "Character",
+      slug: "character",
+      order: 0,
+      isSystem: true,
+      fieldDefinitions: [
+        { id: "field-status", name: "Status", key: "status", type: "select", options: ["Draft"], required: false, order: 0, defaultValue: "Draft" },
+        { id: "field-active", name: "Active", key: "active", type: "checkbox", options: [], required: false, order: 1, defaultValue: false },
+        { id: "field-age", name: "Age", key: "age", type: "number", options: [], required: false, order: 2, defaultValue: null },
+        { id: "field-species", name: "Species", key: "species", type: "text", options: [], required: false, order: 3 },
+      ],
+    },
+  );
+  const fields = JSON.parse(fieldsJson);
+
+  assert.equal(fields.loreTypeId, "type-character");
+  assert.deepEqual(fields.customFields, {
+    status: "Draft",
+    active: false,
+  });
+});
+
 test("buildLoreTypeCounts totals pages by resolved lore type", () => {
   const pages = [
     { id: "lore-1", worldId: "world-1", title: "Hero", type: "Character" },
