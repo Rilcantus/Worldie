@@ -197,6 +197,22 @@ def _init_project_db(db_path, create_if_missing=False):
     )
     c.execute(
         """
+        CREATE TABLE IF NOT EXISTS lore_table_views (
+            id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            lore_type_id TEXT,
+            quick_filter TEXT,
+            sort_key TEXT,
+            sort_direction TEXT,
+            visible_columns_json TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    c.execute(
+        """
         CREATE TABLE IF NOT EXISTS lore_types (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -229,6 +245,7 @@ def _init_project_db(db_path, create_if_missing=False):
     _ensure_column(conn, "timeline_events", "linked_page_id", "TEXT")
     _ensure_column(conn, "lore_types", "icon", "TEXT")
     _ensure_column(conn, "lore_types", "field_definitions_json", "TEXT")
+    _ensure_column(conn, "lore_table_views", "visible_columns_json", "TEXT")
     c.execute("SELECT id FROM project_meta WHERE id = 1")
     if c.fetchone() is None:
         now = _now_iso()
@@ -1055,6 +1072,7 @@ def delete_world(project_uuid, world_id):
     c.execute("DELETE FROM timeline_events WHERE world_id = ?", (world_id,))
     c.execute("DELETE FROM relationships WHERE world_id = ?", (world_id,))
     c.execute("DELETE FROM custom_field_schemas WHERE world_id = ?", (world_id,))
+    c.execute("DELETE FROM lore_table_views WHERE world_id = ?", (world_id,))
     c.execute("DELETE FROM worlds WHERE id = ?", (world_id,))
     conn.commit()
     conn.close()
@@ -1406,6 +1424,112 @@ def delete_timeline_event(project_uuid, event_id):
     conn = _project_conn(db_path)
     c = conn.cursor()
     c.execute("DELETE FROM timeline_events WHERE id = ?", (event_id,))
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+
+
+def create_lore_table_view(
+    project_uuid,
+    world_id,
+    name,
+    lore_type_id=None,
+    quick_filter=None,
+    sort_key=None,
+    sort_direction=None,
+    visible_columns_json=None,
+):
+    db_path = _get_project_filepath(project_uuid)
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    now = _now_iso()
+    view_id = str(uuid.uuid4())
+    c.execute(
+        """
+        INSERT INTO lore_table_views (
+            id, world_id, name, lore_type_id, quick_filter, sort_key, sort_direction,
+            visible_columns_json, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            view_id,
+            world_id,
+            name,
+            lore_type_id,
+            quick_filter,
+            sort_key,
+            sort_direction,
+            visible_columns_json,
+            now,
+            now,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+    return view_id
+
+
+def list_lore_table_views(project_uuid, world_id):
+    db_path = _get_project_filepath(project_uuid)
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT id, world_id, name, lore_type_id, quick_filter, sort_key, sort_direction,
+               visible_columns_json, created_at, updated_at
+        FROM lore_table_views
+        WHERE world_id = ?
+        ORDER BY updated_at DESC, name ASC
+        """,
+        (world_id,),
+    )
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+
+def update_lore_table_view(
+    project_uuid,
+    view_id,
+    name=OMITTED,
+    lore_type_id=OMITTED,
+    quick_filter=OMITTED,
+    sort_key=OMITTED,
+    sort_direction=OMITTED,
+    visible_columns_json=OMITTED,
+):
+    db_path = _get_project_filepath(project_uuid)
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    _update_partial(
+        conn,
+        "lore_table_views",
+        "id",
+        view_id,
+        [
+            ("name", name),
+            ("lore_type_id", lore_type_id),
+            ("quick_filter", quick_filter),
+            ("sort_key", sort_key),
+            ("sort_direction", sort_direction),
+            ("visible_columns_json", visible_columns_json),
+        ],
+    )
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+
+
+def delete_lore_table_view(project_uuid, view_id):
+    db_path = _get_project_filepath(project_uuid)
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM lore_table_views WHERE id = ?", (view_id,))
     conn.commit()
     conn.close()
     _touch_project(project_uuid)

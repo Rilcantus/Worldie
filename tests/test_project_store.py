@@ -245,6 +245,130 @@ class ProjectStoreTests(unittest.TestCase):
         cleared = self.db_manager.list_lore_pages(project_uuid, world_id)[0]
         self.assertIsNone(cleared[5])
 
+    def test_lore_table_views_persist_update_clear_delete_and_reopen(self):
+        project_uuid, project_path = self.db_manager.add_project("Saved Lore Table Views", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+        self.assertEqual(self.db_manager.list_lore_table_views(project_uuid, world_id), [])
+
+        view_id = self.db_manager.create_lore_table_view(
+            project_uuid,
+            world_id,
+            "Characters",
+            lore_type_id="type-character",
+            quick_filter="active",
+            sort_key="field-age",
+            sort_direction="asc",
+        )
+        listed = self.db_manager.list_lore_table_views(project_uuid, world_id)
+        self.assertEqual(len(listed), 1)
+        self.assertEqual(listed[0][0], view_id)
+        self.assertEqual(listed[0][2], "Characters")
+        self.assertEqual(listed[0][3], "type-character")
+        self.assertEqual(listed[0][4], "active")
+        self.assertEqual(listed[0][5], "field-age")
+        self.assertEqual(listed[0][6], "asc")
+
+        self.db_manager.update_lore_table_view(project_uuid, view_id, name="Characters - Active")
+        preserved = self.db_manager.list_lore_table_views(project_uuid, world_id)[0]
+        self.assertEqual(preserved[2], "Characters - Active")
+        self.assertEqual(preserved[3], "type-character")
+        self.assertEqual(preserved[4], "active")
+        self.assertEqual(preserved[5], "field-age")
+
+        self.db_manager.update_lore_table_view(
+            project_uuid,
+            view_id,
+            quick_filter=None,
+            sort_key=None,
+            sort_direction=None,
+        )
+        cleared = self.db_manager.list_lore_table_views(project_uuid, world_id)[0]
+        self.assertIsNone(cleared[4])
+        self.assertIsNone(cleared[5])
+        self.assertIsNone(cleared[6])
+
+        reopened_uuid, _, _ = self.db_manager.open_project(str(project_path))
+        reopened = self.db_manager.list_lore_table_views(reopened_uuid, world_id)
+        self.assertEqual(len(reopened), 1)
+        self.assertEqual(reopened[0][2], "Characters - Active")
+
+        self.db_manager.delete_lore_table_view(project_uuid, view_id)
+        self.assertEqual(self.db_manager.list_lore_table_views(project_uuid, world_id), [])
+
+    def test_sidecar_lore_table_view_crud_uses_project_file(self):
+        project_uuid, _ = self.db_manager.add_project("Sidecar Saved Lore Table Views", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+
+        empty_response = self.sidecar._handle_request(
+            {"action": "list_lore_table_views", "data": {"projectId": project_uuid, "worldId": world_id}}
+        )
+        self.assertEqual(empty_response["status"], "ok")
+        self.assertEqual(empty_response["views"], [])
+
+        create_response = self.sidecar._handle_request(
+            {
+                "action": "create_lore_table_view",
+                "data": {
+                    "projectId": project_uuid,
+                    "worldId": world_id,
+                    "name": "Characters",
+                    "loreTypeId": "type-character",
+                    "quickFilter": "active",
+                    "sortKey": "field-age",
+                    "sortDirection": "desc",
+                },
+            }
+        )
+        self.assertEqual(create_response["status"], "ok")
+        view_id = create_response["viewId"]
+
+        self.sidecar._handle_request(
+            {
+                "action": "update_lore_table_view",
+                "data": {
+                    "projectId": project_uuid,
+                    "viewId": view_id,
+                    "name": "Characters by Age",
+                },
+            }
+        )
+        preserved_response = self.sidecar._handle_request(
+            {"action": "list_lore_table_views", "data": {"projectId": project_uuid, "worldId": world_id}}
+        )
+        preserved = preserved_response["views"][0]
+        self.assertEqual(preserved["name"], "Characters by Age")
+        self.assertEqual(preserved["quickFilter"], "active")
+        self.assertEqual(preserved["sortKey"], "field-age")
+
+        self.sidecar._handle_request(
+            {
+                "action": "update_lore_table_view",
+                "data": {
+                    "projectId": project_uuid,
+                    "viewId": view_id,
+                    "quickFilter": None,
+                    "sortKey": None,
+                    "sortDirection": None,
+                },
+            }
+        )
+        cleared_response = self.sidecar._handle_request(
+            {"action": "list_lore_table_views", "data": {"projectId": project_uuid, "worldId": world_id}}
+        )
+        cleared = cleared_response["views"][0]
+        self.assertIsNone(cleared["quickFilter"])
+        self.assertIsNone(cleared["sortKey"])
+        self.assertIsNone(cleared["sortDirection"])
+
+        delete_response = self.sidecar._handle_request(
+            {"action": "delete_lore_table_view", "data": {"projectId": project_uuid, "viewId": view_id}}
+        )
+        self.assertEqual(delete_response["status"], "ok")
+        final_response = self.sidecar._handle_request(
+            {"action": "list_lore_table_views", "data": {"projectId": project_uuid, "worldId": world_id}}
+        )
+        self.assertEqual(final_response["views"], [])
+
     def test_sidecar_updates_preserve_omitted_fields_and_clear_explicit_nulls(self):
         project_uuid, _ = self.db_manager.add_project("Sidecar Nullable Fields", "")
         world_id = self.db_manager.create_world(project_uuid, "Duskfen")

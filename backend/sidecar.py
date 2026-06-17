@@ -12,11 +12,13 @@ from db.db_manager import (
     add_project,
     create_document,
     create_lore_page,
+    create_lore_table_view,
     create_relationship,
     create_timeline_event,
     create_world,
     delete_document,
     delete_lore_page,
+    delete_lore_table_view,
     delete_project,
     delete_relationship,
     delete_timeline_event,
@@ -27,6 +29,7 @@ from db.db_manager import (
     init_db,
     list_documents,
     list_lore_templates,
+    list_lore_table_views,
     list_lore_types,
     open_project,
     list_lore_pages,
@@ -38,6 +41,7 @@ from db.db_manager import (
     save_project_as,
     update_document,
     update_lore_page,
+    update_lore_table_view,
     update_project_title,
     update_relationship,
     update_timeline_event,
@@ -530,6 +534,74 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         if not project_id or not event_id:
             return {"status": "error", "message": "projectId and eventId required"}
         delete_timeline_event(project_id, event_id)
+        return {"status": "ok"}
+
+    if action == "list_lore_table_views":
+        project_id = data.get("projectId")
+        world_id = data.get("worldId")
+        if not project_id or not world_id:
+            return {"status": "error", "message": "projectId and worldId required"}
+        rows = list_lore_table_views(project_id, world_id)
+        return {
+            "status": "ok",
+            "views": [
+                {
+                    "id": row[0],
+                    "worldId": row[1],
+                    "name": row[2],
+                    "loreTypeId": row[3],
+                    "quickFilter": row[4],
+                    "sortKey": row[5],
+                    "sortDirection": row[6],
+                    "visibleColumnsJson": row[7],
+                    "createdAt": row[8],
+                    "updatedAt": row[9],
+                }
+                for row in rows
+            ],
+        }
+
+    if action == "create_lore_table_view":
+        project_id = data.get("projectId")
+        world_id = data.get("worldId")
+        name = data.get("name")
+        if not project_id or not world_id or not name:
+            return {"status": "error", "message": "projectId, worldId, and name required"}
+        view_id = create_lore_table_view(
+            project_id,
+            world_id,
+            name,
+            lore_type_id=data.get("loreTypeId"),
+            quick_filter=data.get("quickFilter"),
+            sort_key=data.get("sortKey"),
+            sort_direction=data.get("sortDirection"),
+            visible_columns_json=data.get("visibleColumnsJson"),
+        )
+        return {"status": "ok", "viewId": view_id}
+
+    if action == "update_lore_table_view":
+        project_id = data.get("projectId")
+        view_id = data.get("viewId")
+        if not project_id or not view_id:
+            return {"status": "error", "message": "projectId and viewId required"}
+        update_lore_table_view(
+            project_id,
+            view_id,
+            name=_optional(data, "name"),
+            lore_type_id=_optional(data, "loreTypeId"),
+            quick_filter=_optional(data, "quickFilter"),
+            sort_key=_optional(data, "sortKey"),
+            sort_direction=_optional(data, "sortDirection"),
+            visible_columns_json=_optional(data, "visibleColumnsJson"),
+        )
+        return {"status": "ok"}
+
+    if action == "delete_lore_table_view":
+        project_id = data.get("projectId")
+        view_id = data.get("viewId")
+        if not project_id or not view_id:
+            return {"status": "error", "message": "projectId and viewId required"}
+        delete_lore_table_view(project_id, view_id)
         return {"status": "ok"}
 
     return {"status": "error", "message": f"Unknown action: {action}"}

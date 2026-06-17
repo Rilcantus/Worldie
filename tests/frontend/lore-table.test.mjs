@@ -2,9 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyLoreTableView,
+  buildLoreTableViewDraft,
   buildLoreTableModel,
   formatLoreTableValue,
 } from "../../.tmp-frontend-tests/src/lib/loreTable.js";
+import {
+  buildLoreTableViewPayload,
+  buildLoreTableViewUpdatePayload,
+} from "../../.tmp-frontend-tests/src/lib/loreTableViews.js";
 
 const characterType = {
   id: "type-character",
@@ -202,4 +208,81 @@ test("sorting by checkbox custom fields is predictable", () => {
 
   assert.deepEqual(ascending.rows.map((row) => row.page.id), ["lore-bran", "lore-asha", "lore-mara"]);
   assert.deepEqual(descending.rows.map((row) => row.page.id), ["lore-asha", "lore-mara", "lore-bran"]);
+});
+
+test("saved lore table views apply lore type, filter, and sort state", () => {
+  const state = applyLoreTableView(
+    {
+      id: "view-1",
+      worldId: "world-1",
+      name: "Active Characters",
+      loreTypeId: "type-character",
+      quickFilter: "active",
+      sortKey: "field-age",
+      sortDirection: "desc",
+    },
+    {
+      loreTypeId: "type-place",
+      filterText: "",
+      sort: { columnId: "title", direction: "asc" },
+    },
+  );
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], state.loreTypeId, {
+    filterText: state.filterText,
+    sort: state.sort,
+  });
+
+  assert.deepEqual(state, {
+    loreTypeId: "type-character",
+    filterText: "active",
+    sort: { columnId: "field-age", direction: "desc" },
+  });
+  assert.deepEqual(model.rows.map((row) => row.page.id), ["lore-mara"]);
+});
+
+test("saved lore table view drafts serialize current table state", () => {
+  const draft = buildLoreTableViewDraft(" Characters ", {
+    loreTypeId: "type-character",
+    filterText: " Human ",
+    sort: { columnId: "field-age", direction: "asc" },
+  });
+
+  assert.deepEqual(draft, {
+    name: "Characters",
+    loreTypeId: "type-character",
+    quickFilter: "Human",
+    sortKey: "field-age",
+    sortDirection: "asc",
+    visibleColumnsJson: null,
+  });
+});
+
+test("saved lore table view payloads preserve explicit nulls and omit undefined fields", () => {
+  const createPayload = buildLoreTableViewPayload("project-1", "world-1", {
+    name: "Characters",
+    loreTypeId: "type-character",
+    quickFilter: null,
+    sortKey: undefined,
+    sortDirection: null,
+    visibleColumnsJson: null,
+  });
+  const updatePayload = buildLoreTableViewUpdatePayload("project-1", "view-1", {
+    quickFilter: null,
+    sortKey: undefined,
+  });
+
+  assert.deepEqual(createPayload, {
+    projectId: "project-1",
+    worldId: "world-1",
+    name: "Characters",
+    loreTypeId: "type-character",
+    quickFilter: null,
+    sortDirection: null,
+    visibleColumnsJson: null,
+  });
+  assert.deepEqual(updatePayload, {
+    projectId: "project-1",
+    viewId: "view-1",
+    quickFilter: null,
+  });
 });

@@ -2277,7 +2277,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   justify-content: flex-start;
   width: fit-content;
 }
-.lore-table-type-select {
+.lore-table-type-select,
+.lore-table-view-select {
   max-width: 220px;
 }
 .lore-table-controls {
@@ -2288,6 +2289,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 .lore-table-filter {
   width: min(260px, 100%);
+}
+.lore-table-view-name {
+  width: min(190px, 100%);
 }
 .lore-table-wrap {
   overflow-x: auto;

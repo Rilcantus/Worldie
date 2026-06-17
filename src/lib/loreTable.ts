@@ -1,4 +1,4 @@
-import type { LorePage } from "./data";
+import type { LorePage, LoreTableView } from "./data";
 import type { CustomFieldDefinition, CustomFieldDefinitionType } from "./customFieldDefinitions";
 import type { LoreType } from "./loreTypes";
 
@@ -33,6 +33,39 @@ export type LoreTableModel = {
   columns: LoreTableColumn[];
   rows: LoreTableRow[];
 };
+
+export type LoreTableViewState = {
+  loreTypeId: string;
+  filterText: string;
+  sort: LoreTableSort | null;
+};
+
+export type LoreTableViewDraft = Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">;
+
+export function buildLoreTableViewDraft(name: string, state: LoreTableViewState): LoreTableViewDraft {
+  return {
+    name: name.trim() || "Untitled Table View",
+    loreTypeId: state.loreTypeId || null,
+    quickFilter: state.filterText.trim() || null,
+    sortKey: state.sort?.columnId ?? null,
+    sortDirection: state.sort?.direction ?? null,
+    visibleColumnsJson: null,
+  };
+}
+
+export function applyLoreTableView(
+  view: LoreTableView,
+  fallback: LoreTableViewState,
+): LoreTableViewState {
+  return {
+    loreTypeId: view.loreTypeId || fallback.loreTypeId,
+    filterText: view.quickFilter ?? "",
+    sort:
+      view.sortKey && (view.sortDirection === "asc" || view.sortDirection === "desc")
+        ? { columnId: view.sortKey, direction: view.sortDirection }
+        : fallback.sort,
+  };
+}
 
 function slugText(value: string) {
   return value

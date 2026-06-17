@@ -282,6 +282,7 @@ export default function App() {
           loreTags={content.loreTags}
           loreFields={content.loreFields}
           lorePageTypeId={content.lorePageTypeId}
+          loreTableViews={content.loreTableViews}
           relationships={worldStructures.relationships}
           activeRelationshipId={worldStructures.activeRelationshipId}
           relationshipSourceId={worldStructures.relationshipSourceId}
@@ -330,6 +331,9 @@ export default function App() {
           onDocumentFolderPathChange={content.setDocumentFolderPath}
           onAddLorePage={mainContentActions.addLorePage}
           onRemoveLorePage={mainContentActions.removeLorePage}
+          onSaveLoreTableView={content.saveLoreTableView}
+          onUpdateLoreTableView={content.reviseLoreTableView}
+          onDeleteLoreTableView={content.removeLoreTableView}
           onSaveLorePage={mainContentActions.saveLorePage}
           onLoreTitleChange={content.setLoreTitle}
           onLoreTagsChange={content.setLoreTags}

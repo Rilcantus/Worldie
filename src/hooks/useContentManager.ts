@@ -2,14 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type 
 import {
   createDocument,
   createLorePage,
+  createLoreTableView,
   deleteDocument,
   deleteLorePage,
+  deleteLoreTableView,
   type Document,
   type LorePage,
+  type LoreTableView,
   listDocuments,
+  listLoreTableViews,
   listLorePages,
   updateDocument,
   updateLorePage,
+  updateLoreTableView,
 } from "../lib/data";
 import { parseLoreItemFields, stringifyLoreItemFields } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
@@ -89,6 +94,7 @@ export function useContentManager({
   const defaultLoreTypeId = orderedLoreTypes[0]?.id ?? null;
   const docsLoadRequestId = useRef(0);
   const loreLoadRequestId = useRef(0);
+  const loreTableViewsLoadRequestId = useRef(0);
   const currentScopeRef = useRef<{ projectId: string | null; worldId: string | null }>({
     projectId: activeProjectId,
     worldId: activeWorldId,
@@ -126,6 +132,7 @@ export function useContentManager({
   const [activeLoreTypeId, setActiveLoreTypeId] = useState<string | null>(defaultLoreTypeId);
   const [loreSaveState, setLoreSaveState] = useState<SaveState>("idle");
   const [loreLastSavedAt, setLoreLastSavedAt] = useState<number | null>(null);
+  const [loreTableViews, setLoreTableViews] = useState<LoreTableView[]>([]);
 
   const resetDocumentState = (loadedWorldId: string | null, saveState: SaveState = "idle") => {
     setDocuments((current) => (current.length === 0 ? current : []));
@@ -153,6 +160,10 @@ export function useContentManager({
     setLorePageTypeId((current) => (current === nextLorePageTypeId ? current : nextLorePageTypeId));
     setLoreSaveState((current) => (current === saveState ? current : saveState));
     setLoreLastSavedAt((current) => (current === null ? current : null));
+  };
+
+  const resetLoreTableViews = () => {
+    setLoreTableViews((current) => (current.length === 0 ? current : []));
   };
 
   const markDocumentSaved = useCallback(() => {
@@ -478,6 +489,27 @@ export function useContentManager({
     };
     void loadLore();
   }, [activeProjectId, activeWorldId, activeLoreTypeId, defaultLoreTypeId, orderedLoreTypes, recoverActiveProjectError, setWorlds]);
+
+  useEffect(() => {
+    if (!activeProjectId || !activeWorldId) {
+      loreTableViewsLoadRequestId.current += 1;
+      resetLoreTableViews();
+      return;
+    }
+    resetLoreTableViews();
+    const loadLoreTableViews = async () => {
+      const requestId = ++loreTableViewsLoadRequestId.current;
+      try {
+        const views = await listLoreTableViews(activeProjectId, activeWorldId);
+        if (requestId !== loreTableViewsLoadRequestId.current) return;
+        setLoreTableViews(views);
+      } catch (error) {
+        if (requestId !== loreTableViewsLoadRequestId.current) return;
+        await recoverActiveProjectError(error, "Worldie could not load saved lore table views.");
+      }
+    };
+    void loadLoreTableViews();
+  }, [activeProjectId, activeWorldId, recoverActiveProjectError]);
 
   useEffect(() => {
     if (!activeLoreId) return;
@@ -1002,6 +1034,82 @@ export function useContentManager({
     return true;
   };
 
+  const saveLoreTableView = async (
+    view: Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">,
+  ) => {
+    if (!activeProjectId || !activeWorldId) return null;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
+    let created: LoreTableView;
+    try {
+      created = await createLoreTableView(actionProjectId, actionWorldId, view);
+    } catch (error) {
+      await recoverActiveProjectError(error, "Worldie could not save the lore table view.");
+      return null;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return null;
+    }
+    setLoreTableViews((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+    showToast(`Saved lore table view "${created.name}".`);
+    return created;
+  };
+
+  const reviseLoreTableView = async (
+    viewId: string,
+    updates: Partial<Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">>,
+  ) => {
+    if (!activeProjectId || !activeWorldId) return false;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
+    try {
+      await updateLoreTableView(actionProjectId, viewId, updates);
+    } catch (error) {
+      await recoverActiveProjectError(error, "Worldie could not update the lore table view.");
+      return false;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return false;
+    }
+    setLoreTableViews((current) =>
+      current.map((view) => (view.id === viewId ? { ...view, ...updates, updatedAt: new Date().toISOString() } : view)),
+    );
+    showToast("Saved lore table view.");
+    return true;
+  };
+
+  const removeLoreTableView = async (viewId: string) => {
+    const confirmDelete = await confirmAction("Delete this saved lore table view?", {
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (!confirmDelete) return false;
+    if (!activeProjectId || !activeWorldId) return false;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
+    try {
+      await deleteLoreTableView(actionProjectId, viewId);
+    } catch (error) {
+      await recoverActiveProjectError(error, "Worldie could not delete the lore table view.");
+      return false;
+    }
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return false;
+    }
+    setLoreTableViews((current) => current.filter((view) => view.id !== viewId));
+    showToast("Deleted lore table view.");
+    return true;
+  };
+
   const reassignLoreType = async (fromLoreTypeId: string, toLoreTypeId: string) => {
     if (!activeProjectId) return;
     const actionProjectId = activeProjectId;
@@ -1156,6 +1264,7 @@ export function useContentManager({
       activeLoreId,
       loreSaveState,
       loreLastSavedAt,
+      loreTableViews,
       activeLoreFields,
       loreTitle,
       loreTags,
@@ -1190,8 +1299,11 @@ export function useContentManager({
       selectLorePage,
       createLoreItem,
       reassignLoreType,
+      saveLoreTableView,
+      reviseLoreTableView,
       saveLorePage,
       removeLorePage,
+      removeLoreTableView,
     }),
     [
       documents,
@@ -1210,6 +1322,7 @@ export function useContentManager({
       activeLoreId,
       loreSaveState,
       loreLastSavedAt,
+      loreTableViews,
       activeLoreFields,
       loreTitle,
       loreTags,
@@ -1245,8 +1358,11 @@ export function useContentManager({
       selectLorePage,
       createLoreItem,
       reassignLoreType,
+      saveLoreTableView,
+      reviseLoreTableView,
       saveLorePage,
       removeLorePage,
+      removeLoreTableView,
     ],
   );
 }

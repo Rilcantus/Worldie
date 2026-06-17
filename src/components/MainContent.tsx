@@ -1,5 +1,5 @@
 import { memo, useCallback, type MouseEvent as ReactMouseEvent } from "react";
-import type { Document, LorePage, Relationship, TimelineEvent } from "../lib/data";
+import type { Document, LorePage, LoreTableView, Relationship, TimelineEvent } from "../lib/data";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { LoreType } from "../lib/loreTypes";
 import type { SearchResult } from "../hooks/useSearch";
@@ -48,6 +48,7 @@ type MainContentProps = {
   loreTags: string;
   loreFields: string;
   lorePageTypeId: string | null;
+  loreTableViews: LoreTableView[];
   relationships: Relationship[];
   activeRelationshipId: string | null;
   relationshipSourceId: string;
@@ -96,6 +97,12 @@ type MainContentProps = {
   onDocumentFolderPathChange: (value: string) => void;
   onAddLorePage: () => void;
   onRemoveLorePage: (loreId: string) => void;
+  onSaveLoreTableView: (view: Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">) => Promise<LoreTableView | null>;
+  onUpdateLoreTableView: (
+    viewId: string,
+    updates: Partial<Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">>,
+  ) => Promise<boolean>;
+  onDeleteLoreTableView: (viewId: string) => Promise<boolean>;
   onSaveLorePage: () => void;
   onLoreTitleChange: (value: string) => void;
   onLoreTagsChange: (value: string) => void;
@@ -345,6 +352,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               loreTags={props.loreTags}
               loreFields={props.loreFields}
               lorePageTypeId={props.lorePageTypeId}
+              loreTableViews={props.loreTableViews}
               activeWorld={props.activeWorld}
               onCollapseDocList={props.onCollapseDocList}
               onExpandDocList={props.onExpandDocList}
@@ -355,6 +363,9 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onOpenLoreTypes={props.onOpenLoreTypes}
               onOpenLore={props.onOpenLore}
               onRemoveLorePage={props.onRemoveLorePage}
+              onSaveLoreTableView={props.onSaveLoreTableView}
+              onUpdateLoreTableView={props.onUpdateLoreTableView}
+              onDeleteLoreTableView={props.onDeleteLoreTableView}
               onSave={props.onSaveLorePage}
               onTitleChange={props.onLoreTitleChange}
               onTagsChange={props.onLoreTagsChange}

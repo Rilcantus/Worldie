@@ -14,6 +14,14 @@ import {
   normalizeLoreTemplate,
   type LoreTemplate,
 } from "./loreTemplates";
+import {
+  buildLoreTableViewPayload,
+  buildLoreTableViewUpdatePayload,
+} from "./loreTableViews";
+export {
+  buildLoreTableViewPayload,
+  buildLoreTableViewUpdatePayload,
+} from "./loreTableViews";
 
 type Project = {
   id: string;
@@ -92,6 +100,21 @@ type LorePage = {
   tagsJson?: string | null;
   fieldsJson?: string | null;
   coverImagePath?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type LoreTableViewSortDirection = "asc" | "desc";
+
+type LoreTableView = {
+  id: string;
+  worldId: string;
+  name: string;
+  loreTypeId?: string | null;
+  quickFilter?: string | null;
+  sortKey?: string | null;
+  sortDirection?: LoreTableViewSortDirection | null;
+  visibleColumnsJson?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -572,6 +595,41 @@ export async function deleteLorePage(projectId: string, loreId: string): Promise
   await invokeProjectStore("delete_lore_page", { projectId, loreId });
 }
 
+export async function listLoreTableViews(projectId: string, worldId: string): Promise<LoreTableView[]> {
+  const response = await invokeProjectStore<{ views?: LoreTableView[] }>("list_lore_table_views", {
+    projectId,
+    worldId,
+  });
+  return response.views ?? [];
+}
+
+export async function createLoreTableView(
+  projectId: string,
+  worldId: string,
+  view: Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">,
+): Promise<LoreTableView> {
+  const response = await invokeProjectStore<{ viewId?: string }>(
+    "create_lore_table_view",
+    buildLoreTableViewPayload(projectId, worldId, view),
+  );
+  if (!response.viewId) {
+    throw new ProjectStoreError("Worldie could not save the lore table view in the active project file.");
+  }
+  return { id: response.viewId, worldId, ...view };
+}
+
+export async function updateLoreTableView(
+  projectId: string,
+  viewId: string,
+  updates: Partial<Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">>,
+): Promise<void> {
+  await invokeProjectStore("update_lore_table_view", buildLoreTableViewUpdatePayload(projectId, viewId, updates));
+}
+
+export async function deleteLoreTableView(projectId: string, viewId: string): Promise<void> {
+  await invokeProjectStore("delete_lore_table_view", { projectId, viewId });
+}
+
 export async function listDocuments(projectId: string, worldId: string): Promise<Document[]> {
   const response = await invokeProjectStore<{ documents?: Document[] }>("list_documents", { projectId, worldId });
   return response.documents ?? [];
@@ -677,6 +735,8 @@ export type {
   Project,
   World,
   LorePage,
+  LoreTableView,
+  LoreTableViewSortDirection,
   LoreCustomFieldValue,
   LoreCustomFields,
   Document,

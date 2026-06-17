@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
-import type { LorePage } from "../lib/data";
+import type { LorePage, LoreTableView } from "../lib/data";
 import {
   parseLoreItemFields,
   stringifyLoreItemFields,
@@ -8,7 +8,13 @@ import {
   type LoreTrait,
 } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
-import { buildLoreTableModel, type LoreTableSort } from "../lib/loreTable";
+import {
+  applyLoreTableView,
+  buildLoreTableModel,
+  buildLoreTableViewDraft,
+  type LoreTableSort,
+  type LoreTableViewState,
+} from "../lib/loreTable";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import { resolveLoreLinks } from "../lib/loreLinks";
 import type { WorldUI } from "../types/ui";
@@ -28,6 +34,7 @@ type LoreViewProps = {
   loreTags: string;
   loreFields: string;
   lorePageTypeId: string | null;
+  loreTableViews: LoreTableView[];
   activeWorld?: WorldUI;
   onCollapseDocList: () => void;
   onExpandDocList: () => void;
@@ -38,6 +45,12 @@ type LoreViewProps = {
   onOpenLoreTypes: () => void;
   onOpenLore: (page: LorePage) => void;
   onRemoveLorePage: (loreId: string) => void;
+  onSaveLoreTableView: (view: Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">) => Promise<LoreTableView | null>;
+  onUpdateLoreTableView: (
+    viewId: string,
+    updates: Partial<Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">>,
+  ) => Promise<boolean>;
+  onDeleteLoreTableView: (viewId: string) => Promise<boolean>;
   onSave: () => void;
   onTitleChange: (value: string) => void;
   onTagsChange: (value: string) => void;
@@ -76,6 +89,7 @@ export const LoreView = memo(function LoreView({
   loreTags,
   loreFields,
   lorePageTypeId,
+  loreTableViews,
   activeWorld,
   onCollapseDocList,
   onExpandDocList,
@@ -86,6 +100,9 @@ export const LoreView = memo(function LoreView({
   onOpenLoreTypes,
   onOpenLore,
   onRemoveLorePage,
+  onSaveLoreTableView,
+  onUpdateLoreTableView,
+  onDeleteLoreTableView,
   onSave,
   onTitleChange,
   onTagsChange,
@@ -106,6 +123,8 @@ export const LoreView = memo(function LoreView({
   const [tableLoreTypeId, setTableLoreTypeId] = useState(activeLoreType?.id ?? "");
   const [tableFilterText, setTableFilterText] = useState("");
   const [tableSort, setTableSort] = useState<LoreTableSort | null>({ columnId: "title", direction: "asc" });
+  const [selectedTableViewId, setSelectedTableViewId] = useState("");
+  const [tableViewName, setTableViewName] = useState("");
   useEffect(() => {
     if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
     setTableLoreTypeId(activeLoreType?.id ?? "");
@@ -135,6 +154,52 @@ export const LoreView = memo(function LoreView({
         ? { columnId, direction: current.direction === "asc" ? "desc" : "asc" }
         : { columnId, direction: "asc" },
     );
+  };
+
+  const getCurrentTableViewState = (): LoreTableViewState => ({
+    loreTypeId: loreTableModel.loreType?.id ?? tableLoreTypeId,
+    filterText: tableFilterText,
+    sort: tableSort,
+  });
+
+  const applySavedTableView = (viewId: string) => {
+    setSelectedTableViewId(viewId);
+    const view = loreTableViews.find((item) => item.id === viewId);
+    if (!view) return;
+    const nextState = applyLoreTableView(view, getCurrentTableViewState());
+    setTableLoreTypeId(nextState.loreTypeId);
+    setTableFilterText(nextState.filterText);
+    setTableSort(nextState.sort);
+    setTableViewName(view.name);
+  };
+
+  const saveCurrentTableViewAsNew = async () => {
+    const fallbackName = loreTableModel.loreType ? `${loreTableModel.loreType.name} View` : "Lore Table View";
+    const created = await onSaveLoreTableView(
+      buildLoreTableViewDraft(tableViewName || fallbackName, getCurrentTableViewState()),
+    );
+    if (!created) return;
+    setSelectedTableViewId(created.id);
+    setTableViewName(created.name);
+  };
+
+  const updateSelectedTableView = async () => {
+    if (!selectedTableViewId) return;
+    const fallbackName = loreTableViews.find((view) => view.id === selectedTableViewId)?.name ?? "Lore Table View";
+    const saved = await onUpdateLoreTableView(
+      selectedTableViewId,
+      buildLoreTableViewDraft(tableViewName || fallbackName, getCurrentTableViewState()),
+    );
+    if (!saved) return;
+    setTableViewName(tableViewName || fallbackName);
+  };
+
+  const deleteSelectedTableView = async () => {
+    if (!selectedTableViewId) return;
+    const deleted = await onDeleteLoreTableView(selectedTableViewId);
+    if (!deleted) return;
+    setSelectedTableViewId("");
+    setTableViewName("");
   };
 
   const persistFields = (
@@ -389,6 +454,18 @@ export const LoreView = memo(function LoreView({
           <div className="lore-panel-header">
             <div className="linked-lore-label">Lore Table</div>
             <div className="lore-table-controls">
+              <select
+                className="lore-input lore-table-view-select"
+                value={selectedTableViewId}
+                onChange={(event) => applySavedTableView(event.target.value)}
+              >
+                <option value="">Saved views</option>
+                {loreTableViews.map((view) => (
+                  <option key={view.id} value={view.id}>
+                    {view.name}
+                  </option>
+                ))}
+              </select>
               <input
                 className="lore-input lore-table-filter"
                 value={tableFilterText}
@@ -407,6 +484,21 @@ export const LoreView = memo(function LoreView({
                   </option>
                 ))}
               </select>
+              <input
+                className="lore-input lore-table-view-name"
+                value={tableViewName}
+                onChange={(event) => setTableViewName(event.target.value)}
+                placeholder="View name"
+              />
+              <button className="tb-btn" type="button" onClick={saveCurrentTableViewAsNew} disabled={!loreTableModel.loreType}>
+                Save New
+              </button>
+              <button className="tb-btn" type="button" onClick={updateSelectedTableView} disabled={!selectedTableViewId}>
+                Update
+              </button>
+              <button className="tb-btn" type="button" onClick={deleteSelectedTableView} disabled={!selectedTableViewId}>
+                Delete
+              </button>
             </div>
           </div>
           {loreTableModel.loreType ? (
