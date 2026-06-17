@@ -321,6 +321,7 @@ export default function App() {
           onOpenTimeline={mainContentActions.openTimeline}
           onAddDocument={mainContentActions.addDocument}
           onExportWorldMarkdown={exportActions.exportActiveWorldMarkdown}
+          onExportProjectMarkdown={exportActions.exportProjectMarkdown}
           onDuplicateDocument={mainContentActions.duplicateDocument}
           onRemoveDocument={mainContentActions.removeDocument}
           onSaveDocument={mainContentActions.saveDocument}

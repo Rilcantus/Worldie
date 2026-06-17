@@ -52,6 +52,26 @@ type WorldMarkdownExportResult = {
   files: ExportedFile[];
 };
 
+type ProjectMarkdownExportResult = {
+  exportPath: string;
+  projectTitle: string;
+  worldCount: number;
+  documentCount: number;
+  lorePageCount: number;
+  relationshipCount: number;
+  timelineEventCount: number;
+  worlds: Array<{
+    title: string;
+    path: string;
+    relativePath: string;
+    documentCount: number;
+    lorePageCount: number;
+    relationshipCount: number;
+    timelineEventCount: number;
+  }>;
+  files: ExportedFile[];
+};
+
 type World = {
   id: string;
   projectId: string;
@@ -332,6 +352,20 @@ export async function exportWorldMarkdown(
   });
   if (!response.export) {
     throw new ProjectStoreError("Worldie could not export the active world.");
+  }
+  return response.export;
+}
+
+export async function exportProjectMarkdown(
+  projectId: string,
+  exportRoot: string,
+): Promise<ProjectMarkdownExportResult> {
+  const response = await invokeProjectStore<{ export?: ProjectMarkdownExportResult }>("export_project_markdown", {
+    projectId,
+    exportRoot,
+  });
+  if (!response.export) {
+    throw new ProjectStoreError("Worldie could not export the active project.");
   }
   return response.export;
 }
@@ -636,4 +670,13 @@ export async function deleteTimelineEvent(projectId: string, eventId: string): P
   await invokeProjectStore("delete_timeline_event", { projectId, eventId });
 }
 
-export type { Project, World, LorePage, Document, Relationship, TimelineEvent, WorldMarkdownExportResult };
+export type {
+  Project,
+  World,
+  LorePage,
+  Document,
+  Relationship,
+  TimelineEvent,
+  WorldMarkdownExportResult,
+  ProjectMarkdownExportResult,
+};

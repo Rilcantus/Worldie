@@ -21,6 +21,7 @@ from db.db_manager import (
     delete_relationship,
     delete_timeline_event,
     delete_world,
+    export_project_markdown,
     export_world_markdown,
     get_all_projects,
     init_db,
@@ -146,6 +147,16 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "status": "ok",
             "export": export_world_markdown(project_id, world_id, export_root),
+        }
+
+    if action == "export_project_markdown":
+        project_id = data.get("projectId")
+        export_root = data.get("exportRoot")
+        if not project_id or not export_root:
+            return {"status": "error", "message": "projectId and exportRoot required"}
+        return {
+            "status": "ok",
+            "export": export_project_markdown(project_id, export_root),
         }
 
     if action == "update_project":

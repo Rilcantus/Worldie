@@ -15,7 +15,7 @@ import { useWorkspaceNavigation } from "./useWorkspaceNavigation";
 import { useWorldStructures } from "./useWorldStructures";
 import { getDirtyNavigationDecision, resolveEditorSaveState, shouldContinueAfterGuard } from "./dirtyState";
 import { getSeededLoreTypes } from "../lib/loreTypes";
-import { exportWorldMarkdown, pickExportFolder, setProjectStoreErrorHandler } from "../lib/data";
+import { exportProjectMarkdown, exportWorldMarkdown, pickExportFolder, setProjectStoreErrorHandler } from "../lib/data";
 
 type UseAppControllerArgs = {
   hasPendingEditorDraft?: boolean;
@@ -322,6 +322,25 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
           );
         } catch (error) {
           await projectWorlds.recoverActiveProjectError(error, "Worldie could not export this world.");
+        }
+      },
+      exportProjectMarkdown: async () => {
+        if (!projectWorlds.activeProjectId) {
+          feedback.showToast("Choose a project before exporting.");
+          return;
+        }
+        const startingProjectId = projectWorlds.activeProjectId;
+        if (!(await canLeaveCurrentView())) return;
+        if (!shouldContinueAfterGuard(startingProjectId, activeProjectIdRef.current)) return;
+        const exportRoot = await pickExportFolder();
+        if (!exportRoot) return;
+        try {
+          const result = await exportProjectMarkdown(projectWorlds.activeProjectId, exportRoot);
+          feedback.showToast(
+            `Exported ${result.worldCount} worlds, ${result.documentCount} documents, ${result.lorePageCount} lore pages, ${result.relationshipCount} relationships, and ${result.timelineEventCount} timeline events to ${result.exportPath}.`,
+          );
+        } catch (error) {
+          await projectWorlds.recoverActiveProjectError(error, "Worldie could not export this project.");
         }
       },
     }),

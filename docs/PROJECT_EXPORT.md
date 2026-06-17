@@ -8,13 +8,27 @@ The `.worldie` file remains the source of truth. Exported files are external cop
 
 ## Export Shape
 
-When exporting a world, Worldie creates a folder named from the project and world:
+Worldie supports two Markdown export scopes:
+
+- active world export
+- full project export
+
+When exporting a single world, Worldie creates a folder named from the project and world:
 
 ```text
 Project Title - World Title/
 ```
 
-Inside that folder, Worldie writes:
+When exporting the full project, Worldie creates a project folder and one subfolder per world:
+
+```text
+Project Title/
+index.md
+World One/
+World Two/
+```
+
+Inside each world folder, Worldie writes:
 
 ```text
 index.md
@@ -33,6 +47,16 @@ Relationships are exported as Markdown files under `Relationships/`.
 Timeline events are exported as Markdown files under `Timeline/`.
 
 The generated `index.md` includes:
+
+- project title
+- exported world links
+- world count
+- total document count
+- total lore page count
+- total relationship count
+- total timeline event count
+
+Each generated world `index.md` includes:
 
 - project title
 - world title
@@ -58,22 +82,22 @@ The generated `index.md` includes:
 - Timeline entries in `index.md` are sorted by the first number found in their date text when possible, with unknown dates kept after dated entries.
 - Filenames are made safe for Windows and common filesystems.
 - Duplicate titles receive numeric suffixes, such as `Scene.md` and `Scene-2.md`.
+- Duplicate world folder names receive numeric suffixes, such as `World` and `World-2`.
 
 ## Limitations
 
 - Export is Markdown only.
 - Media is not exported yet.
 - Exported files are not synced back into the `.worldie` project.
-- The current UI exports the active world, not the entire project.
 - Timeline date sorting is intentionally simple and does not yet understand full calendars, eras, date ranges, or custom chronology rules.
+- Full-project export is a folder export, not a Spaci bundle.
 
 ## Future Direction
 
 Likely next export steps:
 
-1. Add full-project Markdown export across all worlds.
-2. Add richer timeline chronology handling for eras, ranges, and custom calendars.
-3. Add optional HTML export.
-4. Add PDF and DOCX export through dedicated export tooling.
-5. Add media export after embedded media support exists.
-6. Define a structured Spaci export bundle with manifests, stable UUIDs, content files, and media assets.
+1. Add richer timeline chronology handling for eras, ranges, and custom calendars.
+2. Add optional HTML export.
+3. Add PDF and DOCX export through dedicated export tooling.
+4. Add media export after embedded media support exists.
+5. Define a structured Spaci export bundle with manifests, stable UUIDs, content files, and media assets.

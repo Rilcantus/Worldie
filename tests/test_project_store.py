@@ -728,6 +728,94 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(relationship_names, ["Source - knows - Target-2.md", "Source - knows - Target.md"])
         self.assertEqual(timeline_names, ["Discovery-2.md", "Discovery.md"])
 
+    def test_export_project_markdown_writes_project_index_and_world_folders(self):
+        project_uuid, project_path = self.db_manager.add_project("Atlas: Project", "")
+        emberfall_id = self.db_manager.create_world(project_uuid, "Emberfall")
+        glass_coast_id = self.db_manager.create_world(project_uuid, "Glass/Coast")
+        mara_id = self.db_manager.create_lore_page(project_uuid, emberfall_id, "Mara Quill", "Character")
+        harbor_id = self.db_manager.create_lore_page(project_uuid, emberfall_id, "Red Harbor", "Place")
+        doc_id = self.db_manager.create_document(project_uuid, emberfall_id, "Chapter 01")
+        self.db_manager.update_document(project_uuid, doc_id, content_json="Mara visits [[Red Harbor]].")
+        self.db_manager.create_relationship(project_uuid, emberfall_id, mara_id, harbor_id, "visits", "Route notes.")
+        self.db_manager.create_timeline_event(project_uuid, emberfall_id, "Arrival", event_date="847 AE")
+        self.db_manager.create_document(project_uuid, glass_coast_id, "Coast Notes")
+        self.db_manager.create_lore_page(project_uuid, glass_coast_id, "Salt Market", "Place")
+        source_bytes = Path(project_path).read_bytes()
+
+        result = self.db_manager.export_project_markdown(project_uuid, str(self.temp_path / "exports"))
+
+        self.assertEqual(result["projectTitle"], "Atlas: Project")
+        self.assertEqual(result["worldCount"], 2)
+        self.assertEqual(result["documentCount"], 2)
+        self.assertEqual(result["lorePageCount"], 3)
+        self.assertEqual(result["relationshipCount"], 1)
+        self.assertEqual(result["timelineEventCount"], 1)
+        self.assertEqual(Path(project_path).read_bytes(), source_bytes)
+
+        export_path = Path(result["exportPath"])
+        self.assertEqual(export_path.name, "Atlas- Project")
+        self.assertTrue((export_path / "index.md").exists())
+        self.assertTrue((export_path / "Emberfall" / "index.md").exists())
+        self.assertTrue((export_path / "Glass-Coast" / "index.md").exists())
+        self.assertTrue((export_path / "Emberfall" / "Documents" / "Chapter 01.md").exists())
+        self.assertTrue((export_path / "Emberfall" / "Relationships").is_dir())
+        self.assertTrue((export_path / "Emberfall" / "Timeline").is_dir())
+
+        index_text = (export_path / "index.md").read_text(encoding="utf-8")
+        self.assertIn("# Atlas: Project", index_text)
+        self.assertIn("Worlds: 2", index_text)
+        self.assertIn("Documents: 2", index_text)
+        self.assertIn("Lore pages: 3", index_text)
+        self.assertIn("Relationships: 1", index_text)
+        self.assertIn("Timeline events: 1", index_text)
+        self.assertIn("[Emberfall](Emberfall/index.md)", index_text)
+        self.assertIn("[Glass/Coast](Glass-Coast/index.md)", index_text)
+
+    def test_export_project_markdown_dedupes_duplicate_world_folder_names(self):
+        project_uuid, _ = self.db_manager.add_project("Duplicate Worlds", "")
+        self.db_manager.create_world(project_uuid, "Mirror/World")
+        self.db_manager.create_world(project_uuid, "Mirror:World")
+
+        result = self.db_manager.export_project_markdown(project_uuid, str(self.temp_path / "exports"))
+
+        export_path = Path(result["exportPath"])
+        world_folders = sorted(path.name for path in export_path.iterdir() if path.is_dir())
+        self.assertEqual(world_folders, ["Mirror-World", "Mirror-World-2"])
+        index_text = (export_path / "index.md").read_text(encoding="utf-8")
+        self.assertIn("Mirror-World/index.md", index_text)
+        self.assertIn("Mirror-World-2/index.md", index_text)
+
+    def test_sidecar_exports_project_markdown_with_metadata(self):
+        project_uuid, _ = self.db_manager.add_project("Sidecar Project Export", "")
+        world_id = self.db_manager.create_world(project_uuid, "Test World")
+        self.db_manager.create_document(project_uuid, world_id, "Scene")
+
+        response = self.sidecar._handle_request(
+            {
+                "action": "export_project_markdown",
+                "data": {
+                    "projectId": project_uuid,
+                    "exportRoot": str(self.temp_path / "exports"),
+                },
+            }
+        )
+
+        self.assertEqual(response["status"], "ok")
+        export = response["export"]
+        self.assertEqual(export["worldCount"], 1)
+        self.assertEqual(export["documentCount"], 1)
+        self.assertEqual(export["lorePageCount"], 0)
+        self.assertEqual(export["relationshipCount"], 0)
+        self.assertEqual(export["timelineEventCount"], 0)
+        self.assertTrue(Path(export["exportPath"]).exists())
+        self.assertIn("index.md", [file["relativePath"] for file in export["files"]])
+
+    def test_sidecar_export_project_markdown_requires_target_data(self):
+        response = self.sidecar._handle_request({"action": "export_project_markdown", "data": {}})
+
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], "projectId and exportRoot required")
+
     def test_sidecar_exports_world_markdown_with_metadata(self):
         project_uuid, _ = self.db_manager.add_project("Sidecar Export", "")
         world_id = self.db_manager.create_world(project_uuid, "Test World")

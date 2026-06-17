@@ -471,6 +471,31 @@ def _build_export_index(project_title, world, document_entries, lore_entries, re
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _build_project_export_index(project_title, world_entries, totals):
+    lines = [
+        f"# {project_title}",
+        "",
+        f"Worlds: {totals['worldCount']}",
+        f"Documents: {totals['documentCount']}",
+        f"Lore pages: {totals['lorePageCount']}",
+        f"Relationships: {totals['relationshipCount']}",
+        f"Timeline events: {totals['timelineEventCount']}",
+        "",
+        "## Worlds",
+        "",
+    ]
+    if world_entries:
+        for entry in world_entries:
+            summary = (
+                f"{entry['documentCount']} docs, {entry['lorePageCount']} lore, "
+                f"{entry['relationshipCount']} relationships, {entry['timelineEventCount']} timeline events"
+            )
+            lines.append(f"- [{entry['title']}]({entry['relativePath']}) - {summary}")
+    else:
+        lines.append("- No worlds exported.")
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def _get_project_filepath(project_uuid):
     conn = _registry_conn()
     c = conn.cursor()
@@ -641,15 +666,7 @@ def save_project_as(project_uuid, filepath):
     return open_project(resolved_path)
 
 
-def export_world_markdown(project_uuid, world_id, export_root):
-    if not export_root:
-        raise ValueError("exportRoot required")
-    source_path = _get_project_filepath(project_uuid)
-    if not source_path or not os.path.exists(source_path):
-        raise FileNotFoundError(source_path or project_uuid)
-
-    project_title = _get_project_title(project_uuid)
-    conn = _project_conn(source_path)
+def _fetch_world_export_data(conn, project_uuid, world_id):
     c = conn.cursor()
     c.execute(
         """
@@ -661,9 +678,7 @@ def export_world_markdown(project_uuid, world_id, export_root):
     )
     world = c.fetchone()
     if not world:
-        conn.close()
         raise FileNotFoundError(f"World not found: {world_id}")
-
     c.execute(
         """
         SELECT id, world_id, title, content_json, folder_path, created_at, updated_at
@@ -704,12 +719,23 @@ def export_world_markdown(project_uuid, world_id, export_root):
         (world_id,),
     )
     timeline_events = c.fetchall()
-    conn.close()
+    return {
+        "world": world,
+        "documents": documents,
+        "lorePages": lore_pages,
+        "relationships": relationships,
+        "timelineEvents": timeline_events,
+    }
 
-    export_folder_name = _safe_export_name(f"{project_title} - {world[2]}", "worldie-export")
-    export_path = os.path.abspath(os.path.join(export_root, export_folder_name))
+
+def _write_world_markdown_export(project_title, world_data, export_path):
     os.makedirs(export_path, exist_ok=True)
 
+    world = world_data["world"]
+    documents = world_data["documents"]
+    lore_pages = world_data["lorePages"]
+    relationships = world_data["relationships"]
+    timeline_events = world_data["timelineEvents"]
     used_paths = set()
     exported_files = []
     document_entries = []
@@ -807,6 +833,107 @@ def export_world_markdown(project_uuid, world_id, export_root):
         "relationshipCount": len(relationships),
         "timelineEventCount": len(timeline_events),
         "files": exported_files,
+    }
+
+
+def export_world_markdown(project_uuid, world_id, export_root):
+    if not export_root:
+        raise ValueError("exportRoot required")
+    source_path = _get_project_filepath(project_uuid)
+    if not source_path or not os.path.exists(source_path):
+        raise FileNotFoundError(source_path or project_uuid)
+
+    project_title = _get_project_title(project_uuid)
+    conn = _project_conn(source_path)
+    try:
+        world_data = _fetch_world_export_data(conn, project_uuid, world_id)
+    finally:
+        conn.close()
+    export_folder_name = _safe_export_name(f"{project_title} - {world_data['world'][2]}", "worldie-export")
+    export_path = os.path.abspath(os.path.join(export_root, export_folder_name))
+    return _write_world_markdown_export(project_title, world_data, export_path)
+
+
+def export_project_markdown(project_uuid, export_root):
+    if not export_root:
+        raise ValueError("exportRoot required")
+    source_path = _get_project_filepath(project_uuid)
+    if not source_path or not os.path.exists(source_path):
+        raise FileNotFoundError(source_path or project_uuid)
+
+    project_title = _get_project_title(project_uuid)
+    project_export_path = os.path.abspath(os.path.join(export_root, _safe_export_name(project_title, "worldie-project")))
+    os.makedirs(project_export_path, exist_ok=True)
+
+    conn = _project_conn(source_path)
+    try:
+        c = conn.cursor()
+        c.execute(
+            """
+            SELECT id, project_id, title, description, created_at, updated_at
+            FROM worlds
+            WHERE project_id = ?
+            ORDER BY title COLLATE NOCASE, id
+            """,
+            (project_uuid,),
+        )
+        worlds = c.fetchall()
+        used_world_paths = set()
+        world_exports = []
+        project_files = []
+        world_entries = []
+        totals = {
+            "worldCount": len(worlds),
+            "documentCount": 0,
+            "lorePageCount": 0,
+            "relationshipCount": 0,
+            "timelineEventCount": 0,
+        }
+        for world in worlds:
+            world_data = _fetch_world_export_data(conn, project_uuid, world[0])
+            world_folder = _dedupe_export_path(project_export_path, _safe_export_name(world[2], "world"), used_world_paths)
+            world_export = _write_world_markdown_export(project_title, world_data, world_folder)
+            world_exports.append(world_export)
+            project_files.extend(world_export["files"])
+            totals["documentCount"] += world_export["documentCount"]
+            totals["lorePageCount"] += world_export["lorePageCount"]
+            totals["relationshipCount"] += world_export["relationshipCount"]
+            totals["timelineEventCount"] += world_export["timelineEventCount"]
+            world_entries.append(
+                {
+                    "title": world[2],
+                    "path": world_export["exportPath"],
+                    "relativePath": _relative_export_path(os.path.join(world_export["exportPath"], "index.md"), project_export_path),
+                    "documentCount": world_export["documentCount"],
+                    "lorePageCount": world_export["lorePageCount"],
+                    "relationshipCount": world_export["relationshipCount"],
+                    "timelineEventCount": world_export["timelineEventCount"],
+                }
+            )
+    finally:
+        conn.close()
+
+    index_path = os.path.join(project_export_path, "index.md")
+    _write_text_file(index_path, _build_project_export_index(project_title, world_entries, totals))
+    files = [
+        {
+            "kind": "index",
+            "title": "Project Index",
+            "path": index_path,
+            "relativePath": "index.md",
+        }
+    ]
+    files.extend(project_files)
+    return {
+        "exportPath": project_export_path,
+        "projectTitle": project_title,
+        "worldCount": totals["worldCount"],
+        "documentCount": totals["documentCount"],
+        "lorePageCount": totals["lorePageCount"],
+        "relationshipCount": totals["relationshipCount"],
+        "timelineEventCount": totals["timelineEventCount"],
+        "worlds": world_entries,
+        "files": files,
     }
 
 
