@@ -136,7 +136,7 @@ Worldie now includes a simple lore table inside the lore area. It reads the same
 - Row action: clicking a page title opens the existing lore editor for that page.
 - Row creation: when a lore type is selected, the table shows a compact title input and an `Add <Type>` action that creates a normal lore page in the active world using the selected lore type.
 - Inline editing: custom field definition cells can be edited directly in the table.
-- CSV export: when a lore type is selected, `Export CSV` writes the currently visible table to a user-selected folder.
+- CSV export: when a lore type is selected, `Export CSV` writes the currently visible table to a user-selected folder. `Export Update CSV` writes the same visible table with a leading `Worldie ID` column for future safe update workflows.
 - CSV import: when a lore type is selected, `Import CSV Preview` reads a selected CSV file and shows how columns and sample rows would map before anything is written. A valid preview can then be imported as new lore pages.
 
 Saved lore table views are stored in the `.worldie` SQLite project file in the world-scoped `lore_table_views` table. A saved view currently remembers:
@@ -184,12 +184,15 @@ CSV import preview reads UTF-8 CSV text in the frontend after the user chooses a
 
 Preview mapping rules:
 
+- `Worldie ID` maps to stable page matching metadata and is not imported as a custom field.
 - `Name`, `Title`, and `Lore Page` map to the future lore page title.
 - Lore type custom fields map case-insensitively by display name or field key.
 - Exported core columns `Type` and `Updated` are ignored.
 - Unmatched columns are listed as unmapped.
 - Missing title/name columns are treated as blocking preview errors.
 - Empty rows are ignored with a warning.
+
+When a CSV includes `Worldie ID`, preview matches it against lore pages in the selected active-world lore type and shows row status and summary counts for matched, new/no-ID, blocked, and warning rows. Malformed IDs, duplicate CSV IDs, IDs that belong to another selected lore type, and ID/title conflicts are blocking preview errors. Unknown IDs are reported as warnings in the current create-only flow. `Import as New Pages` remains create-only: matched IDs are shown for review but are not updated.
 
 Preview validation checks number fields for numeric values and checkbox fields for `Yes`/`No`, `true`/`false`, or `1`/`0`. Text, long text, date, and select fields preview as strings in this first slice. Checkbox preview values are normalized to `Yes` or `No`; invalid number and checkbox values are reported as row warnings and blocking errors.
 
@@ -205,7 +208,8 @@ Current table limitations:
 - It does not support formulas.
 - It does not support bulk editing.
 - It does not update existing rows from CSV.
-- It does not match CSV rows to existing pages by title or ID.
+- It previews `Worldie ID` matches but does not apply updates to existing pages.
+- It does not match CSV rows to existing pages by title.
 - It does not have manual CSV column mapping UI yet.
 - It does not have an import undo stack or post-import bulk edit review.
 - It does not export media files.

@@ -14,8 +14,10 @@ import {
   buildLoreTableModel,
   buildLoreTableCsv,
   buildLoreTableCsvFilename,
+  buildLoreTableCsvWithOptions,
   buildLoreTableCsvImportPreview,
   buildLoreTableCsvImportDrafts,
+  buildLoreTableUpdateCsvFilename,
   buildLoreTableViewDraft,
   canApplyLoreTableCsvImport,
   canExportLoreTableCsv,
@@ -314,13 +316,27 @@ export const LoreView = memo(function LoreView({
     }
   };
 
+  const exportLoreTableUpdateCsv = async () => {
+    if (!canExportTableCsv || !loreTableModel.loreType) return;
+    setTableEditError("");
+    setIsExportingTableCsv(true);
+    const exported = await onExportLoreTableCsv({
+      filename: buildLoreTableUpdateCsvFilename(activeWorld?.name, loreTableModel.loreType.name),
+      csvText: buildLoreTableCsvWithOptions(loreTableModel, { includeWorldieId: true }),
+    });
+    setIsExportingTableCsv(false);
+    if (!exported) {
+      setTableEditError("Worldie could not export that update-ready Lore Table CSV.");
+    }
+  };
+
   const previewLoreTableCsvImport = async (file: File | null | undefined) => {
     if (!file || !loreTableModel.loreType) return;
     setTableEditError("");
     try {
       const text = await file.text();
       setCsvImportFilename(file.name);
-      setCsvImportPreview(buildLoreTableCsvImportPreview(text, loreTableModel.loreType));
+      setCsvImportPreview(buildLoreTableCsvImportPreview(text, loreTableModel.loreType, { existingPages: availableLorePages }));
       setCsvImportResult("");
     } catch {
       setCsvImportFilename(file.name);
@@ -714,6 +730,9 @@ export const LoreView = memo(function LoreView({
               <button className="tb-btn" type="button" onClick={() => void exportLoreTableCsv()} disabled={!canExportTableCsv || isExportingTableCsv}>
                 {isExportingTableCsv ? "Exporting..." : "Export CSV"}
               </button>
+              <button className="tb-btn" type="button" onClick={() => void exportLoreTableUpdateCsv()} disabled={!canExportTableCsv || isExportingTableCsv}>
+                Export Update CSV
+              </button>
               <button className="tb-btn" type="button" onClick={() => csvImportInputRef.current?.click()} disabled={!loreTableModel.loreType}>
                 Import CSV Preview
               </button>
@@ -772,6 +791,10 @@ export const LoreView = memo(function LoreView({
                   <div className="lore-table-import-meta">
                     {csvImportFilename || "CSV file"} - {csvImportPreview.headers.length} headers - {csvImportPreview.rowCount} rows
                   </div>
+                  <div className="lore-table-import-meta">
+                    {csvImportPreview.matchSummary.matched} matched - {csvImportPreview.matchSummary.new} new/no ID -{" "}
+                    {csvImportPreview.matchSummary.blocked} blocked - {csvImportPreview.matchSummary.warnings} warnings
+                  </div>
                 </div>
                 <div className="lore-table-import-actions">
                   <button className="tb-btn" type="button" onClick={() => void importLoreTableCsvAsNewPages()} disabled={!canImportTableCsv}>
@@ -798,7 +821,7 @@ export const LoreView = memo(function LoreView({
                     {csvImportPreview.mappedColumns.length > 0
                       ? csvImportPreview.mappedColumns.map((column) => (
                           <span key={`${column.index}-${column.header}`} className="meta-tag">
-                            {column.header} -&gt; {column.target === "title" ? "Name" : column.fieldName}
+                            {column.header} -&gt; {column.target === "title" ? "Name" : column.target === "worldie_id" ? "Worldie ID" : column.fieldName}
                           </span>
                         ))
                       : "No mapped columns."}
@@ -849,6 +872,21 @@ export const LoreView = memo(function LoreView({
                   {csvImportPreview.sampleRows.map((row) => (
                     <div key={row.rowNumber} className="lore-table-import-sample">
                       <strong>{row.title || `Row ${row.rowNumber}`}</strong>
+                      <span>
+                        {row.match.status === "matched"
+                          ? `Matched: ${row.match.matchedPageTitle}`
+                          : row.match.status === "new"
+                            ? "New row"
+                            : row.match.status === "unknown_id"
+                              ? `Unknown ID: ${row.match.worldieId}`
+                              : row.match.status === "malformed_id"
+                                ? "Malformed Worldie ID"
+                                : row.match.status === "wrong_type"
+                                  ? `Wrong type: ${row.match.matchedPageTitle ?? row.match.worldieId}`
+                                  : row.match.status === "duplicate_id"
+                                    ? `Duplicate ID: ${row.match.worldieId}`
+                                    : `Title conflict: ${row.match.matchedPageTitle ?? row.match.worldieId}`}
+                      </span>
                       {Object.entries(row.customFields).map(([key, value]) => (
                         <span key={key}>
                           {key}: {formatCsvImportPreviewValue(value)}

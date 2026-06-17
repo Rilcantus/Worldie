@@ -20,6 +20,8 @@ CSV export respects the table controls currently applied in the UI:
 
 The CSV includes a header row, core columns (`Name`, `Type`, `Updated`), and the currently visible custom field columns in display order. Hidden columns and filtered-out rows are excluded. Empty filtered tables export headers only. Values are written as UTF-8 CSV text, with commas, quotes, and newlines escaped for spreadsheet tools.
 
+`Export Update CSV` creates an update-ready copy of the same visible table with a leading `Worldie ID` column containing each lore page UUID. This ID column is not shown in the normal Lore Table display and is not included in the normal `Export CSV` action.
+
 CSV export is an external copy only. It does not mutate lore pages, saved views, or the `.worldie` project file.
 
 ## Lore Table CSV Import
@@ -28,12 +30,15 @@ The Lore Table can also preview a selected CSV file against the currently select
 
 Preview mapping rules:
 
+- `Worldie ID` is recognized as stable page matching metadata and is not imported as a custom field.
 - `Name`, `Title`, and `Lore Page` map to the lore page title.
 - Lore type custom fields map case-insensitively by field display name or field key.
 - `Type` and `Updated` are recognized as exported core columns and ignored.
 - Unmatched headers are listed as unmapped.
 - Missing title/name columns are blocking preview errors.
 - Empty rows are ignored with a warning.
+
+When `Worldie ID` is present, preview shows whether each row matches an existing selected-type lore page, is new/no-ID, has an unknown ID, has a malformed ID, targets another lore type, duplicates another CSV row's ID, or conflicts with the matched page title. The preview also shows matched, new/no-ID, blocked, and warning counts. This remains preview-only for updates: `Import as New Pages` still creates new pages and does not update matched existing pages.
 
 Number fields warn and block import when values cannot be parsed as numbers. Checkbox fields recognize `Yes`/`No`, `true`/`false`, and `1`/`0`; invalid checkbox values warn and block import. Text, long text, date, and select fields preview as strings.
 
@@ -127,7 +132,7 @@ Each generated world `index.md` includes:
 
 - Active-world and full-project export are Markdown only.
 - Lore Table CSV import creates new pages only.
-- Lore Table CSV does not include formulas, bulk edits, update-existing-row behavior, row matching, manual mapping UI, an import undo stack, post-import bulk edit review, or a full database workspace.
+- Lore Table CSV does not include formulas, bulk edits, update-existing-row apply behavior, title fallback matching, manual mapping UI, an import undo stack, post-import bulk edit review, or a full database workspace.
 - Media is not exported yet.
 - Exported files are not synced back into the `.worldie` project.
 - Timeline date sorting is intentionally simple and does not yet understand full calendars, eras, date ranges, or custom chronology rules.

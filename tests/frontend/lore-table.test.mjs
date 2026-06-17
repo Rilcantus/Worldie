@@ -6,8 +6,10 @@ import {
   applyLoreTableView,
   buildLoreTableCsv,
   buildLoreTableCsvFilename,
+  buildLoreTableCsvWithOptions,
   buildLoreTableCsvImportDrafts,
   buildLoreTableCsvImportPreview,
+  buildLoreTableUpdateCsvFilename,
   buildLoreTableViewDraft,
   buildLoreTableModel,
   canApplyLoreTableCsvImport,
@@ -477,6 +479,32 @@ test("lore table CSV exports core headers and visible custom columns in table or
   assert.equal(csv.includes("First Seen"), false);
 });
 
+test("lore table CSV can include Worldie ID for update-ready exports without changing normal export", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    visibleColumnIds: ["field-species"],
+    sort: { columnId: "title", direction: "asc" },
+  });
+
+  assert.equal(buildLoreTableCsv(model).split("\n")[0], "Name,Type,Species,Updated");
+  assert.equal(
+    buildLoreTableCsvWithOptions(model, { includeWorldieId: true }).split("\n")[0],
+    "Worldie ID,Name,Type,Species,Updated",
+  );
+  assert.equal(buildLoreTableCsvWithOptions(model, { includeWorldieId: true }).split("\n")[1].startsWith("lore-asha,Asha Reed"), true);
+  assert.equal(buildLoreTableUpdateCsvFilename("Dusk/Fen", "Character: Lead"), "Dusk-Fen - Character- Lead Table Update Ready.csv");
+});
+
+test("Worldie ID is recognized as matching metadata rather than a custom field", () => {
+  const preview = buildLoreTableCsvImportPreview("Worldie ID,Name,Species\n,Mara Quill,Human\n", characterType);
+
+  assert.deepEqual(
+    preview.mappedColumns.map((column) => [column.header, column.target, column.fieldKey ?? ""]),
+    [["Worldie ID", "worldie_id", ""], ["Name", "title", ""], ["Species", "custom_field", "species"]],
+  );
+  assert.deepEqual(preview.sampleRows[0].customFields, { species: "Human" });
+  assert.equal(Object.prototype.hasOwnProperty.call(preview.sampleRows[0].customFields, "Worldie ID"), false);
+});
+
 test("lore table CSV excludes filtered-out rows and preserves sorted order", () => {
   const filtered = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
     filterText: "human",
@@ -550,6 +578,12 @@ test("CSV import preview parses simple CSV and maps Name plus custom field displ
     rowNumber: 2,
     title: "Mara Quill",
     customFields: { species: "Human", age: 31 },
+    match: {
+      status: "new",
+      worldieId: null,
+      matchedPageId: null,
+      matchedPageTitle: null,
+    },
     warnings: [],
     errors: [],
   });
@@ -619,6 +653,106 @@ test("CSV import preview ignores empty rows with a warning", () => {
   assert.equal(preview.rowCount, 1);
   assert.deepEqual(preview.warnings, ["Ignored 2 empty rows."]);
   assert.equal(preview.sampleRows[0].title, "Mara Quill");
+});
+
+test("CSV import preview matches known Worldie IDs against existing selected type pages", () => {
+  const existingPages = [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      worldId: "world-1",
+      title: "Mara Quill",
+      type: "Character",
+      fieldsJson: JSON.stringify({ loreTypeId: "type-character", customFields: {} }),
+    },
+  ];
+  const preview = buildLoreTableCsvImportPreview(
+    "Worldie ID,Name,Species\n11111111-1111-4111-8111-111111111111,Mara Quill,Human\n",
+    characterType,
+    { existingPages },
+  );
+
+  assert.equal(preview.sampleRows[0].match.status, "matched");
+  assert.equal(preview.sampleRows[0].match.matchedPageTitle, "Mara Quill");
+  assert.deepEqual(preview.matchSummary, { matched: 1, new: 0, blocked: 0, warnings: 1 });
+  assert.equal(canApplyLoreTableCsvImport(preview, characterType), true);
+});
+
+test("CSV import preview reports unknown malformed duplicate and conflicting Worldie IDs safely", () => {
+  const existingPages = [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      worldId: "world-1",
+      title: "Mara Quill",
+      type: "Character",
+      fieldsJson: JSON.stringify({ loreTypeId: "type-character", customFields: {} }),
+    },
+  ];
+  const preview = buildLoreTableCsvImportPreview(
+    [
+      "Worldie ID,Name,Species",
+      "22222222-2222-4222-8222-222222222222,Unknown Hero,Human",
+      "not-a-uuid,Bad Hero,Human",
+      "11111111-1111-4111-8111-111111111111,Wrong Title,Human",
+      "11111111-1111-4111-8111-111111111111,Mara Quill,Human",
+    ].join("\n"),
+    characterType,
+    { existingPages },
+  );
+
+  assert.deepEqual(
+    preview.rows.map((row) => row.match.status),
+    ["unknown_id", "malformed_id", "title_conflict", "duplicate_id"],
+  );
+  assert.equal(preview.matchSummary.new, 1);
+  assert.equal(preview.matchSummary.blocked, 3);
+  assert.equal(canApplyLoreTableCsvImport(preview, characterType), false);
+  assert.equal(preview.errors.some((message) => message.includes("Worldie ID is malformed")), true);
+  assert.equal(preview.errors.some((message) => message.includes("matches \"Mara Quill\"")), true);
+  assert.equal(preview.errors.some((message) => message.includes("duplicate Worldie ID")), true);
+});
+
+test("CSV import preview blocks Worldie IDs that match a page from another selected type", () => {
+  const existingPages = [
+    {
+      id: "33333333-3333-4333-8333-333333333333",
+      worldId: "world-1",
+      title: "Red Harbor",
+      type: "Place",
+      fieldsJson: JSON.stringify({ loreTypeId: "type-place", customFields: {} }),
+    },
+  ];
+  const preview = buildLoreTableCsvImportPreview(
+    "Worldie ID,Name\n33333333-3333-4333-8333-333333333333,Red Harbor\n",
+    characterType,
+    { existingPages },
+  );
+
+  assert.equal(preview.sampleRows[0].match.status, "wrong_type");
+  assert.equal(preview.matchSummary.blocked, 1);
+  assert.equal(canApplyLoreTableCsvImport(preview, characterType), false);
+});
+
+test("CSV import drafts still create new pages and do not update matched Worldie IDs", () => {
+  const existingPages = [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      worldId: "world-1",
+      title: "Mara Quill",
+      type: "Character",
+      fieldsJson: JSON.stringify({ loreTypeId: "type-character", customFields: { species: "Original" } }),
+    },
+  ];
+  const preview = buildLoreTableCsvImportPreview(
+    "Worldie ID,Name,Species\n11111111-1111-4111-8111-111111111111,Mara Quill,Human\n",
+    characterType,
+    { existingPages },
+  );
+  const drafts = buildLoreTableCsvImportDrafts(preview, characterType);
+
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0].title, "Mara Quill");
+  assert.notEqual(drafts[0].loreTypeId, existingPages[0].id);
+  assert.equal(JSON.parse(drafts[0].fieldsJson).customFields.species, "Human");
 });
 
 test("CSV import apply state requires a type no blocking errors valid rows and no in-flight import", () => {

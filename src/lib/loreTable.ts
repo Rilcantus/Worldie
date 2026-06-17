@@ -55,19 +55,43 @@ export type LoreTableCreateState = {
 export type LoreTableCsvImportColumnMapping = {
   index: number;
   header: string;
-  target: "title" | "custom_field" | "ignored" | "unmapped";
+  target: "title" | "worldie_id" | "custom_field" | "ignored" | "unmapped";
   fieldId?: string;
   fieldKey?: string;
   fieldName?: string;
   reason?: string;
 };
 
+export type LoreTableCsvImportMatchStatus =
+  | "matched"
+  | "new"
+  | "unknown_id"
+  | "malformed_id"
+  | "wrong_type"
+  | "duplicate_id"
+  | "title_conflict";
+
+export type LoreTableCsvImportRowMatch = {
+  status: LoreTableCsvImportMatchStatus;
+  worldieId: string | null;
+  matchedPageId: string | null;
+  matchedPageTitle: string | null;
+};
+
 export type LoreTableCsvImportPreviewRow = {
   rowNumber: number;
   title: string;
   customFields: Record<string, LoreCustomFieldValue>;
+  match: LoreTableCsvImportRowMatch;
   warnings: string[];
   errors: string[];
+};
+
+export type LoreTableCsvImportMatchSummary = {
+  matched: number;
+  new: number;
+  blocked: number;
+  warnings: number;
 };
 
 export type LoreTableCsvImportPreview = {
@@ -77,6 +101,7 @@ export type LoreTableCsvImportPreview = {
   mappedColumns: LoreTableCsvImportColumnMapping[];
   unmappedColumns: LoreTableCsvImportColumnMapping[];
   ignoredColumns: LoreTableCsvImportColumnMapping[];
+  matchSummary: LoreTableCsvImportMatchSummary;
   warnings: string[];
   errors: string[];
   rows: LoreTableCsvImportPreviewRow[];
@@ -106,9 +131,20 @@ function escapeCsvCell(value: string) {
 
 export function buildLoreTableCsv(model: Pick<LoreTableModel, "columns" | "rows">) {
   if (model.columns.length === 0) return "";
-  const header = model.columns.map((column) => escapeCsvCell(column.label)).join(",");
+  return buildLoreTableCsvWithOptions(model);
+}
+
+export function buildLoreTableCsvWithOptions(
+  model: Pick<LoreTableModel, "columns" | "rows">,
+  options: { includeWorldieId?: boolean } = {},
+) {
+  if (model.columns.length === 0) return "";
+  const headerCells = options.includeWorldieId ? ["Worldie ID", ...model.columns.map((column) => column.label)] : model.columns.map((column) => column.label);
+  const header = headerCells.map((cell) => escapeCsvCell(cell)).join(",");
   const rows = model.rows.map((row) =>
-    model.columns.map((column) => escapeCsvCell(row.cells[column.id] ?? "")).join(","),
+    (options.includeWorldieId ? [row.page.id, ...model.columns.map((column) => row.cells[column.id] ?? "")] : model.columns.map((column) => row.cells[column.id] ?? ""))
+      .map((cell) => escapeCsvCell(cell))
+      .join(","),
   );
   return [header, ...rows].join("\n");
 }
@@ -125,6 +161,16 @@ export function buildLoreTableCsvFilename(worldTitle: string | null | undefined,
     .trim()
     .replace(/[ .-]+$/g, "");
   return `${safeBase || "Lore Table"}.csv`;
+}
+
+export function buildLoreTableUpdateCsvFilename(worldTitle: string | null | undefined, loreTypeName: string | null | undefined) {
+  const base = `${worldTitle?.trim() || "World"} - ${loreTypeName?.trim() || "Lore"} Table Update Ready`;
+  const safeBase = base
+    .replace(/[<>:"/\\|?*\x00-\x1f]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[ .-]+$/g, "");
+  return `${safeBase || "Lore Table Update Ready"}.csv`;
 }
 
 function parseCsvRows(csvText: string) {
@@ -195,6 +241,10 @@ function normalizeCsvHeader(value: string) {
   return value.trim().toLowerCase();
 }
 
+function isUuidLike(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim());
+}
+
 function isEmptyCsvRow(row: string[]) {
   return row.every((value) => value.trim() === "");
 }
@@ -209,6 +259,9 @@ function buildCsvColumnMappings(headers: string[], loreType: LoreType) {
     const normalized = normalizeCsvHeader(header);
     if (["name", "title", "lore page"].includes(normalized)) {
       return { index, header, target: "title" };
+    }
+    if (normalized === "worldie id") {
+      return { index, header, target: "worldie_id", reason: "Stable Worldie matching ID" };
     }
     if (["type", "updated"].includes(normalized)) {
       return { index, header, target: "ignored", reason: "Core export column" };
@@ -266,6 +319,7 @@ function createEmptyCsvImportPreview(warnings: string[], errors: string[]): Lore
     mappedColumns: [],
     unmappedColumns: [],
     ignoredColumns: [],
+    matchSummary: { matched: 0, new: 0, blocked: 0, warnings: warnings.length },
     warnings,
     errors,
     rows: [],
@@ -273,10 +327,102 @@ function createEmptyCsvImportPreview(warnings: string[], errors: string[]): Lore
   };
 }
 
+function createNewCsvRowMatch(worldieId: string | null = null): LoreTableCsvImportRowMatch {
+  return {
+    status: worldieId ? "unknown_id" : "new",
+    worldieId,
+    matchedPageId: null,
+    matchedPageTitle: null,
+  };
+}
+
+function resolveCsvRowMatch(
+  row: string[],
+  rowNumber: number,
+  mappings: LoreTableCsvImportColumnMapping[],
+  title: string,
+  loreType: LoreType,
+  existingPages: LorePage[],
+  seenIds: Set<string>,
+) {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const idMapping = mappings.find((mapping) => mapping.target === "worldie_id");
+  const worldieId = idMapping ? (row[idMapping.index] ?? "").trim() : "";
+  if (!worldieId) {
+    return { match: createNewCsvRowMatch(), warnings, errors };
+  }
+  if (!isUuidLike(worldieId)) {
+    const message = `Row ${rowNumber}: Worldie ID is malformed.`;
+    errors.push(message);
+    return {
+      match: { ...createNewCsvRowMatch(worldieId), status: "malformed_id" as const },
+      warnings,
+      errors,
+    };
+  }
+  if (seenIds.has(worldieId)) {
+    const message = `Row ${rowNumber}: duplicate Worldie ID targets the same existing page.`;
+    errors.push(message);
+    return {
+      match: { ...createNewCsvRowMatch(worldieId), status: "duplicate_id" as const },
+      warnings,
+      errors,
+    };
+  }
+  seenIds.add(worldieId);
+
+  const matchedPage = existingPages.find((page) => page.id === worldieId) ?? null;
+  if (!matchedPage) {
+    const message = `Row ${rowNumber}: Worldie ID does not match a page in the selected table.`;
+    warnings.push(message);
+    return { match: createNewCsvRowMatch(worldieId), warnings, errors };
+  }
+  if (!pageMatchesLoreType(matchedPage, loreType)) {
+    const message = `Row ${rowNumber}: Worldie ID belongs to a different lore type.`;
+    errors.push(message);
+    return {
+      match: {
+        status: "wrong_type" as const,
+        worldieId,
+        matchedPageId: matchedPage.id,
+        matchedPageTitle: matchedPage.title,
+      },
+      warnings,
+      errors,
+    };
+  }
+  if (title && title !== matchedPage.title) {
+    const message = `Row ${rowNumber}: Worldie ID matches "${matchedPage.title}" but the CSV title is "${title}".`;
+    errors.push(message);
+    return {
+      match: {
+        status: "title_conflict" as const,
+        worldieId,
+        matchedPageId: matchedPage.id,
+        matchedPageTitle: matchedPage.title,
+      },
+      warnings,
+      errors,
+    };
+  }
+  warnings.push(`Row ${rowNumber}: Worldie ID matches existing page "${matchedPage.title}". Import as New Pages will still create a new page.`);
+  return {
+    match: {
+      status: "matched" as const,
+      worldieId,
+      matchedPageId: matchedPage.id,
+      matchedPageTitle: matchedPage.title,
+    },
+    warnings,
+    errors,
+  };
+}
+
 export function buildLoreTableCsvImportPreview(
   csvText: string,
   loreType: LoreType | null,
-  options: { sampleLimit?: number } = {},
+  options: { sampleLimit?: number; existingPages?: LorePage[] } = {},
 ): LoreTableCsvImportPreview {
   const sampleLimit = options.sampleLimit ?? 5;
   const warnings: string[] = [];
@@ -296,7 +442,7 @@ export function buildLoreTableCsvImportPreview(
   }
 
   const mappings = buildCsvColumnMappings(headers, loreType);
-  const mappedColumns = mappings.filter((mapping) => mapping.target === "title" || mapping.target === "custom_field");
+  const mappedColumns = mappings.filter((mapping) => mapping.target === "title" || mapping.target === "worldie_id" || mapping.target === "custom_field");
   const unmappedColumns = mappings.filter((mapping) => mapping.target === "unmapped");
   const ignoredColumns = mappings.filter((mapping) => mapping.target === "ignored");
   const titleMapping = mappings.find((mapping) => mapping.target === "title");
@@ -315,6 +461,8 @@ export function buildLoreTableCsvImportPreview(
   }
 
   const fieldsById = new Map(loreType.fieldDefinitions.map((field) => [field.id, field]));
+  const existingPages = options.existingPages ?? [];
+  const seenWorldieIds = new Set<string>();
   const rows = nonEmptyRows.map(({ row, rowNumber }) => {
     const rowWarnings: string[] = [];
     const rowErrors: string[] = [];
@@ -334,13 +482,27 @@ export function buildLoreTableCsvImportPreview(
       if (normalized.warning) rowWarnings.push(normalized.warning);
       if (normalized.error) rowErrors.push(normalized.error);
     }
-    return { rowNumber, title, customFields, warnings: rowWarnings, errors: rowErrors };
+    const match = resolveCsvRowMatch(row, rowNumber, mappings, title, loreType, existingPages, seenWorldieIds);
+    rowWarnings.push(...match.warnings);
+    rowErrors.push(...match.errors);
+    return { rowNumber, title, customFields, match: match.match, warnings: rowWarnings, errors: rowErrors };
   });
 
   for (const row of rows) {
     warnings.push(...row.warnings);
     errors.push(...row.errors);
   }
+
+  const matchSummary = rows.reduce<LoreTableCsvImportMatchSummary>(
+    (summary, row) => {
+      if (row.match.status === "matched") summary.matched += 1;
+      if (row.match.status === "new" || row.match.status === "unknown_id") summary.new += 1;
+      if (row.errors.length > 0) summary.blocked += 1;
+      return summary;
+    },
+    { matched: 0, new: 0, blocked: 0, warnings: 0 },
+  );
+  matchSummary.warnings = warnings.length;
 
   return {
     headers,
@@ -349,6 +511,7 @@ export function buildLoreTableCsvImportPreview(
     mappedColumns,
     unmappedColumns,
     ignoredColumns,
+    matchSummary,
     warnings,
     errors,
     rows,
