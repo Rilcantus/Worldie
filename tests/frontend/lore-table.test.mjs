@@ -5,7 +5,10 @@ import {
   applyLoreTableView,
   buildLoreTableViewDraft,
   buildLoreTableModel,
+  clearHiddenColumnSort,
   formatLoreTableValue,
+  resolveVisibleColumnIds,
+  toggleVisibleColumnId,
 } from "../../.tmp-frontend-tests/src/lib/loreTable.js";
 import {
   buildLoreTableViewPayload,
@@ -210,6 +213,56 @@ test("sorting by checkbox custom fields is predictable", () => {
   assert.deepEqual(descending.rows.map((row) => row.page.id), ["lore-asha", "lore-mara", "lore-bran"]);
 });
 
+test("default lore table visibility shows all custom field columns", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character");
+
+  assert.deepEqual(
+    model.columns.map((column) => column.id),
+    ["title", "type", "field-species", "field-age", "field-active", "field-status", "field-first-seen", "updated"],
+  );
+});
+
+test("hiding and restoring custom field columns changes rendered columns only", () => {
+  const fullModel = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character");
+  const hiddenAge = toggleVisibleColumnId(fullModel.allColumns, null, "field-age");
+  const hiddenModel = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    visibleColumnIds: hiddenAge,
+  });
+  const restoredAge = toggleVisibleColumnId(hiddenModel.allColumns, hiddenAge, "field-age");
+  const restoredModel = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    visibleColumnIds: restoredAge,
+  });
+
+  assert.equal(hiddenModel.columns.some((column) => column.id === "field-age"), false);
+  assert.equal(hiddenModel.rows[0].cells["field-age"], "31");
+  assert.equal(restoredModel.columns.some((column) => column.id === "field-age"), true);
+});
+
+test("stale saved visible column keys are ignored safely", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    visibleColumnIds: ["field-species", "field-missing"],
+  });
+
+  assert.deepEqual(resolveVisibleColumnIds(model.allColumns, ["field-species", "field-missing"]), ["field-species"]);
+  assert.deepEqual(
+    model.columns.map((column) => column.id),
+    ["title", "type", "field-species", "updated"],
+  );
+});
+
+test("hiding the active sort column clears the sort", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character", {
+    visibleColumnIds: ["field-species"],
+    sort: { columnId: "field-age", direction: "asc" },
+  });
+
+  assert.equal(clearHiddenColumnSort({ columnId: "field-age", direction: "asc" }, model.columns), null);
+  assert.deepEqual(clearHiddenColumnSort({ columnId: "field-species", direction: "desc" }, model.columns), {
+    columnId: "field-species",
+    direction: "desc",
+  });
+});
+
 test("saved lore table views apply lore type, filter, and sort state", () => {
   const state = applyLoreTableView(
     {
@@ -217,26 +270,34 @@ test("saved lore table views apply lore type, filter, and sort state", () => {
       worldId: "world-1",
       name: "Active Characters",
       loreTypeId: "type-character",
-      quickFilter: "active",
+      quickFilter: "mara",
       sortKey: "field-age",
       sortDirection: "desc",
+      visibleColumnsJson: JSON.stringify(["field-species", "field-age"]),
     },
     {
       loreTypeId: "type-place",
       filterText: "",
       sort: { columnId: "title", direction: "asc" },
+      visibleColumnIds: null,
     },
   );
   const model = buildLoreTableModel(sortablePages, [characterType, placeType], state.loreTypeId, {
     filterText: state.filterText,
     sort: state.sort,
+    visibleColumnIds: state.visibleColumnIds,
   });
 
   assert.deepEqual(state, {
     loreTypeId: "type-character",
-    filterText: "active",
+    filterText: "mara",
     sort: { columnId: "field-age", direction: "desc" },
+    visibleColumnIds: ["field-species", "field-age"],
   });
+  assert.deepEqual(
+    model.columns.map((column) => column.id),
+    ["title", "type", "field-species", "field-age", "updated"],
+  );
   assert.deepEqual(model.rows.map((row) => row.page.id), ["lore-mara"]);
 });
 
@@ -245,6 +306,7 @@ test("saved lore table view drafts serialize current table state", () => {
     loreTypeId: "type-character",
     filterText: " Human ",
     sort: { columnId: "field-age", direction: "asc" },
+    visibleColumnIds: ["field-species", "field-age"],
   });
 
   assert.deepEqual(draft, {
@@ -253,7 +315,7 @@ test("saved lore table view drafts serialize current table state", () => {
     quickFilter: "Human",
     sortKey: "field-age",
     sortDirection: "asc",
-    visibleColumnsJson: null,
+    visibleColumnsJson: JSON.stringify(["field-species", "field-age"]),
   });
 });
 

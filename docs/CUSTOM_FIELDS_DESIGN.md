@@ -142,9 +142,18 @@ Saved lore table views are stored in the `.worldie` SQLite project file in the w
 - quick filter text
 - sort column
 - sort direction
+- visible custom field columns
 - created/updated timestamps
 
 Selecting a saved view applies those table controls without mutating lore pages. Saving, updating, or deleting a saved view writes only the saved view record.
+
+Column visibility applies to lore-type custom field definition columns. Core table columns remain visible:
+
+- Name
+- Type
+- Updated
+
+Existing saved views without column visibility data default to showing all custom field columns. Explicitly clearing a saved view's column visibility also returns it to the all-visible default. If a saved view references a stale custom field column that no longer exists, the table ignores that key. If the active sort column is hidden, the UI clears the sort rather than silently sorting by an invisible column.
 
 Field definitions already use stable IDs. Lore page values are currently keyed by definition `key`, not by definition ID. A future table view can use definition IDs for column identity while continuing to read/write page values through stable keys.
 
@@ -153,7 +162,7 @@ Current table limitations:
 - It is view-only.
 - It does not support formulas.
 - It does not support bulk editing.
-- It does not have advanced filters or saved column-visibility controls yet.
+- It does not have advanced filters yet.
 - It does not have saved view sharing, duplication, or per-view descriptions yet.
 - Manual extra fields are not promoted into columns in this first table slice.
 - Definition renames or key changes do not migrate existing page values automatically.

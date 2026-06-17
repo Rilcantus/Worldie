@@ -258,6 +258,7 @@ class ProjectStoreTests(unittest.TestCase):
             quick_filter="active",
             sort_key="field-age",
             sort_direction="asc",
+            visible_columns_json=json.dumps(["field-species", "field-age"]),
         )
         listed = self.db_manager.list_lore_table_views(project_uuid, world_id)
         self.assertEqual(len(listed), 1)
@@ -267,6 +268,7 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(listed[0][4], "active")
         self.assertEqual(listed[0][5], "field-age")
         self.assertEqual(listed[0][6], "asc")
+        self.assertEqual(json.loads(listed[0][7]), ["field-species", "field-age"])
 
         self.db_manager.update_lore_table_view(project_uuid, view_id, name="Characters - Active")
         preserved = self.db_manager.list_lore_table_views(project_uuid, world_id)[0]
@@ -274,6 +276,15 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(preserved[3], "type-character")
         self.assertEqual(preserved[4], "active")
         self.assertEqual(preserved[5], "field-age")
+        self.assertEqual(json.loads(preserved[7]), ["field-species", "field-age"])
+
+        self.db_manager.update_lore_table_view(
+            project_uuid,
+            view_id,
+            visible_columns_json=json.dumps(["field-status"]),
+        )
+        updated_visibility = self.db_manager.list_lore_table_views(project_uuid, world_id)[0]
+        self.assertEqual(json.loads(updated_visibility[7]), ["field-status"])
 
         self.db_manager.update_lore_table_view(
             project_uuid,
@@ -281,11 +292,13 @@ class ProjectStoreTests(unittest.TestCase):
             quick_filter=None,
             sort_key=None,
             sort_direction=None,
+            visible_columns_json=None,
         )
         cleared = self.db_manager.list_lore_table_views(project_uuid, world_id)[0]
         self.assertIsNone(cleared[4])
         self.assertIsNone(cleared[5])
         self.assertIsNone(cleared[6])
+        self.assertIsNone(cleared[7])
 
         reopened_uuid, _, _ = self.db_manager.open_project(str(project_path))
         reopened = self.db_manager.list_lore_table_views(reopened_uuid, world_id)
@@ -316,6 +329,7 @@ class ProjectStoreTests(unittest.TestCase):
                     "quickFilter": "active",
                     "sortKey": "field-age",
                     "sortDirection": "desc",
+                    "visibleColumnsJson": json.dumps(["field-species", "field-age"]),
                 },
             }
         )
@@ -339,6 +353,23 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(preserved["name"], "Characters by Age")
         self.assertEqual(preserved["quickFilter"], "active")
         self.assertEqual(preserved["sortKey"], "field-age")
+        self.assertEqual(json.loads(preserved["visibleColumnsJson"]), ["field-species", "field-age"])
+
+        self.sidecar._handle_request(
+            {
+                "action": "update_lore_table_view",
+                "data": {
+                    "projectId": project_uuid,
+                    "viewId": view_id,
+                    "visibleColumnsJson": json.dumps(["field-status"]),
+                },
+            }
+        )
+        visibility_response = self.sidecar._handle_request(
+            {"action": "list_lore_table_views", "data": {"projectId": project_uuid, "worldId": world_id}}
+        )
+        visibility = visibility_response["views"][0]
+        self.assertEqual(json.loads(visibility["visibleColumnsJson"]), ["field-status"])
 
         self.sidecar._handle_request(
             {
@@ -349,6 +380,7 @@ class ProjectStoreTests(unittest.TestCase):
                     "quickFilter": None,
                     "sortKey": None,
                     "sortDirection": None,
+                    "visibleColumnsJson": None,
                 },
             }
         )
@@ -359,6 +391,7 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIsNone(cleared["quickFilter"])
         self.assertIsNone(cleared["sortKey"])
         self.assertIsNone(cleared["sortDirection"])
+        self.assertIsNone(cleared["visibleColumnsJson"])
 
         delete_response = self.sidecar._handle_request(
             {"action": "delete_lore_table_view", "data": {"projectId": project_uuid, "viewId": view_id}}

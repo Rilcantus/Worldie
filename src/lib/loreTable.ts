@@ -31,6 +31,7 @@ export type LoreTableSort = {
 export type LoreTableModel = {
   loreType: LoreType | null;
   columns: LoreTableColumn[];
+  allColumns: LoreTableColumn[];
   rows: LoreTableRow[];
 };
 
@@ -38,6 +39,7 @@ export type LoreTableViewState = {
   loreTypeId: string;
   filterText: string;
   sort: LoreTableSort | null;
+  visibleColumnIds: string[] | null;
 };
 
 export type LoreTableViewDraft = Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">;
@@ -49,14 +51,56 @@ export function buildLoreTableViewDraft(name: string, state: LoreTableViewState)
     quickFilter: state.filterText.trim() || null,
     sortKey: state.sort?.columnId ?? null,
     sortDirection: state.sort?.direction ?? null,
-    visibleColumnsJson: null,
+    visibleColumnsJson: state.visibleColumnIds ? JSON.stringify(state.visibleColumnIds) : null,
   };
+}
+
+export function parseVisibleColumnIds(value: string | null | undefined) {
+  if (!value?.trim()) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return null;
+    const ids = parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+    return ids.length > 0 ? ids : null;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveVisibleColumnIds(columns: LoreTableColumn[], visibleColumnIds: string[] | null | undefined) {
+  const customColumnIds = columns.filter((column) => column.kind === "custom_field").map((column) => column.id);
+  if (!visibleColumnIds) return customColumnIds;
+  const knownCustomColumnIds = new Set(customColumnIds);
+  return visibleColumnIds.filter((columnId) => knownCustomColumnIds.has(columnId));
+}
+
+export function toggleVisibleColumnId(
+  columns: LoreTableColumn[],
+  visibleColumnIds: string[] | null | undefined,
+  columnId: string,
+) {
+  const current = new Set(resolveVisibleColumnIds(columns, visibleColumnIds));
+  if (current.has(columnId)) {
+    current.delete(columnId);
+  } else {
+    const knownCustomColumnIds = new Set(columns.filter((column) => column.kind === "custom_field").map((column) => column.id));
+    if (knownCustomColumnIds.has(columnId)) current.add(columnId);
+  }
+  return columns
+    .filter((column) => column.kind === "custom_field" && current.has(column.id))
+    .map((column) => column.id);
+}
+
+export function clearHiddenColumnSort(sort: LoreTableSort | null, visibleColumns: LoreTableColumn[]) {
+  if (!sort) return null;
+  return visibleColumns.some((column) => column.id === sort.columnId) ? sort : null;
 }
 
 export function applyLoreTableView(
   view: LoreTableView,
   fallback: LoreTableViewState,
 ): LoreTableViewState {
+  const visibleColumnIds = parseVisibleColumnIds(view.visibleColumnsJson);
   return {
     loreTypeId: view.loreTypeId || fallback.loreTypeId,
     filterText: view.quickFilter ?? "",
@@ -64,6 +108,7 @@ export function applyLoreTableView(
       view.sortKey && (view.sortDirection === "asc" || view.sortDirection === "desc")
         ? { columnId: view.sortKey, direction: view.sortDirection }
         : fallback.sort,
+    visibleColumnIds,
   };
 }
 
@@ -176,11 +221,11 @@ export function buildLoreTableModel(
   pages: LorePage[],
   loreTypes: LoreType[],
   selectedLoreTypeId: string | null,
-  options: { filterText?: string; sort?: LoreTableSort | null } = {},
+  options: { filterText?: string; sort?: LoreTableSort | null; visibleColumnIds?: string[] | null } = {},
 ): LoreTableModel {
   const loreType = (selectedLoreTypeId ? loreTypes.find((type) => type.id === selectedLoreTypeId) : null) ?? loreTypes[0] ?? null;
   if (!loreType) {
-    return { loreType: null, columns: [], rows: [] };
+    return { loreType: null, columns: [], allColumns: [], rows: [] };
   }
 
   const fieldColumns = loreType.fieldDefinitions.map((field) => ({
@@ -189,12 +234,14 @@ export function buildLoreTableModel(
     kind: "custom_field" as const,
     fieldType: field.type,
   }));
-  const columns: LoreTableColumn[] = [
+  const allColumns: LoreTableColumn[] = [
     { id: "title", label: "Name", kind: "title" },
     { id: "type", label: "Type", kind: "type" },
     ...fieldColumns,
     { id: "updated", label: "Updated", kind: "updated" },
   ];
+  const visibleCustomColumnIds = new Set(resolveVisibleColumnIds(allColumns, options.visibleColumnIds));
+  const columns = allColumns.filter((column) => column.kind !== "custom_field" || visibleCustomColumnIds.has(column.id));
 
   const filterText = options.filterText?.trim().toLowerCase() ?? "";
   const rows = pages
@@ -221,5 +268,5 @@ export function buildLoreTableModel(
     });
   }
 
-  return { loreType, columns, rows };
+  return { loreType, columns, allColumns, rows };
 }

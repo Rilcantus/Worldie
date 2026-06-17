@@ -12,6 +12,9 @@ import {
   applyLoreTableView,
   buildLoreTableModel,
   buildLoreTableViewDraft,
+  clearHiddenColumnSort,
+  resolveVisibleColumnIds,
+  toggleVisibleColumnId,
   type LoreTableSort,
   type LoreTableViewState,
 } from "../lib/loreTable";
@@ -123,11 +126,13 @@ export const LoreView = memo(function LoreView({
   const [tableLoreTypeId, setTableLoreTypeId] = useState(activeLoreType?.id ?? "");
   const [tableFilterText, setTableFilterText] = useState("");
   const [tableSort, setTableSort] = useState<LoreTableSort | null>({ columnId: "title", direction: "asc" });
+  const [visibleTableColumnIds, setVisibleTableColumnIds] = useState<string[] | null>(null);
   const [selectedTableViewId, setSelectedTableViewId] = useState("");
   const [tableViewName, setTableViewName] = useState("");
   useEffect(() => {
     if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
     setTableLoreTypeId(activeLoreType?.id ?? "");
+    setVisibleTableColumnIds(null);
   }, [activeLoreType?.id, loreTypesById, tableLoreTypeId]);
   const loreItemFields = useMemo(() => parseLoreItemFields(loreFields), [loreFields]);
   const templateUsed = useMemo(
@@ -144,9 +149,17 @@ export const LoreView = memo(function LoreView({
       buildLoreTableModel(availableLorePages, loreTypes, tableLoreTypeId || activeLoreType?.id || null, {
         filterText: tableFilterText,
         sort: tableSort,
+        visibleColumnIds: visibleTableColumnIds,
       }),
-    [activeLoreType?.id, availableLorePages, loreTypes, tableFilterText, tableLoreTypeId, tableSort],
+    [activeLoreType?.id, availableLorePages, loreTypes, tableFilterText, tableLoreTypeId, tableSort, visibleTableColumnIds],
   );
+  const visibleCustomColumnIds = useMemo(
+    () => resolveVisibleColumnIds(loreTableModel.allColumns, visibleTableColumnIds),
+    [loreTableModel.allColumns, visibleTableColumnIds],
+  );
+  useEffect(() => {
+    setTableSort((current) => clearHiddenColumnSort(current, loreTableModel.columns));
+  }, [loreTableModel.columns]);
 
   const toggleTableSort = (columnId: string) => {
     setTableSort((current) =>
@@ -160,6 +173,7 @@ export const LoreView = memo(function LoreView({
     loreTypeId: loreTableModel.loreType?.id ?? tableLoreTypeId,
     filterText: tableFilterText,
     sort: tableSort,
+    visibleColumnIds: visibleTableColumnIds,
   });
 
   const applySavedTableView = (viewId: string) => {
@@ -170,7 +184,18 @@ export const LoreView = memo(function LoreView({
     setTableLoreTypeId(nextState.loreTypeId);
     setTableFilterText(nextState.filterText);
     setTableSort(nextState.sort);
+    setVisibleTableColumnIds(nextState.visibleColumnIds);
     setTableViewName(view.name);
+  };
+
+  const toggleTableColumnVisibility = (columnId: string) => {
+    setVisibleTableColumnIds((current) => {
+      const next = toggleVisibleColumnId(loreTableModel.allColumns, current, columnId);
+      setTableSort((sort) => clearHiddenColumnSort(sort, loreTableModel.allColumns.filter(
+        (column) => column.kind !== "custom_field" || next.includes(column.id),
+      )));
+      return next;
+    });
   };
 
   const saveCurrentTableViewAsNew = async () => {
@@ -476,7 +501,11 @@ export const LoreView = memo(function LoreView({
                 id={tableLoreTypeInputId}
                 className="lore-input lore-table-type-select"
                 value={loreTableModel.loreType?.id ?? ""}
-                onChange={(event) => setTableLoreTypeId(event.target.value)}
+                onChange={(event) => {
+                  setTableLoreTypeId(event.target.value);
+                  setVisibleTableColumnIds(null);
+                  setTableSort({ columnId: "title", direction: "asc" });
+                }}
               >
                 {loreTypes.map((type) => (
                   <option key={type.id} value={type.id}>
@@ -501,6 +530,23 @@ export const LoreView = memo(function LoreView({
               </button>
             </div>
           </div>
+          {loreTableModel.allColumns.some((column) => column.kind === "custom_field") ? (
+            <div className="lore-table-column-controls" aria-label="Lore table columns">
+              <span className="lore-table-column-label">Columns</span>
+              {loreTableModel.allColumns
+                .filter((column) => column.kind === "custom_field")
+                .map((column) => (
+                  <label key={column.id} className="meta-tag lore-table-column-toggle">
+                    <input
+                      type="checkbox"
+                      checked={visibleCustomColumnIds.includes(column.id)}
+                      onChange={() => toggleTableColumnVisibility(column.id)}
+                    />
+                    {column.label}
+                  </label>
+                ))}
+            </div>
+          ) : null}
           {loreTableModel.loreType ? (
             <div className="lore-table-wrap">
               <table className="lore-table">
