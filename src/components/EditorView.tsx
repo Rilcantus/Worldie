@@ -42,12 +42,16 @@ import {
   findActiveInlinePairExit,
   findEmptyInlinePairAtCursor,
   findInlinePairAutoInsert,
+  findUnlinkedLoreMentions,
   getFormattingState,
   getSelectionOffsets,
   getSelectionText,
   getSlashCommandMatch,
+  indentSelectedLines,
+  linkUnlinkedLoreMentions,
   normalizeEditorText,
   moveSelectedLineBlock,
+  outdentSelectedLines,
   replaceSelectionWithLoreLink,
   renderPreviewContent,
   replaceRange,
@@ -118,6 +122,11 @@ type SlashCommandOption = {
 type SelectionLoreDialogState = {
   selection: SelectionOffsets;
   selectedText: string;
+};
+
+type LinkMentionsPromptState = {
+  title: string;
+  count: number;
 };
 
 type FloatingActionPosition = {
@@ -245,6 +254,7 @@ export const EditorView = memo(function EditorView({
   const [selectionLoreError, setSelectionLoreError] = useState("");
   const [isCreatingSelectionLore, setIsCreatingSelectionLore] = useState(false);
   const [selectionLoreActionPosition, setSelectionLoreActionPosition] = useState<FloatingActionPosition | null>(null);
+  const [linkMentionsPrompt, setLinkMentionsPrompt] = useState<LinkMentionsPromptState | null>(null);
   const isTypewriterMode = editorMode === "typewriter";
   const hasPendingTypewriterDraft = isTypewriterMode && trimTypewriterCommit(typewriterDraft).length > 0;
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
@@ -304,6 +314,7 @@ export const EditorView = memo(function EditorView({
 
   useEffect(() => {
     setIsDocumentMenuOpen(false);
+    setLinkMentionsPrompt(null);
   }, [activeDocumentId]);
 
   useEffect(() => {
@@ -894,9 +905,33 @@ export const EditorView = memo(function EditorView({
     }
     if (shouldReplaceSelectionWithLink) {
       const capturedSelection = selectionLoreDialog.selection;
+      const previewReplacement = replaceSelectionWithLoreLink(activeEditorText, capturedSelection, payload.title);
+      const otherMentionCount = findUnlinkedLoreMentions(previewReplacement.text, payload.title).length;
       applyEditorUpdate((content) => replaceSelectionWithLoreLink(content, capturedSelection, payload.title));
+      setLinkMentionsPrompt(
+        otherMentionCount > 0
+          ? {
+              title: payload.title,
+              count: otherMentionCount,
+            }
+          : null,
+      );
+    } else {
+      setLinkMentionsPrompt(null);
     }
     closeSelectionLoreDialog();
+  };
+
+  const linkAllMentionPromptMatches = () => {
+    if (!linkMentionsPrompt) return;
+    applyEditorUpdate((content, selection) => {
+      const result = linkUnlinkedLoreMentions(content, linkMentionsPrompt.title);
+      return {
+        text: result.text,
+        selection,
+      };
+    });
+    setLinkMentionsPrompt(null);
   };
 
   const requestOpenDocument = (doc: Document) => {
@@ -1273,6 +1308,14 @@ export const EditorView = memo(function EditorView({
       }
     }
 
+    if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      applyEditorUpdate((content, currentSelection) =>
+        event.shiftKey ? outdentSelectedLines(content, currentSelection) : indentSelectedLines(content, currentSelection),
+      );
+      return;
+    }
+
     if (event.key === "Enter") {
       event.preventDefault();
       if (isTypewriterMode) {
@@ -1333,7 +1376,7 @@ export const EditorView = memo(function EditorView({
       }
     }
 
-    if ((event.key === "Tab" && !event.shiftKey) || event.key === "ArrowRight") {
+    if (event.key === "ArrowRight") {
       const inlinePairExit = findActiveInlinePairExit(activeEditorText, selection.start);
       if (selection.start === selection.end && inlinePairExit) {
         event.preventDefault();
@@ -1347,29 +1390,6 @@ export const EditorView = memo(function EditorView({
       }
     }
 
-    if (event.key === "Tab" && !event.shiftKey) {
-      const nextTwo = activeEditorText.slice(selection.start, selection.start + 2);
-      if (selection.start === selection.end && nextTwo === "]]") {
-        event.preventDefault();
-        const cursor = selection.start + 2;
-        pendingSelectionRef.current = { start: cursor, end: cursor };
-        window.requestAnimationFrame(() => {
-          editor.focus();
-          setSelectionOffsets(editor, cursor, cursor);
-        });
-      }
-    }
-
-    if (event.key === "Tab" && event.shiftKey && !isTypewriterMode) {
-      const clearedLine = clearCurrentLinePrefix(activeEditorText, selection);
-      if (clearedLine) {
-        event.preventDefault();
-        applyEditorUpdate(() => ({
-          text: clearedLine.text,
-          selection: clearedLine.selection,
-        }));
-      }
-    }
   };
 
   const insertLoreLink = () => {
@@ -1562,6 +1582,22 @@ export const EditorView = memo(function EditorView({
             editorMode={editorMode}
             onSetEditorMode={changeEditorMode}
           />
+          {linkMentionsPrompt ? (
+            <div className="link-mentions-prompt" role="status">
+              <span>
+                Found {linkMentionsPrompt.count} other {linkMentionsPrompt.count === 1 ? "mention" : "mentions"} of{" "}
+                <strong>{linkMentionsPrompt.title}</strong>.
+              </span>
+              <div className="link-mentions-actions">
+                <button type="button" className="link-mentions-btn" onClick={linkAllMentionPromptMatches}>
+                  Link all in this document
+                </button>
+                <button type="button" className="link-mentions-btn ghost" onClick={() => setLinkMentionsPrompt(null)}>
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="editor-workspace-frame">

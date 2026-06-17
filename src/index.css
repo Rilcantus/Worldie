@@ -1012,6 +1012,59 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   cursor: not-allowed;
 }
 
+.link-mentions-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(157, 125, 232, 0.35);
+  border-radius: 8px;
+  background: rgba(26, 22, 40, 0.92);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.link-mentions-prompt strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.link-mentions-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.link-mentions-btn {
+  border: 1px solid rgba(180, 139, 255, 0.55);
+  border-radius: 7px;
+  background: var(--accent-glow);
+  color: var(--accent-bright);
+  padding: 5px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.link-mentions-btn:hover {
+  border-color: var(--accent-bright);
+  background: rgba(157, 125, 232, 0.25);
+}
+
+.link-mentions-btn.ghost {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.link-mentions-btn.ghost:hover {
+  color: var(--text-secondary);
+  border-color: var(--text-muted);
+}
+
 .doc-title {
   font-family: 'Cinzel', serif;
   font-size: 28px; font-weight: 700;

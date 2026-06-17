@@ -361,6 +361,153 @@ export function replaceSelectionWithLoreLink(text: string, selection: SelectionO
   };
 }
 
+export type LoreMentionMatch = {
+  start: number;
+  end: number;
+  text: string;
+};
+
+function getLoreLinkRanges(text: string) {
+  const ranges: Array<{ start: number; end: number }> = [];
+  const linkPattern = /\[\[[\s\S]*?\]\]/g;
+  for (const match of text.matchAll(linkPattern)) {
+    ranges.push({ start: match.index ?? 0, end: (match.index ?? 0) + match[0].length });
+  }
+  return ranges;
+}
+
+function isOffsetInsideRanges(offset: number, ranges: Array<{ start: number; end: number }>) {
+  return ranges.some((range) => offset >= range.start && offset < range.end);
+}
+
+function isMentionBoundaryCharacter(character: string | undefined) {
+  return !character || !/[\p{L}\p{N}_]/u.test(character);
+}
+
+function hasMentionBoundaries(text: string, start: number, end: number) {
+  return isMentionBoundaryCharacter(text[start - 1]) && isMentionBoundaryCharacter(text[end]);
+}
+
+export function findUnlinkedLoreMentions(text: string, title: string): LoreMentionMatch[] {
+  const mention = title.trim();
+  if (!mention) return [];
+  const linkRanges = getLoreLinkRanges(text);
+  const matches: LoreMentionMatch[] = [];
+  let searchIndex = 0;
+  while (searchIndex < text.length) {
+    const start = text.indexOf(mention, searchIndex);
+    if (start === -1) break;
+    const end = start + mention.length;
+    if (!isOffsetInsideRanges(start, linkRanges) && hasMentionBoundaries(text, start, end)) {
+      matches.push({ start, end, text: mention });
+    }
+    searchIndex = Math.max(end, start + 1);
+  }
+  return matches;
+}
+
+export function linkUnlinkedLoreMentions(text: string, title: string) {
+  const matches = findUnlinkedLoreMentions(text, title);
+  if (matches.length === 0) {
+    return { text, count: 0 };
+  }
+  const linkText = buildLoreLinkText(title);
+  let nextText = text;
+  for (const match of [...matches].reverse()) {
+    nextText = replaceRange(nextText, match.start, match.end, linkText);
+  }
+  return { text: nextText, count: matches.length };
+}
+
+const WRITER_INDENT = "  ";
+
+function getSelectedLineRangeForIndent(text: string, selection: SelectionOffsets) {
+  const lineStart = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
+  const selectionEnd = selection.end > selection.start && text[selection.end - 1] === "\n"
+    ? selection.end - 1
+    : selection.end;
+  const lineEndCandidate = text.indexOf("\n", Math.max(selectionEnd, lineStart));
+  const lineEnd = lineEndCandidate === -1 ? text.length : lineEndCandidate;
+  return { lineStart, lineEnd };
+}
+
+function adjustSelectionForInsertions(selection: SelectionOffsets, insertionPositions: number[], insertionLength: number) {
+  const adjustOffset = (offset: number) =>
+    insertionPositions.reduce(
+      (nextOffset, position) => (offset >= position ? nextOffset + insertionLength : nextOffset),
+      offset,
+    );
+  return {
+    start: adjustOffset(selection.start),
+    end: adjustOffset(selection.end),
+  };
+}
+
+function adjustSelectionForRemovals(
+  selection: SelectionOffsets,
+  removals: Array<{ position: number; length: number }>,
+) {
+  const adjustOffset = (offset: number) =>
+    removals.reduce((nextOffset, removal) => {
+      if (offset > removal.position + removal.length) {
+        return nextOffset - removal.length;
+      }
+      if (offset > removal.position) {
+        return nextOffset - (offset - removal.position);
+      }
+      return nextOffset;
+    }, offset);
+  const start = adjustOffset(selection.start);
+  const end = Math.max(start, adjustOffset(selection.end));
+  return { start, end };
+}
+
+export function indentSelectedLines(text: string, selection: SelectionOffsets) {
+  const { lineStart, lineEnd } = getSelectedLineRangeForIndent(text, selection);
+  const segment = text.slice(lineStart, lineEnd);
+  const lines = segment.split("\n");
+  let runningOffset = lineStart;
+  const insertionPositions = lines.map((line) => {
+    const position = runningOffset;
+    runningOffset += line.length + 1;
+    return position;
+  });
+  const updated = lines.map((line) => `${WRITER_INDENT}${line}`).join("\n");
+  return {
+    text: replaceRange(text, lineStart, lineEnd, updated),
+    selection: adjustSelectionForInsertions(selection, insertionPositions, WRITER_INDENT.length),
+  };
+}
+
+export function outdentSelectedLines(text: string, selection: SelectionOffsets) {
+  const { lineStart, lineEnd } = getSelectedLineRangeForIndent(text, selection);
+  const segment = text.slice(lineStart, lineEnd);
+  const lines = segment.split("\n");
+  const removals: Array<{ position: number; length: number }> = [];
+  let runningOffset = lineStart;
+  const updatedLines = lines.map((line) => {
+    const removalLength = line.startsWith("\t")
+      ? 1
+      : line.startsWith(WRITER_INDENT)
+        ? WRITER_INDENT.length
+        : line.startsWith(" ")
+          ? 1
+          : 0;
+    if (removalLength > 0) {
+      removals.push({ position: runningOffset, length: removalLength });
+    }
+    runningOffset += line.length + 1;
+    return line.slice(removalLength);
+  });
+  if (removals.length === 0) {
+    return { text, selection };
+  }
+  return {
+    text: replaceRange(text, lineStart, lineEnd, updatedLines.join("\n")),
+    selection: adjustSelectionForRemovals(selection, removals),
+  };
+}
+
 function getSelectedLineBlockRange(text: string, selection: SelectionOffsets) {
   const start = text.lastIndexOf("\n", Math.max(0, selection.start - 1)) + 1;
   const endSearchFrom = Math.max(selection.end - 1, start);

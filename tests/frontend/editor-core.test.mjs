@@ -14,13 +14,17 @@ import {
   findActiveInlinePairExit,
   findEmptyInlinePairAtCursor,
   findInlinePairAutoInsert,
+  findUnlinkedLoreMentions,
   isBoldElement,
   isItalicElement,
   getFormattingState,
   getSlashCommandMatch,
+  indentSelectedLines,
+  linkUnlinkedLoreMentions,
   isUnderlineElement,
   moveSelectedLineBlock,
   normalizePastedText,
+  outdentSelectedLines,
   resolvePastedEditorText,
   serializeFormattedInlineContent,
   sourceSelectionToDisplay,
@@ -130,6 +134,58 @@ test("lore link helpers generate wiki links and replace selected text", () => {
   assert.deepEqual(updated.selection, { start: 23, end: 23 });
 });
 
+test("findUnlinkedLoreMentions finds plain mentions and skips existing links", () => {
+  const text = "Blacktooth clan met [[Blacktooth clan]]. Blacktooth clan returned.";
+  const matches = findUnlinkedLoreMentions(text, "Blacktooth clan");
+  assert.equal(matches.length, 2);
+  assert.deepEqual(matches.map((match) => text.slice(match.start, match.end)), [
+    "Blacktooth clan",
+    "Blacktooth clan",
+  ]);
+});
+
+test("linkUnlinkedLoreMentions links plain mentions without double-linking existing links", () => {
+  const result = linkUnlinkedLoreMentions(
+    "[[Blacktooth clan]] saw Blacktooth clan. Blacktooth clan waited.",
+    "Blacktooth clan",
+  );
+  assert.equal(result.count, 2);
+  assert.equal(
+    result.text,
+    "[[Blacktooth clan]] saw [[Blacktooth clan]]. [[Blacktooth clan]] waited.",
+  );
+});
+
+test("linkUnlinkedLoreMentions preserves punctuation page breaks and unicode", () => {
+  const result = linkUnlinkedLoreMentions(
+    "\u201cBlacktooth clan,\u201d Mara said.\n***\nBlacktooth clan \u2014 again.",
+    "Blacktooth clan",
+  );
+  assert.equal(result.count, 2);
+  assert.equal(
+    result.text,
+    "\u201c[[Blacktooth clan]],\u201d Mara said.\n***\n[[Blacktooth clan]] \u2014 again.",
+  );
+});
+
+test("findUnlinkedLoreMentions avoids matches inside larger words", () => {
+  const matches = findUnlinkedLoreMentions(
+    "Blacktooth clan. Blacktooth clansmen. OldBlacktooth clan.",
+    "Blacktooth clan",
+  );
+  assert.equal(matches.length, 1);
+});
+
+test("linkUnlinkedLoreMentions handles titles with regex-special characters safely", () => {
+  const cask = linkUnlinkedLoreMentions("Cask (North), not [[Cask (North)]].", "Cask (North)");
+  assert.equal(cask.count, 1);
+  assert.equal(cask.text, "[[Cask (North)]], not [[Cask (North)]].");
+
+  const plus = linkUnlinkedLoreMentions("A+B appears near [[A+B]].", "A+B");
+  assert.equal(plus.count, 1);
+  assert.equal(plus.text, "[[A+B]] appears near [[A+B]].");
+});
+
 test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {
   const added = toggleLinePrefix("Alpha\nBeta", { start: 0, end: 10 }, "- ");
   assert.equal(added.text, "- Alpha\n- Beta");
@@ -235,6 +291,46 @@ test("applyNoteBlockPrefix handles whitespace-only nested list items without fla
   const fromWhitespaceOrdered = applyNoteBlockPrefix("    2)   ", { start: 10, end: 10 });
   assert.equal(fromWhitespaceOrdered.text, "    > Note: ");
   assert.deepEqual(fromWhitespaceOrdered.selection, { start: 13, end: 13 });
+});
+
+test("indentSelectedLines indents a plain line", () => {
+  const indented = indentSelectedLines("Alpha", { start: 2, end: 2 });
+  assert.equal(indented.text, "  Alpha");
+  assert.deepEqual(indented.selection, { start: 4, end: 4 });
+});
+
+test("outdentSelectedLines outdents an indented plain line", () => {
+  const outdented = outdentSelectedLines("  Alpha", { start: 4, end: 4 });
+  assert.equal(outdented.text, "Alpha");
+  assert.deepEqual(outdented.selection, { start: 2, end: 2 });
+});
+
+test("indentSelectedLines indents list lines without corrupting markers or lore links", () => {
+  const indented = indentSelectedLines("- [[Red Harbor]]", { start: 4, end: 18 });
+  assert.equal(indented.text, "  - [[Red Harbor]]");
+  assert.deepEqual(indented.selection, { start: 6, end: 20 });
+});
+
+test("outdentSelectedLines outdents nested list lines without removing the marker", () => {
+  const outdented = outdentSelectedLines("  - [[Red Harbor]]", { start: 6, end: 20 });
+  assert.equal(outdented.text, "- [[Red Harbor]]");
+  assert.deepEqual(outdented.selection, { start: 4, end: 18 });
+});
+
+test("indentSelectedLines and outdentSelectedLines support multiline selections", () => {
+  const indented = indentSelectedLines("Alpha\n- Beta\nGamma", { start: 0, end: 14 });
+  assert.equal(indented.text, "  Alpha\n  - Beta\n  Gamma");
+  assert.deepEqual(indented.selection, { start: 2, end: 20 });
+
+  const outdented = outdentSelectedLines(indented.text, indented.selection);
+  assert.equal(outdented.text, "Alpha\n- Beta\nGamma");
+  assert.deepEqual(outdented.selection, { start: 0, end: 14 });
+});
+
+test("outdentSelectedLines leaves content unchanged when outdent is not possible", () => {
+  const outdented = outdentSelectedLines("Alpha", { start: 2, end: 2 });
+  assert.equal(outdented.text, "Alpha");
+  assert.deepEqual(outdented.selection, { start: 2, end: 2 });
 });
 
 test("block prefix conversion preserves nested indentation and lore links", () => {
