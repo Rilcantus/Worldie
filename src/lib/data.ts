@@ -33,6 +33,22 @@ type ProjectStoreProjectsResult = {
   project: Project | null;
 };
 
+type ExportedFile = {
+  kind: "index" | "document" | "lore";
+  title: string;
+  path: string;
+  relativePath: string;
+};
+
+type WorldMarkdownExportResult = {
+  exportPath: string;
+  projectTitle: string;
+  worldTitle: string;
+  documentCount: number;
+  lorePageCount: number;
+  files: ExportedFile[];
+};
+
 type World = {
   id: string;
   projectId: string;
@@ -198,6 +214,15 @@ export async function pickSaveProjectAsFile(suggestedName: string): Promise<stri
   }
 }
 
+export async function pickExportFolder(): Promise<string | null> {
+  try {
+    return await invokeDialogCommand<string | null>("pick_export_folder");
+  } catch {
+    reportProjectStoreError("Worldie could not open the native export folder picker.");
+    return null;
+  }
+}
+
 export async function listProjectLoreTypes(projectId: string | null): Promise<LoreType[]> {
   if (!projectId) return [];
   const response = await invokeProjectStore<{ loreTypes?: LoreType[] }>("list_lore_types", { projectId });
@@ -290,6 +315,22 @@ export async function saveProjectAs(projectId: string, filepath: string): Promis
     filepath,
   });
   return { projects: response.projects ?? [], project: response.project ?? null };
+}
+
+export async function exportWorldMarkdown(
+  projectId: string,
+  worldId: string,
+  exportRoot: string,
+): Promise<WorldMarkdownExportResult> {
+  const response = await invokeProjectStore<{ export?: WorldMarkdownExportResult }>("export_world_markdown", {
+    projectId,
+    worldId,
+    exportRoot,
+  });
+  if (!response.export) {
+    throw new ProjectStoreError("Worldie could not export the active world.");
+  }
+  return response.export;
 }
 
 export async function updateProjectTitle(projectId: string, title: string): Promise<Project[]> {
@@ -592,4 +633,4 @@ export async function deleteTimelineEvent(projectId: string, eventId: string): P
   await invokeProjectStore("delete_timeline_event", { projectId, eventId });
 }
 
-export type { Project, World, LorePage, Document, Relationship, TimelineEvent };
+export type { Project, World, LorePage, Document, Relationship, TimelineEvent, WorldMarkdownExportResult };

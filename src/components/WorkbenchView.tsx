@@ -18,6 +18,7 @@ type WorkbenchViewProps = {
   onExpandRightPanel: () => void;
   onAddDocument: () => void;
   onAddLorePage: () => void;
+  onExportWorldMarkdown: () => void;
   onOpenDocument: (doc: Document) => void;
   onOpenLore: (page: LorePage) => void;
 };
@@ -38,6 +39,7 @@ export const WorkbenchView = memo(function WorkbenchView({
   onExpandRightPanel,
   onAddDocument,
   onAddLorePage,
+  onExportWorldMarkdown,
   onOpenDocument,
   onOpenLore,
 }: WorkbenchViewProps) {
@@ -85,6 +87,9 @@ export const WorkbenchView = memo(function WorkbenchView({
         </button>
         <button className="tb-btn" type="button" onClick={onAddLorePage}>
           New Lore
+        </button>
+        <button className="tb-btn" type="button" onClick={onExportWorldMarkdown} disabled={!activeWorld}>
+          Export Markdown
         </button>
       </div>
 

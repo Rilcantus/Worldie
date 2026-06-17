@@ -15,7 +15,7 @@ import { useWorkspaceNavigation } from "./useWorkspaceNavigation";
 import { useWorldStructures } from "./useWorldStructures";
 import { getDirtyNavigationDecision, resolveEditorSaveState, shouldContinueAfterGuard } from "./dirtyState";
 import { getSeededLoreTypes } from "../lib/loreTypes";
-import { setProjectStoreErrorHandler } from "../lib/data";
+import { exportWorldMarkdown, pickExportFolder, setProjectStoreErrorHandler } from "../lib/data";
 
 type UseAppControllerArgs = {
   hasPendingEditorDraft?: boolean;
@@ -299,12 +299,48 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
     ],
   );
 
+  const exportActions = useMemo(
+    () => ({
+      exportActiveWorldMarkdown: async () => {
+        if (!projectWorlds.activeProjectId || !projectWorlds.activeWorldId) {
+          feedback.showToast("Choose a world before exporting.");
+          return;
+        }
+        const startingProjectId = projectWorlds.activeProjectId;
+        if (!(await canLeaveCurrentView())) return;
+        if (!shouldContinueAfterGuard(startingProjectId, activeProjectIdRef.current)) return;
+        const exportRoot = await pickExportFolder();
+        if (!exportRoot) return;
+        try {
+          const result = await exportWorldMarkdown(
+            projectWorlds.activeProjectId,
+            projectWorlds.activeWorldId,
+            exportRoot,
+          );
+          feedback.showToast(
+            `Exported ${result.documentCount} documents and ${result.lorePageCount} lore pages to ${result.exportPath}.`,
+          );
+        } catch (error) {
+          await projectWorlds.recoverActiveProjectError(error, "Worldie could not export this world.");
+        }
+      },
+    }),
+    [
+      canLeaveCurrentView,
+      feedback.showToast,
+      projectWorlds.activeProjectId,
+      projectWorlds.activeWorldId,
+      projectWorlds.recoverActiveProjectError,
+    ],
+  );
+
   return useMemo(
     () => ({
       feedback,
       panelLayout,
       projectWorlds,
       projectFileActions,
+      exportActions,
       content,
       loreTypes,
       loreTemplates,
@@ -322,6 +358,7 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
       panelLayout,
       projectWorlds,
       projectFileActions,
+      exportActions,
       content,
       loreTypes,
       loreTemplates,

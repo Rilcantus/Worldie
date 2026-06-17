@@ -136,13 +136,29 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
     run_dialog_script(&script).map(ensure_worldie_extension)
 }
 
+#[tauri::command]
+fn pick_export_folder() -> Option<String> {
+    run_dialog_script(
+        r#"
+Add-Type -AssemblyName System.Windows.Forms
+$dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+$dialog.Description = 'Choose where Worldie should export Markdown files'
+$dialog.ShowNewFolderButton = $true
+if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+  Write-Output $dialog.SelectedPath
+}
+"#,
+    )
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             sidecar_request,
             pick_open_project_file,
             pick_new_project_file,
-            pick_save_project_as_file
+            pick_save_project_as_file,
+            pick_export_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

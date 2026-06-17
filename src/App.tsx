@@ -16,6 +16,7 @@ export default function App() {
     panelLayout,
     projectWorlds,
     projectFileActions,
+    exportActions,
     content,
     loreTypes,
     loreTemplates,
@@ -319,6 +320,7 @@ export default function App() {
           onOpenRelationships={mainContentActions.openRelationships}
           onOpenTimeline={mainContentActions.openTimeline}
           onAddDocument={mainContentActions.addDocument}
+          onExportWorldMarkdown={exportActions.exportActiveWorldMarkdown}
           onDuplicateDocument={mainContentActions.duplicateDocument}
           onRemoveDocument={mainContentActions.removeDocument}
           onSaveDocument={mainContentActions.saveDocument}

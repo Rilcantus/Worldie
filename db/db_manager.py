@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import sqlite3
 import shutil
 import tempfile
@@ -295,6 +297,124 @@ def _copy_project_file_safely(source_path, destination_path):
             os.remove(temp_path)
 
 
+def _safe_export_name(value, fallback="untitled"):
+    cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "-", str(value or "").strip())
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .-")
+    return cleaned or fallback
+
+
+def _safe_export_segments(value):
+    if not value:
+        return []
+    segments = re.split(r"[\\/]+", str(value))
+    return [_safe_export_name(segment, "") for segment in segments if _safe_export_name(segment, "")]
+
+
+def _dedupe_export_path(directory, filename, used_paths):
+    stem, ext = os.path.splitext(filename)
+    candidate = filename
+    suffix = 2
+    while os.path.normcase(os.path.abspath(os.path.join(directory, candidate))) in used_paths:
+        candidate = f"{stem}-{suffix}{ext}"
+        suffix += 1
+    resolved = os.path.abspath(os.path.join(directory, candidate))
+    used_paths.add(os.path.normcase(resolved))
+    return resolved
+
+
+def _relative_export_path(path, root_path):
+    return os.path.relpath(path, root_path).replace(os.sep, "/")
+
+
+def _write_text_file(path, content):
+    _ensure_parent_dir(path)
+    with open(path, "w", encoding="utf-8", newline="\n") as file:
+        file.write(content)
+
+
+def _parse_lore_fields(fields_json):
+    if not fields_json:
+        return [], ""
+    try:
+        parsed = json.loads(fields_json)
+    except (TypeError, ValueError):
+        return [], ""
+    if not isinstance(parsed, dict):
+        return [], ""
+    if isinstance(parsed.get("traits"), list):
+        traits = []
+        for trait in parsed.get("traits") or []:
+            if not isinstance(trait, dict):
+                continue
+            name = str(trait.get("name") or "Trait").strip() or "Trait"
+            value = "" if trait.get("value") is None else str(trait.get("value"))
+            if value.strip():
+                traits.append((name, value))
+        return traits, str(parsed.get("details") or "")
+    traits = []
+    for key, value in parsed.items():
+        if key == "_details":
+            continue
+        if value is None or str(value).strip() == "":
+            continue
+        traits.append((str(key), str(value)))
+    return traits, str(parsed.get("_details") or "")
+
+
+def _build_document_markdown(document):
+    _, _, title, content_json, folder_path, created_at, updated_at = document
+    lines = [f"# {title}", ""]
+    if folder_path:
+        lines.extend([f"Folder: {folder_path}", ""])
+    if created_at or updated_at:
+        lines.extend([f"Created: {created_at or ''}", f"Updated: {updated_at or ''}", ""])
+    lines.append(content_json or "")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _build_lore_markdown(lore_page):
+    _, _, title, page_type, tags_json, fields_json, _, created_at, updated_at = lore_page
+    traits, details = _parse_lore_fields(fields_json)
+    lines = [f"# {title}", "", f"Type: {page_type}"]
+    if tags_json:
+        lines.append(f"Tags: {tags_json}")
+    if created_at or updated_at:
+        lines.extend([f"Created: {created_at or ''}", f"Updated: {updated_at or ''}"])
+    if traits:
+        lines.extend(["", "## Traits", ""])
+        for name, value in traits:
+            lines.append(f"- **{name}:** {value}")
+    if details:
+        lines.extend(["", "## Details", "", details])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _build_export_index(project_title, world, document_entries, lore_entries):
+    _, _, world_title, description, _, _ = world
+    lines = [
+        f"# {world_title}",
+        "",
+        f"Project: {project_title}",
+        f"Documents: {len(document_entries)}",
+        f"Lore pages: {len(lore_entries)}",
+    ]
+    if description:
+        lines.extend(["", "## World Notes", "", description])
+    lines.extend(["", "## Documents", ""])
+    if document_entries:
+        for entry in document_entries:
+            lines.append(f"- [{entry['title']}]({entry['relativePath']})")
+    else:
+        lines.append("- No documents exported.")
+    lines.extend(["", "## Lore Pages", ""])
+    if lore_entries:
+        for entry in lore_entries:
+            lines.append(f"- [{entry['title']}]({entry['relativePath']})")
+    else:
+        lines.append("- No lore pages exported.")
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def _get_project_filepath(project_uuid):
     conn = _registry_conn()
     c = conn.cursor()
@@ -314,6 +434,17 @@ def _get_project_by_filepath(filepath):
     row = next((item for item in c.fetchall() if _normalize_filepath_for_match(item[2]) == target), None)
     conn.close()
     return row
+
+
+def _get_project_title(project_uuid):
+    conn = _registry_conn()
+    c = conn.cursor()
+    c.execute("SELECT title FROM projects WHERE uuid = ?", (project_uuid,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        raise FileNotFoundError(f"Project not found: {project_uuid}")
+    return row[0]
 
 
 def _get_project_meta_title(db_path):
@@ -452,6 +583,115 @@ def save_project_as(project_uuid, filepath):
     _init_project_db(resolved_path)
     _set_project_meta_title(resolved_path, title)
     return open_project(resolved_path)
+
+
+def export_world_markdown(project_uuid, world_id, export_root):
+    if not export_root:
+        raise ValueError("exportRoot required")
+    source_path = _get_project_filepath(project_uuid)
+    if not source_path or not os.path.exists(source_path):
+        raise FileNotFoundError(source_path or project_uuid)
+
+    project_title = _get_project_title(project_uuid)
+    conn = _project_conn(source_path)
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT id, project_id, title, description, created_at, updated_at
+        FROM worlds
+        WHERE id = ? AND project_id = ?
+        """,
+        (world_id, project_uuid),
+    )
+    world = c.fetchone()
+    if not world:
+        conn.close()
+        raise FileNotFoundError(f"World not found: {world_id}")
+
+    c.execute(
+        """
+        SELECT id, world_id, title, content_json, folder_path, created_at, updated_at
+        FROM documents
+        WHERE world_id = ?
+        ORDER BY title COLLATE NOCASE, id
+        """,
+        (world_id,),
+    )
+    documents = c.fetchall()
+    c.execute(
+        """
+        SELECT id, world_id, title, type, tags_json, fields_json, cover_image_path, created_at, updated_at
+        FROM lore_pages
+        WHERE world_id = ?
+        ORDER BY type COLLATE NOCASE, title COLLATE NOCASE, id
+        """,
+        (world_id,),
+    )
+    lore_pages = c.fetchall()
+    conn.close()
+
+    export_folder_name = _safe_export_name(f"{project_title} - {world[2]}", "worldie-export")
+    export_path = os.path.abspath(os.path.join(export_root, export_folder_name))
+    os.makedirs(export_path, exist_ok=True)
+
+    used_paths = set()
+    exported_files = []
+    document_entries = []
+    lore_entries = []
+
+    documents_root = os.path.join(export_path, "Documents")
+    for document in documents:
+        _, _, title, _, folder_path, _, _ = document
+        folder_segments = _safe_export_segments(folder_path)
+        document_dir = os.path.join(documents_root, *folder_segments)
+        filename = f"{_safe_export_name(title, 'document')}.md"
+        file_path = _dedupe_export_path(document_dir, filename, used_paths)
+        _write_text_file(file_path, _build_document_markdown(document))
+        entry = {
+            "kind": "document",
+            "title": title,
+            "path": file_path,
+            "relativePath": _relative_export_path(file_path, export_path),
+        }
+        exported_files.append(entry)
+        document_entries.append(entry)
+
+    lore_root = os.path.join(export_path, "Lore")
+    for lore_page in lore_pages:
+        _, _, title, page_type, _, _, _, _, _ = lore_page
+        lore_dir = os.path.join(lore_root, _safe_export_name(page_type, "Lore"))
+        filename = f"{_safe_export_name(title, 'lore-page')}.md"
+        file_path = _dedupe_export_path(lore_dir, filename, used_paths)
+        _write_text_file(file_path, _build_lore_markdown(lore_page))
+        entry = {
+            "kind": "lore",
+            "title": title,
+            "path": file_path,
+            "relativePath": _relative_export_path(file_path, export_path),
+        }
+        exported_files.append(entry)
+        lore_entries.append(entry)
+
+    index_path = os.path.join(export_path, "index.md")
+    _write_text_file(index_path, _build_export_index(project_title, world, document_entries, lore_entries))
+    exported_files.insert(
+        0,
+        {
+            "kind": "index",
+            "title": "Index",
+            "path": index_path,
+            "relativePath": "index.md",
+        },
+    )
+
+    return {
+        "exportPath": export_path,
+        "projectTitle": project_title,
+        "worldTitle": world[2],
+        "documentCount": len(documents),
+        "lorePageCount": len(lore_pages),
+        "files": exported_files,
+    }
 
 
 def delete_project(project_uuid):

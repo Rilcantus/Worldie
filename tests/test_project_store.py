@@ -560,6 +560,108 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(existing_path.read_bytes(), destination_bytes)
         self.assertEqual(list(existing_path.parent.glob("existing-copy.worldie.bak-*")), [])
 
+    def test_export_world_markdown_writes_documents_lore_and_index(self):
+        project_uuid, project_path = self.db_manager.add_project("Iron Age: Chronicles", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen/Marsh", "A wet and watchful borderland.")
+        doc_id = self.db_manager.create_document(project_uuid, world_id, "Chapter: 01 / Arrival?")
+        self.db_manager.update_document(
+            project_uuid,
+            doc_id,
+            content_json="Mara enters [[Red Harbor]] with a sealed letter.",
+            folder_path="Scenes/Act: 1",
+        )
+        lore_id = self.db_manager.create_lore_page(
+            project_uuid,
+            world_id,
+            "Mara: Quill*",
+            "Character",
+            tags_json="courier, protagonist",
+            fields_json=json.dumps(
+                {
+                    "traits": [{"name": "Goal", "value": "Find [[Red Harbor]] answers"}],
+                    "details": "Knows the [[Ashwake Company]].",
+                }
+            ),
+        )
+
+        source_bytes = Path(project_path).read_bytes()
+        result = self.db_manager.export_world_markdown(project_uuid, world_id, str(self.temp_path / "exports"))
+
+        self.assertEqual(result["projectTitle"], "Iron Age: Chronicles")
+        self.assertEqual(result["worldTitle"], "Duskfen/Marsh")
+        self.assertEqual(result["documentCount"], 1)
+        self.assertEqual(result["lorePageCount"], 1)
+        self.assertTrue(Path(result["exportPath"]).is_dir())
+        self.assertEqual(Path(project_path).read_bytes(), source_bytes)
+
+        index_path = Path(result["exportPath"]) / "index.md"
+        self.assertTrue(index_path.exists())
+        index_text = index_path.read_text(encoding="utf-8")
+        self.assertIn("# Duskfen/Marsh", index_text)
+        self.assertIn("Documents: 1", index_text)
+        self.assertIn("Lore pages: 1", index_text)
+
+        document_files = [Path(file["path"]) for file in result["files"] if file["kind"] == "document"]
+        lore_files = [Path(file["path"]) for file in result["files"] if file["kind"] == "lore"]
+        self.assertEqual(len(document_files), 1)
+        self.assertEqual(len(lore_files), 1)
+        self.assertIn("Scenes", document_files[0].parts)
+        self.assertIn("Act- 1", document_files[0].parts)
+        self.assertEqual(document_files[0].name, "Chapter- 01 - Arrival.md")
+        self.assertEqual(lore_files[0].name, "Mara- Quill.md")
+
+        document_text = document_files[0].read_text(encoding="utf-8")
+        lore_text = lore_files[0].read_text(encoding="utf-8")
+        self.assertIn("# Chapter: 01 / Arrival?", document_text)
+        self.assertIn("[[Red Harbor]]", document_text)
+        self.assertIn("# Mara: Quill*", lore_text)
+        self.assertIn("Tags: courier, protagonist", lore_text)
+        self.assertIn("- **Goal:** Find [[Red Harbor]] answers", lore_text)
+        self.assertIn("Knows the [[Ashwake Company]].", lore_text)
+        self.assertIn(lore_id, [row[0] for row in self.db_manager.list_lore_pages(project_uuid, world_id)])
+
+    def test_export_world_markdown_dedupes_duplicate_titles(self):
+        project_uuid, _ = self.db_manager.add_project("Duplicate Export", "")
+        world_id = self.db_manager.create_world(project_uuid, "Mirror World")
+        first_doc = self.db_manager.create_document(project_uuid, world_id, "Scene")
+        second_doc = self.db_manager.create_document(project_uuid, world_id, "Scene")
+        self.db_manager.update_document(project_uuid, first_doc, content_json="First scene.")
+        self.db_manager.update_document(project_uuid, second_doc, content_json="Second scene.")
+
+        result = self.db_manager.export_world_markdown(project_uuid, world_id, str(self.temp_path / "exports"))
+
+        document_names = sorted(Path(file["path"]).name for file in result["files"] if file["kind"] == "document")
+        self.assertEqual(document_names, ["Scene-2.md", "Scene.md"])
+
+    def test_sidecar_exports_world_markdown_with_metadata(self):
+        project_uuid, _ = self.db_manager.add_project("Sidecar Export", "")
+        world_id = self.db_manager.create_world(project_uuid, "Test World")
+        self.db_manager.create_document(project_uuid, world_id, "Scene")
+
+        response = self.sidecar._handle_request(
+            {
+                "action": "export_world_markdown",
+                "data": {
+                    "projectId": project_uuid,
+                    "worldId": world_id,
+                    "exportRoot": str(self.temp_path / "exports"),
+                },
+            }
+        )
+
+        self.assertEqual(response["status"], "ok")
+        export = response["export"]
+        self.assertEqual(export["documentCount"], 1)
+        self.assertEqual(export["lorePageCount"], 0)
+        self.assertTrue(Path(export["exportPath"]).exists())
+        self.assertIn("index.md", [file["relativePath"] for file in export["files"]])
+
+    def test_sidecar_export_world_markdown_requires_target_data(self):
+        response = self.sidecar._handle_request({"action": "export_world_markdown", "data": {}})
+
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["message"], "projectId, worldId, and exportRoot required")
+
     def test_open_project_uses_filename_when_project_meta_is_untitled(self):
         manual_path = self.temp_path / "manual" / "ashen-sky.worldie"
         self.db_manager._init_project_db(str(manual_path), create_if_missing=True)
