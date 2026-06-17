@@ -239,6 +239,7 @@ export const EditorView = memo(function EditorView({
   const [isDocumentMenuOpen, setIsDocumentMenuOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [readableLoreLinks, setReadableLoreLinks] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [editorWidth, setEditorWidth] = useState<EditorWidth>("standard");
   const [editorMode, setEditorMode] = useState<EditorPresentationMode>("standard");
@@ -578,13 +579,13 @@ export const EditorView = memo(function EditorView({
       .map(({ command }) => command);
   }, [slashCommandMatch, slashCommandSearchIndex, slashCommands]);
   const renderedPreview = useMemo(
-    () => renderPreviewContent(documentContent, linkedLoreByTitle, onOpenLore),
-    [documentContent, linkedLoreByTitle, onOpenLore],
+    () => renderPreviewContent(documentContent, linkedLoreByTitle, onOpenLore, { readableLoreLinks }),
+    [documentContent, linkedLoreByTitle, onOpenLore, readableLoreLinks],
   );
   const typewriterRenderedPreview = useMemo(() => {
     const composedText = appendTypewriterCommit(documentContent, typewriterDraft);
-    return renderPreviewContent(composedText, linkedLoreByTitle, onOpenLore);
-  }, [documentContent, linkedLoreByTitle, onOpenLore, typewriterDraft]);
+    return renderPreviewContent(composedText, linkedLoreByTitle, onOpenLore, { readableLoreLinks });
+  }, [documentContent, linkedLoreByTitle, onOpenLore, readableLoreLinks, typewriterDraft]);
 
   useEffect(() => {
     if (!slashCommandMatch) {
@@ -1563,6 +1564,8 @@ export const EditorView = memo(function EditorView({
             onOpenDocument={requestOpenDocument}
             isPreviewOpen={isPreviewOpen}
             onTogglePreview={() => setIsPreviewOpen((current) => !current)}
+            readableLoreLinks={readableLoreLinks}
+            onToggleReadableLoreLinks={() => setReadableLoreLinks((current) => !current)}
             isDetailsOpen={isDetailsOpen}
             onToggleDetails={() => setIsDetailsOpen((current) => !current)}
             isFocusMode={isFocusMode}

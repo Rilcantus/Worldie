@@ -28,6 +28,8 @@ type EditorToolbarProps = {
   onOpenDocument: (doc: Document) => void;
   isPreviewOpen: boolean;
   onTogglePreview: () => void;
+  readableLoreLinks: boolean;
+  onToggleReadableLoreLinks: () => void;
   isDetailsOpen: boolean;
   onToggleDetails: () => void;
   isFocusMode: boolean;
@@ -67,6 +69,8 @@ export const EditorToolbar = memo(function EditorToolbar({
   onOpenDocument,
   isPreviewOpen,
   onTogglePreview,
+  readableLoreLinks,
+  onToggleReadableLoreLinks,
   isDetailsOpen,
   onToggleDetails,
   isFocusMode,
@@ -291,6 +295,15 @@ export const EditorToolbar = memo(function EditorToolbar({
           title="Toggle preview (Ctrl/Cmd+Shift+P)"
         >
           Preview
+        </button>
+        <button
+          className={`tb-btn ${readableLoreLinks ? "active" : ""}`}
+          type="button"
+          onMouseDown={preserveEditorSelection}
+          onClick={onToggleReadableLoreLinks}
+          title="Show lore links without wiki brackets in preview"
+        >
+          Readable Links
         </button>
         <button
           className={`tb-btn ${isDetailsOpen ? "active" : ""}`}

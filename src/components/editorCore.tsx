@@ -1243,6 +1243,7 @@ function renderInlinePreview(
   linkedLoreByTitle: Map<string, LorePage>,
   onOpenLore: (page: LorePage) => void,
   keyPrefix: string,
+  options: { readableLoreLinks?: boolean } = {},
 ): ReactNode[] {
   const parts: ReactNode[] = [];
   const pattern = /(\[\[[^\]]+\]\]|__\*\*_[^*]+_\*\*__|_\*\*__[^*]+__\*\*_|\*\*__\*[^*]+\*__\*\*|\*__\*\*[^*]+\*\*__\*|___[^_]+___|\*\*\*__[^*]+__\*\*\*|\*\*\*[^*]+\*\*\*|\*\*__[^*]+__\*\*|\*\*_[^*]+_\*\*|\*__[^*]+__\*|__[^_]+__|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
@@ -1258,6 +1259,7 @@ function renderInlinePreview(
     if (token.startsWith("[[")) {
       const label = token.slice(2, -2);
       const page = linkedLoreByTitle.get(label.trim().toLowerCase());
+      const displayLabel = options.readableLoreLinks ? label : token;
       parts.push(
         page ? (
           <button
@@ -1266,24 +1268,24 @@ function renderInlinePreview(
             type="button"
             onClick={() => onOpenLore(page)}
           >
-            {label}
+            {displayLabel}
           </button>
         ) : (
           <span key={`${keyPrefix}-missing-${match.index}`} className="editor-inline-link unresolved">
-            {label}
+            {displayLabel}
           </span>
         ),
       );
     } else if (token.startsWith("__**_") && token.endsWith("_**__")) {
       parts.push(
         <span key={`${keyPrefix}-underline-bold-italic-${match.index}`} className="editor-preview-underline">
-          {renderInlinePreview(token.slice(2, -2), linkedLoreByTitle, onOpenLore, `${keyPrefix}-ubi-${match.index}`)}
+          {renderInlinePreview(token.slice(2, -2), linkedLoreByTitle, onOpenLore, `${keyPrefix}-ubi-${match.index}`, options)}
         </span>,
       );
     } else if (token.startsWith("_**__") && token.endsWith("__**_")) {
       parts.push(
         <em key={`${keyPrefix}-italic-bold-underline-${match.index}`}>
-          {renderInlinePreview(token.slice(1, -1), linkedLoreByTitle, onOpenLore, `${keyPrefix}-ibu-${match.index}`)}
+          {renderInlinePreview(token.slice(1, -1), linkedLoreByTitle, onOpenLore, `${keyPrefix}-ibu-${match.index}`, options)}
         </em>,
       );
     } else if (token.startsWith("**__*") && token.endsWith("*__**")) {
@@ -1291,7 +1293,7 @@ function renderInlinePreview(
         <strong key={`${keyPrefix}-bold-underline-italic-${match.index}`}>
           <span className="editor-preview-underline">
             <em>
-              {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bui-${match.index}`)}
+              {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bui-${match.index}`, options)}
             </em>
           </span>
         </strong>,
@@ -1301,7 +1303,7 @@ function renderInlinePreview(
         <em key={`${keyPrefix}-italic-underline-bold-${match.index}`}>
           <span className="editor-preview-underline">
             <strong>
-              {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-iub-${match.index}`)}
+              {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-iub-${match.index}`, options)}
             </strong>
           </span>
         </em>,
@@ -1309,7 +1311,7 @@ function renderInlinePreview(
     } else if (token.startsWith("___") && token.endsWith("___")) {
       parts.push(
         <span key={`${keyPrefix}-italic-underline-underscore-${match.index}`} className="editor-preview-underline">
-          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-iuu-${match.index}`)}</em>
+          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-iuu-${match.index}`, options)}</em>
         </span>,
       );
     } else if (token.startsWith("***__") && token.endsWith("__***")) {
@@ -1317,7 +1319,7 @@ function renderInlinePreview(
         <strong key={`${keyPrefix}-bold-italic-underline-${match.index}`}>
           <em>
             <span className="editor-preview-underline">
-              {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-biu-${match.index}`)}
+              {renderInlinePreview(token.slice(5, -5), linkedLoreByTitle, onOpenLore, `${keyPrefix}-biu-${match.index}`, options)}
             </span>
           </em>
         </strong>,
@@ -1325,53 +1327,53 @@ function renderInlinePreview(
     } else if (token.startsWith("***") && token.endsWith("***")) {
       parts.push(
         <strong key={`${keyPrefix}-bold-italic-star-${match.index}`}>
-          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bis-${match.index}`)}</em>
+          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bis-${match.index}`, options)}</em>
         </strong>,
       );
     } else if (token.startsWith("**__") && token.endsWith("__**")) {
       parts.push(
         <strong key={`${keyPrefix}-bold-underline-${match.index}`}>
           <span className="editor-preview-underline">
-            {renderInlinePreview(token.slice(4, -4), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bu-${match.index}`)}
+            {renderInlinePreview(token.slice(4, -4), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bu-${match.index}`, options)}
           </span>
         </strong>,
       );
     } else if (token.startsWith("**_") && token.endsWith("_**")) {
       parts.push(
         <strong key={`${keyPrefix}-bold-italic-${match.index}`}>
-          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bi-${match.index}`)}</em>
+          <em>{renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bi-${match.index}`, options)}</em>
         </strong>,
       );
     } else if (token.startsWith("*__") && token.endsWith("__*")) {
       parts.push(
         <em key={`${keyPrefix}-italic-underline-${match.index}`}>
           <span className="editor-preview-underline">
-            {renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-iu-${match.index}`)}
+            {renderInlinePreview(token.slice(3, -3), linkedLoreByTitle, onOpenLore, `${keyPrefix}-iu-${match.index}`, options)}
           </span>
         </em>,
       );
     } else if (token.startsWith("**")) {
       parts.push(
         <strong key={`${keyPrefix}-bold-${match.index}`}>
-          {renderInlinePreview(token.slice(2, -2), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bold-${match.index}`)}
+          {renderInlinePreview(token.slice(2, -2), linkedLoreByTitle, onOpenLore, `${keyPrefix}-bold-${match.index}`, options)}
         </strong>,
       );
     } else if (token.startsWith("__")) {
       parts.push(
         <span key={`${keyPrefix}-underline-${match.index}`} className="editor-preview-underline">
-          {renderInlinePreview(token.slice(2, -2), linkedLoreByTitle, onOpenLore, `${keyPrefix}-underline-${match.index}`)}
+          {renderInlinePreview(token.slice(2, -2), linkedLoreByTitle, onOpenLore, `${keyPrefix}-underline-${match.index}`, options)}
         </span>,
       );
     } else if (token.startsWith("*")) {
       parts.push(
         <em key={`${keyPrefix}-italic-star-${match.index}`}>
-          {renderInlinePreview(token.slice(1, -1), linkedLoreByTitle, onOpenLore, `${keyPrefix}-italic-star-${match.index}`)}
+          {renderInlinePreview(token.slice(1, -1), linkedLoreByTitle, onOpenLore, `${keyPrefix}-italic-star-${match.index}`, options)}
         </em>,
       );
     } else if (token.startsWith("_")) {
       parts.push(
         <em key={`${keyPrefix}-italic-${match.index}`}>
-          {renderInlinePreview(token.slice(1, -1), linkedLoreByTitle, onOpenLore, `${keyPrefix}-italic-${match.index}`)}
+          {renderInlinePreview(token.slice(1, -1), linkedLoreByTitle, onOpenLore, `${keyPrefix}-italic-${match.index}`, options)}
         </em>,
       );
     }
@@ -1390,6 +1392,7 @@ export function renderPreviewContent(
   text: string,
   linkedLoreByTitle: Map<string, LorePage>,
   onOpenLore: (page: LorePage) => void,
+  options: { readableLoreLinks?: boolean } = {},
 ) {
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
@@ -1433,7 +1436,7 @@ export function renderPreviewContent(
                 }
               >
                 <span>
-                  {renderInlinePreview(item.text, linkedLoreByTitle, onOpenLore, `${keyPrefix}-ol-${groupIndex}-${itemIndex}`)}
+                  {renderInlinePreview(item.text, linkedLoreByTitle, onOpenLore, `${keyPrefix}-ol-${groupIndex}-${itemIndex}`, options)}
                 </span>
                 {item.children.length > 0
                   ? renderPreviewListNodes(item.children, `${keyPrefix}-ol-${groupIndex}-${itemIndex}-children`)
@@ -1449,7 +1452,7 @@ export function renderPreviewContent(
           {group.items.map((item, itemIndex) => (
             <li key={`${keyPrefix}-ul-item-${groupIndex}-${itemIndex}`}>
               <span>
-                {renderInlinePreview(item.text, linkedLoreByTitle, onOpenLore, `${keyPrefix}-ul-${groupIndex}-${itemIndex}`)}
+                {renderInlinePreview(item.text, linkedLoreByTitle, onOpenLore, `${keyPrefix}-ul-${groupIndex}-${itemIndex}`, options)}
               </span>
               {item.children.length > 0
                 ? renderPreviewListNodes(item.children, `${keyPrefix}-ul-${groupIndex}-${itemIndex}-children`)
@@ -1505,7 +1508,7 @@ export function renderPreviewContent(
       if (line.length > 0) {
         quoteChildren.push(
           <span key={`quote-${blocks.length}-line-${index}`}>
-            {renderInlinePreview(line, linkedLoreByTitle, onOpenLore, `quote-${blocks.length}-${index}`)}
+            {renderInlinePreview(line, linkedLoreByTitle, onOpenLore, `quote-${blocks.length}-${index}`, options)}
           </span>,
         );
       }
@@ -1530,7 +1533,7 @@ export function renderPreviewContent(
       if (line.length > 0) {
         noteChildren.push(
           <span key={`note-${blocks.length}-line-${index}`}>
-            {renderInlinePreview(line, linkedLoreByTitle, onOpenLore, `note-${blocks.length}-${index}`)}
+            {renderInlinePreview(line, linkedLoreByTitle, onOpenLore, `note-${blocks.length}-${index}`, options)}
           </span>,
         );
       }
@@ -1599,7 +1602,7 @@ export function renderPreviewContent(
     if (lineBody.startsWith("## ")) {
       blocks.push(
         <h2 key={`h2-${index}`} className="editor-preview-heading editor-preview-heading-secondary">
-          {renderInlinePreview(lineBody.slice(3), linkedLoreByTitle, onOpenLore, `h2-${index}`)}
+          {renderInlinePreview(lineBody.slice(3), linkedLoreByTitle, onOpenLore, `h2-${index}`, options)}
         </h2>,
       );
       return;
@@ -1608,7 +1611,7 @@ export function renderPreviewContent(
     if (lineBody.startsWith("# ")) {
       blocks.push(
         <h1 key={`h1-${index}`} className="editor-preview-heading">
-          {renderInlinePreview(lineBody.slice(2), linkedLoreByTitle, onOpenLore, `h1-${index}`)}
+          {renderInlinePreview(lineBody.slice(2), linkedLoreByTitle, onOpenLore, `h1-${index}`, options)}
         </h1>,
       );
       return;
@@ -1626,7 +1629,7 @@ export function renderPreviewContent(
 
     blocks.push(
       <p key={`p-${index}`} className="editor-preview-paragraph">
-        {renderInlinePreview(line, linkedLoreByTitle, onOpenLore, `p-${index}`)}
+        {renderInlinePreview(line, linkedLoreByTitle, onOpenLore, `p-${index}`, options)}
       </p>,
     );
   });

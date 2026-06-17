@@ -186,6 +186,59 @@ test("linkUnlinkedLoreMentions handles titles with regex-special characters safe
   assert.equal(plus.text, "[[A+B]] appears near [[A+B]].");
 });
 
+test("renderPreviewContent can show raw or readable lore link labels without changing source", () => {
+  const lore = { id: "lore-1", title: "Blacktooth clan" };
+  const linkedLore = new Map([["blacktooth clan", lore]]);
+  const source = "The [[Blacktooth clan]] arrived.";
+  const rawPreview = renderPreviewContent(source, linkedLore, () => {});
+  const readablePreview = renderPreviewContent(source, linkedLore, () => {}, { readableLoreLinks: true });
+
+  assert.equal(summarizePreviewNode(rawPreview[0]).children[1].children[0], "[[Blacktooth clan]]");
+  assert.equal(summarizePreviewNode(readablePreview[0]).children[1].children[0], "Blacktooth clan");
+  assert.equal(source, "The [[Blacktooth clan]] arrived.");
+});
+
+test("renderPreviewContent readable lore links handles multiple links and punctuation", () => {
+  const linkedLore = new Map([
+    ["blacktooth clan", { id: "lore-1", title: "Blacktooth clan" }],
+    ["red harbor", { id: "lore-2", title: "Red Harbor" }],
+  ]);
+  const preview = renderPreviewContent(
+    "[[Blacktooth clan]], meet [[Red Harbor]].",
+    linkedLore,
+    () => {},
+    { readableLoreLinks: true },
+  );
+  const summary = summarizePreviewNode(preview[0]);
+  assert.equal(summary.children[0].children[0], "Blacktooth clan");
+  assert.equal(summary.children[1].children[0], ", meet ");
+  assert.equal(summary.children[2].children[0], "Red Harbor");
+  assert.equal(summary.children[3].children[0], ".");
+});
+
+test("renderPreviewContent degrades safely for incomplete and empty lore links", () => {
+  const incomplete = renderPreviewContent("[[Unclosed", new Map(), () => {}, { readableLoreLinks: true });
+  assert.equal(summarizePreviewNode(incomplete[0]).children[0].children[0], "[[Unclosed");
+
+  const empty = renderPreviewContent("[[]]", new Map(), () => {}, { readableLoreLinks: true });
+  assert.equal(summarizePreviewNode(empty[0]).children[0].children[0], "[[]]");
+});
+
+test("renderPreviewContent clickable lore links still open the matched lore page", () => {
+  const lore = { id: "lore-1", title: "Blacktooth clan" };
+  const linkedLore = new Map([["blacktooth clan", lore]]);
+  let opened = null;
+  const preview = renderPreviewContent("[[Blacktooth clan]]", linkedLore, (page) => {
+    opened = page;
+  }, { readableLoreLinks: true });
+  const button = preview[0].props.children[0];
+
+  button.props.onClick();
+
+  assert.equal(button.props.children, "Blacktooth clan");
+  assert.equal(opened, lore);
+});
+
 test("toggleLinePrefix adds and removes bullet prefixes across lines", () => {
   const added = toggleLinePrefix("Alpha\nBeta", { start: 0, end: 10 }, "- ");
   assert.equal(added.text, "- Alpha\n- Beta");
@@ -1030,6 +1083,7 @@ test("renderPreviewContent preserves nested bullets with formatting and lore lin
     "- **[[Red Harbor]]**\n  - _Nested clue_\n    - __Underlined detail__",
     linkedLore,
     () => {},
+    { readableLoreLinks: true },
   );
   const summary = summarizePreviewNode(preview[0]);
 
@@ -1297,7 +1351,7 @@ test("renderPreviewContent preserves nested note content with lore links and for
   const linkedLore = new Map([
     ["red harbor", { id: "lore-red-harbor", worldId: "world-1", title: "Red Harbor", type: "Place" }],
   ]);
-  const preview = renderPreviewContent("  > Note: **[[Red Harbor]]**\n  >   _Nested detail_", linkedLore, () => {});
+  const preview = renderPreviewContent("  > Note: **[[Red Harbor]]**\n  >   _Nested detail_", linkedLore, () => {}, { readableLoreLinks: true });
   const summary = summarizePreviewNode(preview[0]);
 
   assert.equal(summary.type, "div");
