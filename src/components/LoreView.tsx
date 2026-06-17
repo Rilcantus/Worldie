@@ -13,6 +13,8 @@ import {
   buildLoreTableModel,
   buildLoreTableViewDraft,
   clearHiddenColumnSort,
+  getLoreTableCustomFieldValue,
+  isLoreTableColumnEditable,
   resolveVisibleColumnIds,
   toggleVisibleColumnId,
   type LoreTableSort,
@@ -54,6 +56,7 @@ type LoreViewProps = {
     updates: Partial<Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">>,
   ) => Promise<boolean>;
   onDeleteLoreTableView: (viewId: string) => Promise<boolean>;
+  onUpdateLoreTableCustomField: (loreId: string, field: CustomFieldDefinition, value: LoreCustomFieldValue) => Promise<boolean>;
   onSave: () => void;
   onTitleChange: (value: string) => void;
   onTagsChange: (value: string) => void;
@@ -106,6 +109,7 @@ export const LoreView = memo(function LoreView({
   onSaveLoreTableView,
   onUpdateLoreTableView,
   onDeleteLoreTableView,
+  onUpdateLoreTableCustomField,
   onSave,
   onTitleChange,
   onTagsChange,
@@ -129,6 +133,7 @@ export const LoreView = memo(function LoreView({
   const [visibleTableColumnIds, setVisibleTableColumnIds] = useState<string[] | null>(null);
   const [selectedTableViewId, setSelectedTableViewId] = useState("");
   const [tableViewName, setTableViewName] = useState("");
+  const [tableEditError, setTableEditError] = useState("");
   useEffect(() => {
     if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
     setTableLoreTypeId(activeLoreType?.id ?? "");
@@ -225,6 +230,14 @@ export const LoreView = memo(function LoreView({
     if (!deleted) return;
     setSelectedTableViewId("");
     setTableViewName("");
+  };
+
+  const updateLoreTableCell = async (loreId: string, field: CustomFieldDefinition, value: LoreCustomFieldValue) => {
+    setTableEditError("");
+    const saved = await onUpdateLoreTableCustomField(loreId, field, value);
+    if (!saved) {
+      setTableEditError("Worldie could not save that table edit.");
+    }
   };
 
   const persistFields = (
@@ -360,6 +373,65 @@ export const LoreView = memo(function LoreView({
           )
         }
         placeholder={field.name}
+      />
+    );
+  };
+
+  const renderLoreTableCell = (row: { page: LorePage; cells: Record<string, string> }, column: typeof loreTableModel.columns[number]) => {
+    if (column.kind === "title") {
+      return (
+        <button className="lore-table-link" type="button" onClick={() => onOpenLore(row.page)}>
+          {row.cells[column.id]}
+        </button>
+      );
+    }
+    if (!isLoreTableColumnEditable(column) || !column.field) {
+      return row.cells[column.id];
+    }
+    const field = column.field;
+    const rawValue = getLoreTableCustomFieldValue(row.page, field);
+    const inputValue = formatCustomFieldInputValue(rawValue);
+    if (field.type === "checkbox") {
+      return (
+        <input
+          className="lore-table-cell-checkbox"
+          type="checkbox"
+          checked={Boolean(rawValue)}
+          aria-label={`${row.page.title} ${field.name}`}
+          onChange={(event) => void updateLoreTableCell(row.page.id, field, event.target.checked)}
+        />
+      );
+    }
+    if (field.type === "select") {
+      return (
+        <select
+          className="lore-input lore-table-cell-input"
+          value={inputValue}
+          aria-label={`${row.page.title} ${field.name}`}
+          onChange={(event) => void updateLoreTableCell(row.page.id, field, event.target.value)}
+        >
+          <option value=""></option>
+          {field.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <input
+        className="lore-input lore-table-cell-input"
+        type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+        value={inputValue}
+        aria-label={`${row.page.title} ${field.name}`}
+        onChange={(event) =>
+          void updateLoreTableCell(
+            row.page.id,
+            field,
+            field.type === "number" && event.target.value !== "" ? Number(event.target.value) : event.target.value,
+          )
+        }
       />
     );
   };
@@ -547,6 +619,7 @@ export const LoreView = memo(function LoreView({
                 ))}
             </div>
           ) : null}
+          {tableEditError ? <div className="lore-table-error">{tableEditError}</div> : null}
           {loreTableModel.loreType ? (
             <div className="lore-table-wrap">
               <table className="lore-table">
@@ -577,15 +650,7 @@ export const LoreView = memo(function LoreView({
                     loreTableModel.rows.map((row) => (
                       <tr key={row.page.id}>
                         {loreTableModel.columns.map((column) => (
-                          <td key={column.id}>
-                            {column.kind === "title" ? (
-                              <button className="lore-table-link" type="button" onClick={() => onOpenLore(row.page)}>
-                                {row.cells[column.id]}
-                              </button>
-                            ) : (
-                              row.cells[column.id]
-                            )}
-                          </td>
+                          <td key={column.id}>{renderLoreTableCell(row, column)}</td>
                         ))}
                       </tr>
                     ))

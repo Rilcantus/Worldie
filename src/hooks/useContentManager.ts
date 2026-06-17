@@ -17,8 +17,9 @@ import {
   updateLoreTableView,
 } from "../lib/data";
 import { parseLoreItemFields, stringifyLoreItemFields } from "../lib/loreItems";
+import { applyLoreTableCustomFieldEdit } from "../lib/loreTable";
 import type { LoreTemplate } from "../lib/loreTemplates";
-import { getDefaultLoreTypeId, slugifyLoreTypeName, sortLoreTypes, type LoreType } from "../lib/loreTypes";
+import { getDefaultLoreTypeId, slugifyLoreTypeName, sortLoreTypes, type CustomFieldDefinition, type LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
 import {
   buildInitialLoreFields,
@@ -1034,6 +1035,47 @@ export function useContentManager({
     return true;
   };
 
+  const updateLoreTableCustomField = async (
+    loreId: string,
+    field: CustomFieldDefinition,
+    value: string | number | boolean | null,
+  ) => {
+    if (!activeProjectId) return false;
+    const page = allLorePagesById.get(loreId);
+    if (!page) return false;
+    const actionProjectId = activeProjectId;
+    const updatedPage = applyLoreTableCustomFieldEdit(page, field, value);
+    const previousFieldsJson = page.fieldsJson ?? "";
+    setAllLorePages((current) => current.map((item) => (item.id === loreId ? updatedPage : item)));
+    setLorePages((current) => current.map((item) => (item.id === loreId ? updatedPage : item)));
+    if (activeLoreId === loreId) {
+      setLoreFields(updatedPage.fieldsJson ?? "");
+    }
+    try {
+      await updateLorePage(actionProjectId, loreId, {
+        fieldsJson: updatedPage.fieldsJson ?? "",
+      });
+    } catch (error) {
+      if (currentScopeRef.current.projectId !== actionProjectId) return false;
+      setAllLorePages((current) =>
+        current.map((item) => (item.id === loreId ? { ...item, fieldsJson: previousFieldsJson } : item)),
+      );
+      setLorePages((current) =>
+        current.map((item) => (item.id === loreId ? { ...item, fieldsJson: previousFieldsJson } : item)),
+      );
+      if (activeLoreId === loreId) {
+        setLoreFields(previousFieldsJson);
+        setLoreSaveState("error");
+      }
+      await recoverActiveProjectError(error, "Worldie could not save the lore table edit.");
+      return false;
+    }
+    if (activeLoreId === loreId) {
+      markLoreSaved();
+    }
+    return true;
+  };
+
   const saveLoreTableView = async (
     view: Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">,
   ) => {
@@ -1301,6 +1343,7 @@ export function useContentManager({
       reassignLoreType,
       saveLoreTableView,
       reviseLoreTableView,
+      updateLoreTableCustomField,
       saveLorePage,
       removeLorePage,
       removeLoreTableView,
@@ -1360,6 +1403,7 @@ export function useContentManager({
       reassignLoreType,
       saveLoreTableView,
       reviseLoreTableView,
+      updateLoreTableCustomField,
       saveLorePage,
       removeLorePage,
       removeLoreTableView,

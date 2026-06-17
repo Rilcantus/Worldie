@@ -2,7 +2,7 @@
 
 ## Status
 
-This note describes the first small custom-fields slices for lore pages. Worldie now has portable page-level custom field values, reusable lore-type field definitions, a simple view-only lore table, and saved lore table views. It does not implement formulas, complex filtering, bulk editing, or advanced validation.
+This note describes the first small custom-fields slices for lore pages. Worldie now has portable page-level custom field values, reusable lore-type field definitions, a simple lore table, saved lore table views, and a narrow inline-editing path for custom field cells. It does not implement formulas, complex filtering, bulk editing, or advanced validation.
 
 ## Goals
 
@@ -134,6 +134,7 @@ Worldie now includes a simple lore table inside the lore area. It reads the same
 - Quick filtering: case-insensitive text search across page titles and visible custom field values.
 - Sorting: click table headers to sort ascending or descending by title, updated date text, or visible custom field values.
 - Row action: clicking a page title opens the existing lore editor for that page.
+- Inline editing: custom field definition cells can be edited directly in the table.
 
 Saved lore table views are stored in the `.worldie` SQLite project file in the world-scoped `lore_table_views` table. A saved view currently remembers:
 
@@ -157,11 +158,28 @@ Existing saved views without column visibility data default to showing all custo
 
 Field definitions already use stable IDs. Lore page values are currently keyed by definition `key`, not by definition ID. A future table view can use definition IDs for column identity while continuing to read/write page values through stable keys.
 
+Inline table editing is intentionally limited to lore-type custom field definition columns. Core columns remain read-only:
+
+- Name
+- Type
+- Updated
+
+Supported inline controls:
+
+- text, long text, date: compact text/date inputs
+- number: number input, saved as a number when the value is numeric
+- checkbox: checkbox, saved as a boolean
+- select: dropdown, saved as the selected option text
+
+Edits update the lore page's existing `customFields` object through the normal lore page update path. Unrelated custom fields, manual extra fields, traits, details, and template metadata are preserved. Empty text-like values are stored as empty strings, which render as blank table cells and are skipped by Markdown export.
+
 Current table limitations:
 
-- It is view-only.
+- Only custom field cells are editable.
 - It does not support formulas.
 - It does not support bulk editing.
+- It does not edit core columns from the table.
+- It does not have advanced validation or a table-specific undo stack.
 - It does not have advanced filters yet.
 - It does not have saved view sharing, duplication, or per-view descriptions yet.
 - Manual extra fields are not promoted into columns in this first table slice.

@@ -1,5 +1,6 @@
 import type { LorePage, LoreTableView } from "./data";
 import type { CustomFieldDefinition, CustomFieldDefinitionType } from "./customFieldDefinitions";
+import { parseLoreItemFields, stringifyLoreItemFields, type LoreCustomFieldValue } from "./loreItems.js";
 import type { LoreType } from "./loreTypes";
 
 type LoreTableFieldValue = string | number | boolean | null;
@@ -14,6 +15,7 @@ export type LoreTableColumn = {
   label: string;
   kind: "title" | "type" | "custom_field" | "updated";
   fieldType?: CustomFieldDefinitionType;
+  field?: CustomFieldDefinition;
 };
 
 export type LoreTableRow = {
@@ -138,7 +140,43 @@ export function formatLoreTableValue(
   return String(value);
 }
 
-function getCustomFieldValue(page: LorePage, field: CustomFieldDefinition) {
+export function isLoreTableColumnEditable(column: LoreTableColumn) {
+  return column.kind === "custom_field" && Boolean(column.field);
+}
+
+export function normalizeLoreTableEditValue(
+  field: CustomFieldDefinition,
+  value: string | number | boolean | null,
+): LoreCustomFieldValue {
+  if (field.type === "checkbox") return Boolean(value);
+  if (field.type === "number") {
+    if (value === "" || value === null) return "";
+    const numberValue = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(numberValue) ? numberValue : "";
+  }
+  return value == null ? "" : String(value);
+}
+
+export function applyLoreTableCustomFieldEdit(
+  page: LorePage,
+  field: CustomFieldDefinition,
+  value: string | number | boolean | null,
+): LorePage {
+  const parsedFields = parseLoreItemFields(page.fieldsJson);
+  const nextCustomFields = {
+    ...parsedFields.customFields,
+    [field.key]: normalizeLoreTableEditValue(field, value),
+  };
+  return {
+    ...page,
+    fieldsJson: stringifyLoreItemFields({
+      ...parsedFields,
+      customFields: nextCustomFields,
+    }),
+  };
+}
+
+export function getLoreTableCustomFieldValue(page: LorePage, field: CustomFieldDefinition) {
   const fields = parseLoreTableFields(page.fieldsJson);
   return fields.customFields[field.key] ?? fields.customFields[field.name] ?? field.defaultValue;
 }
@@ -233,6 +271,7 @@ export function buildLoreTableModel(
     label: field.name,
     kind: "custom_field" as const,
     fieldType: field.type,
+    field,
   }));
   const allColumns: LoreTableColumn[] = [
     { id: "title", label: "Name", kind: "title" },
@@ -253,7 +292,7 @@ export function buildLoreTableModel(
         updated: page.updatedAt ?? page.createdAt ?? "",
       };
       for (const field of loreType.fieldDefinitions) {
-        cells[field.id] = formatLoreTableValue(getCustomFieldValue(page, field), field.type);
+        cells[field.id] = formatLoreTableValue(getLoreTableCustomFieldValue(page, field), field.type);
       }
       return { page, cells };
     })

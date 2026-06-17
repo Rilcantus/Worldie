@@ -1,7 +1,8 @@
 import { memo, useCallback, type MouseEvent as ReactMouseEvent } from "react";
 import type { Document, LorePage, LoreTableView, Relationship, TimelineEvent } from "../lib/data";
+import type { LoreCustomFieldValue } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
-import type { LoreType } from "../lib/loreTypes";
+import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import type { SearchResult } from "../hooks/useSearch";
 import type { TabItem, TabKind, WorldUI } from "../types/ui";
 import { TabBar } from "./TabBar";
@@ -103,6 +104,7 @@ type MainContentProps = {
     updates: Partial<Omit<LoreTableView, "id" | "worldId" | "createdAt" | "updatedAt">>,
   ) => Promise<boolean>;
   onDeleteLoreTableView: (viewId: string) => Promise<boolean>;
+  onUpdateLoreTableCustomField: (loreId: string, field: CustomFieldDefinition, value: LoreCustomFieldValue) => Promise<boolean>;
   onSaveLorePage: () => void;
   onLoreTitleChange: (value: string) => void;
   onLoreTagsChange: (value: string) => void;
@@ -366,6 +368,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onSaveLoreTableView={props.onSaveLoreTableView}
               onUpdateLoreTableView={props.onUpdateLoreTableView}
               onDeleteLoreTableView={props.onDeleteLoreTableView}
+              onUpdateLoreTableCustomField={props.onUpdateLoreTableCustomField}
               onSave={props.onSaveLorePage}
               onTitleChange={props.onLoreTitleChange}
               onTagsChange={props.onLoreTagsChange}

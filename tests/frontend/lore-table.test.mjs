@@ -2,11 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyLoreTableCustomFieldEdit,
   applyLoreTableView,
   buildLoreTableViewDraft,
   buildLoreTableModel,
   clearHiddenColumnSort,
   formatLoreTableValue,
+  getLoreTableCustomFieldValue,
+  isLoreTableColumnEditable,
+  normalizeLoreTableEditValue,
   resolveVisibleColumnIds,
   toggleVisibleColumnId,
 } from "../../.tmp-frontend-tests/src/lib/loreTable.js";
@@ -112,6 +116,87 @@ test("formatLoreTableValue renders checkbox, select, number, date, and empty val
   assert.equal(formatLoreTableValue("2026-03-04", "date"), "2026-03-04");
   assert.equal(formatLoreTableValue(null, "text"), "");
   assert.equal(formatLoreTableValue(undefined, "text"), "");
+});
+
+test("custom field table edits update only the target field and preserve extras", () => {
+  const page = {
+    id: "lore-1",
+    worldId: "world-1",
+    title: "Mara Quill",
+    type: "Character",
+    fieldsJson: JSON.stringify({
+      loreTypeId: "type-character",
+      templateId: "template-character",
+      traits: [{ id: "trait-1", name: "Role", value: "Courier" }],
+      details: "Carries sealed letters.",
+      customFields: {
+        species: "Human",
+        age: 31,
+        active: true,
+        manual_extra: "keep me",
+      },
+    }),
+  };
+  const updated = applyLoreTableCustomFieldEdit(page, characterType.fieldDefinitions[0], "Half-elf");
+  const parsed = JSON.parse(updated.fieldsJson);
+  const original = JSON.parse(page.fieldsJson);
+
+  assert.equal(parsed.customFields.species, "Half-elf");
+  assert.equal(parsed.customFields.age, 31);
+  assert.equal(parsed.customFields.active, true);
+  assert.equal(parsed.customFields.manual_extra, "keep me");
+  assert.equal(parsed.details, "Carries sealed letters.");
+  assert.equal(original.customFields.species, "Human");
+  assert.notEqual(updated, page);
+});
+
+test("custom field table edits normalize number checkbox select date and clearing values", () => {
+  const page = {
+    id: "lore-1",
+    worldId: "world-1",
+    title: "Mara Quill",
+    type: "Character",
+    fieldsJson: JSON.stringify({
+      loreTypeId: "type-character",
+      traits: [],
+      details: "",
+      customFields: { age: 31, active: true, status: "Active", first_seen: "2026-01-02", species: "Human" },
+    }),
+  };
+  const withNumber = applyLoreTableCustomFieldEdit(page, characterType.fieldDefinitions[1], "32");
+  const withCheckbox = applyLoreTableCustomFieldEdit(withNumber, characterType.fieldDefinitions[2], false);
+  const withSelect = applyLoreTableCustomFieldEdit(withCheckbox, characterType.fieldDefinitions[3], "Missing");
+  const withDate = applyLoreTableCustomFieldEdit(withSelect, characterType.fieldDefinitions[4], "2026-04-05");
+  const clearedText = applyLoreTableCustomFieldEdit(withDate, characterType.fieldDefinitions[0], "");
+  const parsed = JSON.parse(clearedText.fieldsJson);
+
+  assert.equal(parsed.customFields.age, 32);
+  assert.equal(parsed.customFields.active, false);
+  assert.equal(parsed.customFields.status, "Missing");
+  assert.equal(parsed.customFields.first_seen, "2026-04-05");
+  assert.equal(parsed.customFields.species, "");
+  assert.equal(normalizeLoreTableEditValue(characterType.fieldDefinitions[1], ""), "");
+});
+
+test("custom field table edits can read definition-key and legacy-name values", () => {
+  const page = {
+    id: "lore-legacy-name",
+    worldId: "world-1",
+    title: "Legacy Name",
+    type: "Character",
+    fieldsJson: JSON.stringify({ loreTypeId: "type-character", customFields: { Species: "Human" } }),
+  };
+
+  assert.equal(getLoreTableCustomFieldValue(page, characterType.fieldDefinitions[0]), "Human");
+});
+
+test("only custom field lore table columns are editable", () => {
+  const model = buildLoreTableModel(sortablePages, [characterType, placeType], "type-character");
+  const editable = model.columns.filter(isLoreTableColumnEditable).map((column) => column.id);
+  const readonly = model.columns.filter((column) => !isLoreTableColumnEditable(column)).map((column) => column.id);
+
+  assert.deepEqual(editable, ["field-species", "field-age", "field-active", "field-status", "field-first-seen"]);
+  assert.deepEqual(readonly, ["title", "type", "updated"]);
 });
 
 const sortablePages = [
