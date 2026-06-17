@@ -77,6 +77,25 @@ export function getLoreSelectionCreateState({
   };
 }
 
+export function getLoreSelectionActionState({
+  selectedText,
+  loreType,
+  hasActiveDocument = true,
+  isDialogOpen = false,
+}: {
+  selectedText: string;
+  loreType: LoreType | null | undefined;
+  hasActiveDocument?: boolean;
+  isDialogOpen?: boolean;
+}) {
+  const selectionTitle = normalizeLoreSelectionTitle(selectedText);
+  return {
+    selectionTitle,
+    canShow: Boolean(hasActiveDocument && loreType && selectionTitle && !isDialogOpen),
+    label: "Create Lore",
+  };
+}
+
 export function buildLoreCreateDraftPayload({
   title,
   loreTypeId,

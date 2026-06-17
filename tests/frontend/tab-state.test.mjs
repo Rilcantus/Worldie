@@ -6,6 +6,7 @@ import {
   isWorkbenchOnlyTabState,
   pruneTabsForWorlds,
   removeTabWithFallback,
+  resolveDocumentForTabOpen,
   upsertTab,
 } from "../../.tmp-frontend-tests/src/hooks/tabState.js";
 
@@ -42,6 +43,32 @@ test("upsertTab replaces the active temporary new tab when requested", () => {
   const result = upsertTab(tabs, nextTab, "new:abc", true);
 
   assert.deepEqual(result, [WORKBENCH_TAB, nextTab]);
+});
+
+test("resolveDocumentForTabOpen can use a freshly created document before state maps refresh", () => {
+  const created = {
+    id: "doc-created",
+    worldId: "world-1",
+    title: "New Document 3",
+    contentJson: "",
+    folderPath: "",
+  };
+  const existing = {
+    id: "doc-existing",
+    worldId: "world-1",
+    title: "Existing",
+    contentJson: "Draft",
+    folderPath: "Scenes",
+  };
+  const documentsById = new Map([[existing.id, existing]]);
+
+  assert.deepEqual(resolveDocumentForTabOpen(created, documentsById), created);
+  assert.deepEqual(resolveDocumentForTabOpen(existing, documentsById), existing);
+});
+
+test("resolveDocumentForTabOpen keeps failed document creation from navigating", () => {
+  assert.equal(resolveDocumentForTabOpen(null, new Map()), null);
+  assert.equal(resolveDocumentForTabOpen(undefined, new Map()), null);
 });
 
 test("pruneTabsForWorlds removes tabs for deleted worlds and tracks active tab presence", () => {

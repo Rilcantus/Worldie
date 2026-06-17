@@ -27,7 +27,7 @@ Worldie stores project content in portable SQLite-backed `.worldie` files. Brows
 7. Edit those custom fields inline from the table.
 8. Save a table view such as Main Characters.
 9. Write one short document.
-10. Highlight an important name in the document and use Create Lore to turn it into a lore page.
+10. Highlight an important name in the document and click the floating Create Lore action to turn it into a lore page.
 11. Link lore in the document with `[[Lore Links]]`.
 12. Export full-project Markdown.
 13. Export an update-ready CSV for your main table.
@@ -74,7 +74,7 @@ Use the lore editor for longer notes, traits, details, tags, and writing that ne
 
 ## How To Create Lore While Writing
 
-When a name, place, faction, creature, or object appears naturally in a document, highlight the text and use Create Lore in the editor toolbar. Worldie opens a small draft form with the highlighted text as the title. Choose the lore type, optionally choose a template, add starter notes or tags, and create the page.
+When a name, place, faction, creature, or object appears naturally in a document, highlight the text and click the floating Create Lore action that appears near the selection. The editor toolbar keeps a Create Lore button as a fallback. Worldie opens a small draft form with the highlighted text as the title. Choose the lore type, optionally choose a template, add starter notes or tags, and create the page.
 
 If the link option is enabled, the highlighted text is replaced with a `[[Lore Link]]` after the lore page is created. This first slice works inside the main document editor; global operating-system context menus and advanced duplicate handling are not implemented yet.
 

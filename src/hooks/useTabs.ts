@@ -3,7 +3,14 @@ import type { Document, LorePage } from "../lib/data";
 import { loadProjectTabs, saveProjectTabs } from "../lib/uiStore";
 import type { TabItem, TabKind } from "../types/ui";
 import { shouldGuardActiveTabRemoval } from "./dirtyState";
-import { WORKBENCH_TAB, isWorkbenchOnlyTabState, pruneTabsForWorlds, removeTabWithFallback, upsertTab } from "./tabState";
+import {
+  WORKBENCH_TAB,
+  isWorkbenchOnlyTabState,
+  pruneTabsForWorlds,
+  removeTabWithFallback,
+  resolveDocumentForTabOpen,
+  upsertTab,
+} from "./tabState";
 
 type UseTabsArgs = {
   activeProjectId: string | null;
@@ -385,7 +392,7 @@ export function useTabs({
     if (isAlreadyActive) return;
     if (!options?.skipGuard && !(await canLeaveCurrentView())) return;
     if (activeProjectIdRef.current !== actionProjectId) return;
-    const currentDoc = documentsByIdRef.current.get(doc.id);
+    const currentDoc = resolveDocumentForTabOpen(doc, documentsByIdRef.current);
     if (!currentDoc) return;
     onSelectDocument(currentDoc);
     openTab({

@@ -6,6 +6,7 @@ import {
   buildLoreCreateDraftPayload,
   buildLoreEditorDraftPage,
   getLoreCreateDraftState,
+  getLoreSelectionActionState,
   getLoreSelectionCreateState,
   buildInitialLoreFields,
   buildLoreTypeCounts,
@@ -147,6 +148,48 @@ test("selected text lore state allows title edits before creation and blocks in-
     buttonLabel: "Create Place",
     titleWasTruncated: false,
   });
+});
+
+test("selected text lore floating action only shows for valid editor selection state", () => {
+  const factionType = {
+    id: "type-faction",
+    name: "Faction",
+    slug: "faction",
+    order: 0,
+    isSystem: true,
+    fieldDefinitions: [],
+  };
+
+  assert.deepEqual(getLoreSelectionActionState({
+    selectedText: "  Blacktooth clan ",
+    loreType: factionType,
+  }), {
+    selectionTitle: "Blacktooth clan",
+    canShow: true,
+    label: "Create Lore",
+  });
+
+  assert.equal(getLoreSelectionActionState({
+    selectedText: "   ",
+    loreType: factionType,
+  }).canShow, false);
+
+  assert.equal(getLoreSelectionActionState({
+    selectedText: "Blacktooth clan",
+    loreType: null,
+  }).canShow, false);
+
+  assert.equal(getLoreSelectionActionState({
+    selectedText: "Blacktooth clan",
+    loreType: factionType,
+    hasActiveDocument: false,
+  }).canShow, false);
+
+  assert.equal(getLoreSelectionActionState({
+    selectedText: "Blacktooth clan",
+    loreType: factionType,
+    isDialogOpen: true,
+  }).canShow, false);
 });
 
 test("new lore draft payload uses entered title selected type template and tags", () => {

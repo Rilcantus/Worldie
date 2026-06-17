@@ -1,4 +1,5 @@
 import type { TabItem } from "../types/ui";
+import type { Document } from "../lib/data";
 
 export const WORKBENCH_TAB: TabItem = { id: "workbench", kind: "workbench", label: "Workbench", icon: "W" };
 
@@ -105,4 +106,9 @@ export function pruneTabsForWorlds(prev: TabItem[], activeTabId: string, worldId
     nextTabs: changed ? normalizedNextTabs : prev,
     changed,
   };
+}
+
+export function resolveDocumentForTabOpen(doc: Document | null | undefined, documentsById: Map<string, Document>) {
+  if (!doc) return null;
+  return documentsById.get(doc.id) ?? doc;
 }

@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -17,6 +18,7 @@ import { resolveLoreLinks } from "../lib/loreLinks";
 import {
   buildLoreCreateDefaultCustomFields,
   buildLoreCreateDraftPayload,
+  getLoreSelectionActionState,
   getLoreSelectionCreateState,
   setLoreCreateCustomFieldValue,
 } from "../hooks/contentState";
@@ -117,8 +119,51 @@ type SelectionLoreDialogState = {
   selectedText: string;
 };
 
+type FloatingActionPosition = {
+  top: number;
+  left: number;
+};
+
 function formatDraftCustomFieldValue(value: LoreCustomFieldValue | undefined) {
   return value == null ? "" : String(value);
+}
+
+function getSelectionFloatingActionPosition(editor: HTMLElement): FloatingActionPosition | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+  const anchorNode = selection.anchorNode;
+  const focusNode = selection.focusNode;
+  if (!anchorNode || !focusNode) return null;
+  if (!editor.contains(anchorNode) || !editor.contains(focusNode)) return null;
+
+  const range = selection.getRangeAt(0);
+  const rangeRect = range.getBoundingClientRect();
+  const firstClientRect = Array.from(range.getClientRects()).find((rect) => rect.width > 0 || rect.height > 0);
+  const rect = rangeRect.width || rangeRect.height ? rangeRect : firstClientRect;
+  const viewportPadding = 12;
+  const actionWidth = 132;
+  const actionHeight = 34;
+
+  if (rect) {
+    const rawTop = rect.top - actionHeight - 8;
+    const top = rawTop >= viewportPadding ? rawTop : rect.bottom + 8;
+    return {
+      top: Math.min(Math.max(viewportPadding, top), window.innerHeight - actionHeight - viewportPadding),
+      left: Math.min(
+        Math.max(viewportPadding, rect.left + rect.width / 2 - actionWidth / 2),
+        window.innerWidth - actionWidth - viewportPadding,
+      ),
+    };
+  }
+
+  const editorRect = editor.getBoundingClientRect();
+  return {
+    top: Math.min(Math.max(viewportPadding, editorRect.top + 12), window.innerHeight - actionHeight - viewportPadding),
+    left: Math.min(
+      Math.max(viewportPadding, editorRect.right - actionWidth - 12),
+      window.innerWidth - actionWidth - viewportPadding,
+    ),
+  };
 }
 
 export const EditorView = memo(function EditorView({
@@ -198,6 +243,7 @@ export const EditorView = memo(function EditorView({
   const [shouldReplaceSelectionWithLink, setShouldReplaceSelectionWithLink] = useState(true);
   const [selectionLoreError, setSelectionLoreError] = useState("");
   const [isCreatingSelectionLore, setIsCreatingSelectionLore] = useState(false);
+  const [selectionLoreActionPosition, setSelectionLoreActionPosition] = useState<FloatingActionPosition | null>(null);
   const isTypewriterMode = editorMode === "typewriter";
   const hasPendingTypewriterDraft = isTypewriterMode && trimTypewriterCommit(typewriterDraft).length > 0;
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
@@ -235,6 +281,10 @@ export const EditorView = memo(function EditorView({
 
   const updateSlashMenuPosition = (next: { top: number; left: number } | null) => {
     setSlashMenuPosition((current) => (arePositionsEqual(current, next) ? current : next));
+  };
+
+  const updateSelectionLoreActionPosition = (next: FloatingActionPosition | null) => {
+    setSelectionLoreActionPosition((current) => (arePositionsEqual(current, next) ? current : next));
   };
 
   const focusTitleInput = () => {
@@ -302,6 +352,7 @@ export const EditorView = memo(function EditorView({
     if (selectionSnapshot !== null) {
       setSelectionSnapshot(null);
     }
+    updateSelectionLoreActionPosition(null);
     if (selectedSlashIndex !== 0 || slashMenuPosition !== null || dismissedSlashStart !== null) {
       clearSlashSession();
     }
@@ -322,6 +373,7 @@ export const EditorView = memo(function EditorView({
     if (selectionSnapshot !== null) {
       setSelectionSnapshot(null);
     }
+    updateSelectionLoreActionPosition(null);
     if (selectedSlashIndex !== 0 || slashMenuPosition !== null || dismissedSlashStart !== null) {
       clearSlashSession();
     }
@@ -394,6 +446,7 @@ export const EditorView = memo(function EditorView({
       if (!editor) return;
       const displaySelection = getSelectionOffsets(editor);
       updateSelectionSnapshot(displaySelectionToSource(activeEditorText, displaySelection));
+      updateSelectionLoreActionPosition(displaySelection ? getSelectionFloatingActionPosition(editor) : null);
     };
 
     document.addEventListener("selectionchange", syncSelection);
@@ -425,6 +478,16 @@ export const EditorView = memo(function EditorView({
     loreType: selectedSelectionLoreType,
     isCreating: isCreatingSelectionLore,
   });
+  const selectionLoreActionState = getLoreSelectionActionState({
+    selectedText,
+    loreType: selectedSelectionLoreType,
+    hasActiveDocument: Boolean(activeDocumentId),
+    isDialogOpen: Boolean(selectionLoreDialog),
+  });
+  const shouldShowSelectionLoreAction = selectionLoreActionState.canShow && Boolean(selectionLoreActionPosition);
+  const selectionLoreActionStyle: CSSProperties | undefined = selectionLoreActionPosition
+    ? { top: selectionLoreActionPosition.top, left: selectionLoreActionPosition.left }
+    : undefined;
   const readingMinutes = useMemo(() => Math.max(1, Math.ceil(wordCount / 200)), [wordCount]);
   const slashCommandMatch = useMemo(() => {
     const match = getSlashCommandMatch(activeEditorText, selectionSnapshot);
@@ -725,6 +788,7 @@ export const EditorView = memo(function EditorView({
       loreType: selectedSelectionLoreType,
     });
     if (!createState.canOpen) return;
+    updateSelectionLoreActionPosition(null);
     setSelectionLoreDialog({ selection, selectedText: selectionText });
     setSelectionLoreTitle(createState.title);
     setSelectionLoreDetails("");
@@ -929,6 +993,7 @@ export const EditorView = memo(function EditorView({
 
   const handleEditorBlur = () => {
     updateSelectionSnapshot(null);
+    updateSelectionLoreActionPosition(null);
     clearSlashSession();
 
     if (isTypewriterMode) {
@@ -1377,7 +1442,9 @@ export const EditorView = memo(function EditorView({
   const syncEditorSelection = () => {
     const editor = editorRef.current;
     if (!editor) return;
-    updateSelectionSnapshot(displaySelectionToSource(activeEditorText, getSelectionOffsets(editor)));
+    const displaySelection = getSelectionOffsets(editor);
+    updateSelectionSnapshot(displaySelectionToSource(activeEditorText, displaySelection));
+    updateSelectionLoreActionPosition(displaySelection ? getSelectionFloatingActionPosition(editor) : null);
   };
 
   return (
@@ -1534,6 +1601,18 @@ export const EditorView = memo(function EditorView({
               selectedSlashIndex={selectedSlashIndex}
               onApplySlashCommand={applySlashCommand}
             />
+          ) : null}
+
+          {shouldShowSelectionLoreAction ? (
+            <button
+              className="selection-lore-floating-action"
+              type="button"
+              style={selectionLoreActionStyle}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={openCreateLoreFromSelectionDialog}
+            >
+              + {selectionLoreActionState.label}
+            </button>
           ) : null}
 
           {selectionLoreDialog ? (
