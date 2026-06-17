@@ -195,6 +195,8 @@ Preview validation checks number fields for numeric values and checkbox fields f
 
 CSV import apply is intentionally narrow. If the preview has no blocking errors, `Import as New Pages` creates one new lore page per valid CSV row in the active world using the selected lore type. The import uses the existing lore page create/update persistence path, stores mapped custom field values in `customFields`, keeps lore type default custom field values when the CSV does not provide a value, ignores unmapped columns, and ignores exported core columns such as `Type` and `Updated`. Empty rows remain ignored. If any row has a blocking validation error, the whole import is blocked rather than partially applied. After a successful import, the preview stays visible and shows a success count, while the table updates with the newly created pages.
 
+Future update-existing CSV import rules are designed in `docs/CSV_IMPORT_UPDATE_DESIGN.md`.
+
 Current table limitations:
 
 - Only custom field cells are editable.

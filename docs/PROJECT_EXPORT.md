@@ -41,6 +41,8 @@ If the preview has no blocking errors, Worldie can import the rows as new lore p
 
 CSV import writes to the `.worldie` project only through the existing lore page creation path.
 
+Future update-existing CSV import behavior is designed in `docs/CSV_IMPORT_UPDATE_DESIGN.md`.
+
 ## Export Shape
 
 Worldie supports two Markdown export scopes:
