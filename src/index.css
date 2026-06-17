@@ -2334,6 +2334,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   gap: 12px;
   margin-bottom: 12px;
 }
+.lore-table-import-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .lore-table-import-title {
   color: var(--text);
   font-weight: 700;
@@ -2366,6 +2373,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 .lore-table-import-messages.error {
   color: var(--red);
+}
+.lore-table-import-messages.success {
+  color: var(--green);
 }
 .lore-table-import-samples {
   display: grid;

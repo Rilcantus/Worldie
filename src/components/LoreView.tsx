@@ -15,7 +15,9 @@ import {
   buildLoreTableCsv,
   buildLoreTableCsvFilename,
   buildLoreTableCsvImportPreview,
+  buildLoreTableCsvImportDrafts,
   buildLoreTableViewDraft,
+  canApplyLoreTableCsvImport,
   canExportLoreTableCsv,
   clearHiddenColumnSort,
   getLoreTableCreateState,
@@ -24,6 +26,7 @@ import {
   resolveVisibleColumnIds,
   toggleVisibleColumnId,
   type LoreTableSort,
+  type LoreTableCsvImportDraft,
   type LoreTableCsvImportPreview,
   type LoreTableViewState,
 } from "../lib/loreTable";
@@ -66,6 +69,7 @@ type LoreViewProps = {
   onUpdateLoreTableCustomField: (loreId: string, field: CustomFieldDefinition, value: LoreCustomFieldValue) => Promise<boolean>;
   onCreateLoreFromTable: (payload: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => Promise<LorePage | null>;
   onExportLoreTableCsv: (payload: { filename: string; csvText: string }) => Promise<boolean>;
+  onImportLoreTableCsv: (payload: { loreTypeId: string; drafts: LoreTableCsvImportDraft[] }) => Promise<{ createdCount: number; success: boolean } | null>;
   onSave: () => void;
   onTitleChange: (value: string) => void;
   onTagsChange: (value: string) => void;
@@ -87,6 +91,12 @@ function normalizeCustomFieldName(value: string) {
 
 function formatCustomFieldInputValue(value: LoreCustomFieldValue | undefined) {
   return value == null ? "" : String(value);
+}
+
+function formatCsvImportPreviewValue(value: LoreCustomFieldValue | undefined) {
+  if (value === undefined || value === null || value === "") return "blank";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
 }
 
 export const LoreView = memo(function LoreView({
@@ -121,6 +131,7 @@ export const LoreView = memo(function LoreView({
   onUpdateLoreTableCustomField,
   onCreateLoreFromTable,
   onExportLoreTableCsv,
+  onImportLoreTableCsv,
   onSave,
   onTitleChange,
   onTagsChange,
@@ -148,8 +159,10 @@ export const LoreView = memo(function LoreView({
   const [tableCreateTitle, setTableCreateTitle] = useState("");
   const [isCreatingTableLore, setIsCreatingTableLore] = useState(false);
   const [isExportingTableCsv, setIsExportingTableCsv] = useState(false);
+  const [isImportingTableCsv, setIsImportingTableCsv] = useState(false);
   const [csvImportFilename, setCsvImportFilename] = useState("");
   const [csvImportPreview, setCsvImportPreview] = useState<LoreTableCsvImportPreview | null>(null);
+  const [csvImportResult, setCsvImportResult] = useState("");
   const [tableEditError, setTableEditError] = useState("");
   useEffect(() => {
     if (tableLoreTypeId && loreTypesById.has(tableLoreTypeId)) return;
@@ -185,12 +198,14 @@ export const LoreView = memo(function LoreView({
     isCreating: isCreatingTableLore,
   });
   const canExportTableCsv = canExportLoreTableCsv(loreTableModel);
+  const canImportTableCsv = canApplyLoreTableCsvImport(csvImportPreview, loreTableModel.loreType, isImportingTableCsv);
   useEffect(() => {
     setTableSort((current) => clearHiddenColumnSort(current, loreTableModel.columns));
   }, [loreTableModel.columns]);
   useEffect(() => {
     setCsvImportFilename("");
     setCsvImportPreview(null);
+    setCsvImportResult("");
   }, [loreTableModel.loreType?.id]);
 
   const toggleTableSort = (columnId: string) => {
@@ -306,6 +321,7 @@ export const LoreView = memo(function LoreView({
       const text = await file.text();
       setCsvImportFilename(file.name);
       setCsvImportPreview(buildLoreTableCsvImportPreview(text, loreTableModel.loreType));
+      setCsvImportResult("");
     } catch {
       setCsvImportFilename(file.name);
       setCsvImportPreview(null);
@@ -313,6 +329,33 @@ export const LoreView = memo(function LoreView({
     } finally {
       if (csvImportInputRef.current) csvImportInputRef.current.value = "";
     }
+  };
+
+  const importLoreTableCsvAsNewPages = async () => {
+    if (!csvImportPreview || !loreTableModel.loreType || !canImportTableCsv) return;
+    setTableEditError("");
+    setCsvImportResult("");
+    const drafts = buildLoreTableCsvImportDrafts(csvImportPreview, loreTableModel.loreType);
+    if (drafts.length === 0) return;
+    setIsImportingTableCsv(true);
+    const result = await onImportLoreTableCsv({
+      loreTypeId: loreTableModel.loreType.id,
+      drafts,
+    });
+    setIsImportingTableCsv(false);
+    if (!result) {
+      setTableEditError("Worldie could not import those CSV rows.");
+      return;
+    }
+    if (!result.success) {
+      setTableEditError(
+        result.createdCount > 0
+          ? `Worldie imported ${result.createdCount} lore page${result.createdCount === 1 ? "" : "s"} before the CSV import failed.`
+          : "Worldie could not import those CSV rows.",
+      );
+      return;
+    }
+    setCsvImportResult(`Imported ${result.createdCount} lore page${result.createdCount === 1 ? "" : "s"} from CSV.`);
   };
 
   const persistFields = (
@@ -730,16 +773,23 @@ export const LoreView = memo(function LoreView({
                     {csvImportFilename || "CSV file"} - {csvImportPreview.headers.length} headers - {csvImportPreview.rowCount} rows
                   </div>
                 </div>
-                <button
-                  className="tb-btn"
-                  type="button"
-                  onClick={() => {
-                    setCsvImportFilename("");
-                    setCsvImportPreview(null);
-                  }}
-                >
-                  Clear
-                </button>
+                <div className="lore-table-import-actions">
+                  <button className="tb-btn" type="button" onClick={() => void importLoreTableCsvAsNewPages()} disabled={!canImportTableCsv}>
+                    {isImportingTableCsv ? "Importing..." : "Import as New Pages"}
+                  </button>
+                  <button
+                    className="tb-btn"
+                    type="button"
+                    onClick={() => {
+                      setCsvImportFilename("");
+                      setCsvImportPreview(null);
+                      setCsvImportResult("");
+                    }}
+                    disabled={isImportingTableCsv}
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
               <div className="lore-table-import-grid">
                 <div>
@@ -793,6 +843,7 @@ export const LoreView = memo(function LoreView({
                   ))}
                 </div>
               ) : null}
+              {csvImportResult ? <div className="lore-table-import-messages success">{csvImportResult}</div> : null}
               {csvImportPreview.sampleRows.length > 0 ? (
                 <div className="lore-table-import-samples">
                   {csvImportPreview.sampleRows.map((row) => (
@@ -800,7 +851,7 @@ export const LoreView = memo(function LoreView({
                       <strong>{row.title || `Row ${row.rowNumber}`}</strong>
                       {Object.entries(row.customFields).map(([key, value]) => (
                         <span key={key}>
-                          {key}: {value || "blank"}
+                          {key}: {formatCsvImportPreviewValue(value)}
                         </span>
                       ))}
                     </div>

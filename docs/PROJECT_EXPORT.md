@@ -22,9 +22,9 @@ The CSV includes a header row, core columns (`Name`, `Type`, `Updated`), and the
 
 CSV export is an external copy only. It does not mutate lore pages, saved views, or the `.worldie` project file.
 
-## Lore Table CSV Import Preview
+## Lore Table CSV Import
 
-The Lore Table can also preview a selected CSV file against the currently selected lore type. Preview is validation-only: it parses the selected file, shows detected headers, row count, mapped columns, unmapped columns, warnings/errors, and sample rows, but it does not create or update lore pages.
+The Lore Table can also preview a selected CSV file against the currently selected lore type. Preview parses the selected file and shows detected headers, row count, mapped columns, unmapped columns, warnings/errors, and sample rows.
 
 Preview mapping rules:
 
@@ -35,9 +35,11 @@ Preview mapping rules:
 - Missing title/name columns are blocking preview errors.
 - Empty rows are ignored with a warning.
 
-Number fields warn when values cannot be parsed as numbers. Checkbox fields recognize `Yes`/`No`, `true`/`false`, and `1`/`0`; invalid checkbox values produce row warnings. Text, long text, date, and select fields preview as strings.
+Number fields warn and block import when values cannot be parsed as numbers. Checkbox fields recognize `Yes`/`No`, `true`/`false`, and `1`/`0`; invalid checkbox values warn and block import. Text, long text, date, and select fields preview as strings.
 
-Import preview reads the chosen CSV text in the app UI and does not write to the `.worldie` project file.
+If the preview has no blocking errors, Worldie can import the rows as new lore pages for the selected lore type. This first apply slice only creates new pages; it does not update existing pages or match rows by title/ID. Mapped custom field values are stored in `customFields`, lore type defaults are kept when the CSV omits a value, unmapped columns are ignored, and `Type`/`Updated` remain ignored. Empty rows stay ignored. The preview remains visible after success and shows the created count.
+
+CSV import writes to the `.worldie` project only through the existing lore page creation path.
 
 ## Export Shape
 
@@ -122,8 +124,8 @@ Each generated world `index.md` includes:
 ## Limitations
 
 - Active-world and full-project export are Markdown only.
-- Lore Table CSV import is preview-only; applying/importing rows is not implemented yet.
-- Lore Table CSV does not include formulas, bulk edits, update-existing-row behavior, manual mapping UI, or a full database workspace.
+- Lore Table CSV import creates new pages only.
+- Lore Table CSV does not include formulas, bulk edits, update-existing-row behavior, row matching, manual mapping UI, an import undo stack, post-import bulk edit review, or a full database workspace.
 - Media is not exported yet.
 - Exported files are not synced back into the `.worldie` project.
 - Timeline date sorting is intentionally simple and does not yet understand full calendars, eras, date ranges, or custom chronology rules.

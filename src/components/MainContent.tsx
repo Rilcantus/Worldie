@@ -3,6 +3,7 @@ import type { Document, LorePage, LoreTableView, Relationship, TimelineEvent } f
 import type { LoreCustomFieldValue } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
+import type { LoreTableCsvImportDraft } from "../lib/loreTable";
 import type { SearchResult } from "../hooks/useSearch";
 import type { TabItem, TabKind, WorldUI } from "../types/ui";
 import { TabBar } from "./TabBar";
@@ -107,6 +108,7 @@ type MainContentProps = {
   onUpdateLoreTableCustomField: (loreId: string, field: CustomFieldDefinition, value: LoreCustomFieldValue) => Promise<boolean>;
   onCreateLoreFromTable: (payload: { title: string; loreTypeId: string; templateId: string | null; tags: string }) => Promise<LorePage | null>;
   onExportLoreTableCsv: (payload: { filename: string; csvText: string }) => Promise<boolean>;
+  onImportLoreTableCsv: (payload: { loreTypeId: string; drafts: LoreTableCsvImportDraft[] }) => Promise<{ createdCount: number; success: boolean } | null>;
   onSaveLorePage: () => void;
   onLoreTitleChange: (value: string) => void;
   onLoreTagsChange: (value: string) => void;
@@ -373,6 +375,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onUpdateLoreTableCustomField={props.onUpdateLoreTableCustomField}
               onCreateLoreFromTable={props.onCreateLoreFromTable}
               onExportLoreTableCsv={props.onExportLoreTableCsv}
+              onImportLoreTableCsv={props.onImportLoreTableCsv}
               onSave={props.onSaveLorePage}
               onTitleChange={props.onLoreTitleChange}
               onTagsChange={props.onLoreTagsChange}

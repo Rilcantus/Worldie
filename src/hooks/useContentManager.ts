@@ -17,7 +17,7 @@ import {
   updateLoreTableView,
 } from "../lib/data";
 import { parseLoreItemFields, stringifyLoreItemFields } from "../lib/loreItems";
-import { applyLoreTableCustomFieldEdit } from "../lib/loreTable";
+import { applyLoreTableCustomFieldEdit, type LoreTableCsvImportDraft } from "../lib/loreTable";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import { getDefaultLoreTypeId, slugifyLoreTypeName, sortLoreTypes, type CustomFieldDefinition, type LoreType } from "../lib/loreTypes";
 import type { WorldUI } from "../types/ui";
@@ -47,6 +47,11 @@ type CreateLoreItemArgs = {
   loreTypeId: string;
   template: LoreTemplate | null;
   tags: string;
+};
+
+type ImportLoreItemsFromCsvArgs = {
+  loreTypeId: string;
+  drafts: LoreTableCsvImportDraft[];
 };
 
 function removeItemWithFallback<T extends { id: string }>(items: T[], itemId: string) {
@@ -888,6 +893,80 @@ export function useContentManager({
     return createdItem;
   };
 
+  const importLoreItemsFromCsv = async ({ loreTypeId, drafts }: ImportLoreItemsFromCsvArgs) => {
+    if (!activeProjectId || !activeWorldId || drafts.length === 0) return null;
+    const actionProjectId = activeProjectId;
+    const actionWorldId = activeWorldId;
+    const loreType = getLoreType(loreTypeId);
+    if (!loreType) return null;
+    const createdItems: LorePage[] = [];
+
+    try {
+      for (const draft of drafts) {
+        const title = draft.title.trim();
+        if (!title) throw new Error("CSV import contains a row without a title.");
+        const created = await createLorePage(actionProjectId, actionWorldId, title, loreType.name);
+        await updateLorePage(actionProjectId, created.id, {
+          title,
+          type: loreType.name,
+          tagsJson: "",
+          fieldsJson: draft.fieldsJson,
+        });
+        createdItems.push({
+          ...created,
+          title,
+          type: loreType.name,
+          tagsJson: "",
+          fieldsJson: draft.fieldsJson,
+        });
+      }
+    } catch (error) {
+      await recoverActiveProjectError(
+        error,
+        createdItems.length > 0
+          ? `Worldie imported ${createdItems.length} lore page${createdItems.length === 1 ? "" : "s"} before the CSV import failed.`
+          : "Worldie could not import those CSV rows.",
+      );
+      return { createdCount: createdItems.length, success: false };
+    }
+
+    if (
+      currentScopeRef.current.projectId !== actionProjectId ||
+      currentScopeRef.current.worldId !== actionWorldId
+    ) {
+      return { createdCount: createdItems.length, success: false };
+    }
+
+    const nextAll = [...createdItems, ...allLorePages];
+    const nextPages = [
+      ...createdItems,
+      ...allLorePages.filter((page) => resolveLoreTypeId(page) === loreType.id),
+    ];
+    setAllLorePages(nextAll);
+    setLorePages(nextPages);
+    setActiveLoreTypeId(loreType.id);
+    if (createdItems[0]) {
+      selectLorePage(createdItems[0]);
+    }
+    markLoreSaved();
+    setWorlds((prev) =>
+      prev.map((world) =>
+        world.id === actionWorldId
+          ? {
+              ...world,
+              loreCount: nextAll.length,
+              loreCategories: world.loreCategories.map((category) => ({
+                ...category,
+                count: category.id === loreType.id ? category.count + createdItems.length : category.count,
+              })),
+            }
+          : world,
+      ),
+    );
+    showToast(`Imported ${createdItems.length} lore page${createdItems.length === 1 ? "" : "s"} from CSV.`);
+    return { createdCount: createdItems.length, success: true };
+  };
+
   const saveLorePage = async () => {
     if (!activeProjectId || !activeLoreId) return;
     const saveProjectId = activeProjectId;
@@ -1343,6 +1422,7 @@ export function useContentManager({
       removeDocument,
       selectLorePage,
       createLoreItem,
+      importLoreItemsFromCsv,
       reassignLoreType,
       saveLoreTableView,
       reviseLoreTableView,
@@ -1403,6 +1483,7 @@ export function useContentManager({
       removeDocument,
       selectLorePage,
       createLoreItem,
+      importLoreItemsFromCsv,
       reassignLoreType,
       saveLoreTableView,
       reviseLoreTableView,

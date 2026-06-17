@@ -6,6 +6,7 @@ import { AppStatusBar } from "./components/AppStatusBar";
 import { AppOverlays } from "./components/AppOverlays";
 import { StartScreen } from "./components/StartScreen";
 import { useAppController } from "./hooks/useAppController";
+import type { LoreTableCsvImportDraft } from "./lib/loreTable";
 
 export default function App() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -118,6 +119,30 @@ export default function App() {
       hasPendingEditorDraft,
       loreTemplatesById,
       tabs.openLoreTab,
+      worldStructures.hasUnsavedChanges,
+    ],
+  );
+
+  const handleImportLoreTableCsv = useCallback(
+    ({ loreTypeId, drafts }: { loreTypeId: string; drafts: LoreTableCsvImportDraft[] }) => {
+      return (async () => {
+        const hasUnsavedChanges =
+          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+        if (hasUnsavedChanges) {
+          const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
+            confirmLabel: "Continue",
+            tone: "default",
+          });
+          if (!canContinue) return null;
+        }
+        return content.importLoreItemsFromCsv({ loreTypeId, drafts });
+      })();
+    },
+    [
+      content.hasUnsavedChanges,
+      content.importLoreItemsFromCsv,
+      feedback.confirmAction,
+      hasPendingEditorDraft,
       worldStructures.hasUnsavedChanges,
     ],
   );
@@ -338,6 +363,7 @@ export default function App() {
           onUpdateLoreTableCustomField={content.updateLoreTableCustomField}
           onCreateLoreFromTable={handleCreateLoreItem}
           onExportLoreTableCsv={exportActions.exportLoreTableCsv}
+          onImportLoreTableCsv={handleImportLoreTableCsv}
           onSaveLorePage={mainContentActions.saveLorePage}
           onLoreTitleChange={content.setLoreTitle}
           onLoreTagsChange={content.setLoreTags}

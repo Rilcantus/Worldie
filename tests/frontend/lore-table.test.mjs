@@ -6,9 +6,11 @@ import {
   applyLoreTableView,
   buildLoreTableCsv,
   buildLoreTableCsvFilename,
+  buildLoreTableCsvImportDrafts,
   buildLoreTableCsvImportPreview,
   buildLoreTableViewDraft,
   buildLoreTableModel,
+  canApplyLoreTableCsvImport,
   canExportLoreTableCsv,
   clearHiddenColumnSort,
   formatLoreTableValue,
@@ -547,8 +549,9 @@ test("CSV import preview parses simple CSV and maps Name plus custom field displ
   assert.deepEqual(preview.sampleRows[0], {
     rowNumber: 2,
     title: "Mara Quill",
-    customFields: { species: "Human", age: "31" },
+    customFields: { species: "Human", age: 31 },
     warnings: [],
+    errors: [],
   });
 });
 
@@ -573,7 +576,7 @@ test("CSV import preview maps title aliases and custom fields by key", () => {
     ["first_seen", "active"],
   );
   assert.equal(preview.sampleRows[0].customFields.first_seen, "2026-01-02");
-  assert.equal(preview.sampleRows[0].customFields.active, "Yes");
+  assert.equal(preview.sampleRows[0].customFields.active, true);
 });
 
 test("CSV import preview ignores core export columns and reports unmapped columns", () => {
@@ -588,6 +591,7 @@ test("CSV import preview reports missing title column as a blocking error", () =
   const preview = buildLoreTableCsvImportPreview("Species,Age\nHuman,31\n", characterType);
 
   assert.deepEqual(preview.errors, ["CSV needs a Name, Title, or Lore Page column before it can be imported."]);
+  assert.equal(canApplyLoreTableCsvImport(preview, characterType), false);
   assert.equal(preview.rowCount, 1);
 });
 
@@ -596,12 +600,17 @@ test("CSV import preview validates number and checkbox fields", () => {
 
   assert.equal(preview.sampleRows[0].customFields.age, "old");
   assert.equal(preview.sampleRows[0].customFields.active, "maybe");
-  assert.equal(preview.sampleRows[1].customFields.age, "7");
-  assert.equal(preview.sampleRows[1].customFields.active, "No");
+  assert.equal(preview.sampleRows[1].customFields.age, 7);
+  assert.equal(preview.sampleRows[1].customFields.active, false);
   assert.deepEqual(preview.sampleRows[0].warnings, [
     "Row 2: Age is not a valid number.",
     "Row 2: Active is not a recognized checkbox value.",
   ]);
+  assert.deepEqual(preview.sampleRows[0].errors, [
+    "Row 2: Age is not a valid number.",
+    "Row 2: Active is not a recognized checkbox value.",
+  ]);
+  assert.equal(canApplyLoreTableCsvImport(preview, characterType), false);
 });
 
 test("CSV import preview ignores empty rows with a warning", () => {
@@ -610,6 +619,62 @@ test("CSV import preview ignores empty rows with a warning", () => {
   assert.equal(preview.rowCount, 1);
   assert.deepEqual(preview.warnings, ["Ignored 2 empty rows."]);
   assert.equal(preview.sampleRows[0].title, "Mara Quill");
+});
+
+test("CSV import apply state requires a type no blocking errors valid rows and no in-flight import", () => {
+  const preview = buildLoreTableCsvImportPreview("Name,Species\nMara Quill,Human\n", characterType);
+  const emptyPreview = buildLoreTableCsvImportPreview("Name,Species\n\n", characterType);
+  const invalidPreview = buildLoreTableCsvImportPreview("Species\nHuman\n", characterType);
+
+  assert.equal(canApplyLoreTableCsvImport(preview, characterType), true);
+  assert.equal(canApplyLoreTableCsvImport(preview, null), false);
+  assert.equal(canApplyLoreTableCsvImport(preview, characterType, true), false);
+  assert.equal(canApplyLoreTableCsvImport(emptyPreview, characterType), false);
+  assert.equal(canApplyLoreTableCsvImport(invalidPreview, characterType), false);
+});
+
+test("CSV import drafts create new lore page payloads with titles mapped fields and defaults", () => {
+  const typeWithDefaults = {
+    ...characterType,
+    fieldDefinitions: [
+      ...characterType.fieldDefinitions,
+      { id: "field-rank", name: "Rank", key: "rank", type: "text", options: [], required: false, order: 5, defaultValue: "Novice" },
+      { id: "field-veteran", name: "Veteran", key: "veteran", type: "checkbox", options: [], required: false, order: 6, defaultValue: false },
+    ],
+  };
+  const preview = buildLoreTableCsvImportPreview(
+    "Title,Species,Age,Active,Nickname\nMara Quill,Human,31,yes,Quill\nBran Vale,Elf,,0,Branch\n",
+    typeWithDefaults,
+  );
+
+  const drafts = buildLoreTableCsvImportDrafts(preview, typeWithDefaults);
+  const firstFields = JSON.parse(drafts[0].fieldsJson);
+  const secondFields = JSON.parse(drafts[1].fieldsJson);
+
+  assert.equal(drafts.length, 2);
+  assert.equal(drafts[0].title, "Mara Quill");
+  assert.equal(drafts[0].loreTypeId, "type-character");
+  assert.deepEqual(firstFields.customFields, {
+    rank: "Novice",
+    veteran: false,
+    species: "Human",
+    age: 31,
+    active: true,
+  });
+  assert.deepEqual(secondFields.customFields, {
+    rank: "Novice",
+    veteran: false,
+    species: "Elf",
+    active: false,
+  });
+  assert.equal(Object.prototype.hasOwnProperty.call(firstFields.customFields, "Nickname"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(firstFields.customFields, "nickname"), false);
+});
+
+test("CSV import drafts are empty when preview cannot be applied", () => {
+  const preview = buildLoreTableCsvImportPreview("Name,Age\nMara Quill,old\n", characterType);
+
+  assert.deepEqual(buildLoreTableCsvImportDrafts(preview, characterType), []);
 });
 
 test("saved lore table view payloads preserve explicit nulls and omit undefined fields", () => {

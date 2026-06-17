@@ -65,19 +65,28 @@ export type LoreTableCsvImportColumnMapping = {
 export type LoreTableCsvImportPreviewRow = {
   rowNumber: number;
   title: string;
-  customFields: Record<string, string>;
+  customFields: Record<string, LoreCustomFieldValue>;
   warnings: string[];
+  errors: string[];
 };
 
 export type LoreTableCsvImportPreview = {
   headers: string[];
   rowCount: number;
+  validRowCount: number;
   mappedColumns: LoreTableCsvImportColumnMapping[];
   unmappedColumns: LoreTableCsvImportColumnMapping[];
   ignoredColumns: LoreTableCsvImportColumnMapping[];
   warnings: string[];
   errors: string[];
+  rows: LoreTableCsvImportPreviewRow[];
   sampleRows: LoreTableCsvImportPreviewRow[];
+};
+
+export type LoreTableCsvImportDraft = {
+  title: string;
+  loreTypeId: string;
+  fieldsJson: string;
 };
 
 export function getLoreTableCreateState(state: LoreTableCreateState) {
@@ -221,21 +230,47 @@ function buildCsvColumnMappings(headers: string[], loreType: LoreType) {
 
 function normalizeCsvPreviewValue(value: string, field: CustomFieldDefinition, rowNumber: number) {
   const trimmed = value.trim();
-  if (!trimmed) return { value: "", warning: null };
+  if (!trimmed) return { value: "", warning: null, error: null };
   if (field.type === "number") {
     const parsed = Number(trimmed);
     if (!Number.isFinite(parsed)) {
-      return { value: trimmed, warning: `Row ${rowNumber}: ${field.name} is not a valid number.` };
+      const message = `Row ${rowNumber}: ${field.name} is not a valid number.`;
+      return { value: trimmed, warning: message, error: message };
     }
-    return { value: String(parsed), warning: null };
+    return { value: parsed, warning: null, error: null };
   }
   if (field.type === "checkbox") {
     const normalized = trimmed.toLowerCase();
-    if (["yes", "true", "1"].includes(normalized)) return { value: "Yes", warning: null };
-    if (["no", "false", "0"].includes(normalized)) return { value: "No", warning: null };
-    return { value: trimmed, warning: `Row ${rowNumber}: ${field.name} is not a recognized checkbox value.` };
+    if (["yes", "true", "1"].includes(normalized)) return { value: true, warning: null, error: null };
+    if (["no", "false", "0"].includes(normalized)) return { value: false, warning: null, error: null };
+    const message = `Row ${rowNumber}: ${field.name} is not a recognized checkbox value.`;
+    return { value: trimmed, warning: message, error: message };
   }
-  return { value: trimmed, warning: null };
+  return { value: trimmed, warning: null, error: null };
+}
+
+function buildDefaultLoreTableCustomFields(loreType: LoreType) {
+  const customFields: Record<string, LoreCustomFieldValue> = {};
+  for (const field of loreType.fieldDefinitions) {
+    if (field.defaultValue === undefined || field.defaultValue === null) continue;
+    customFields[field.key] = field.defaultValue;
+  }
+  return customFields;
+}
+
+function createEmptyCsvImportPreview(warnings: string[], errors: string[]): LoreTableCsvImportPreview {
+  return {
+    headers: [],
+    rowCount: 0,
+    validRowCount: 0,
+    mappedColumns: [],
+    unmappedColumns: [],
+    ignoredColumns: [],
+    warnings,
+    errors,
+    rows: [],
+    sampleRows: [],
+  };
 }
 
 export function buildLoreTableCsvImportPreview(
@@ -248,7 +283,7 @@ export function buildLoreTableCsvImportPreview(
   const errors: string[] = [];
   if (!loreType) {
     errors.push("Choose a lore type before previewing CSV import.");
-    return { headers: [], rowCount: 0, mappedColumns: [], unmappedColumns: [], ignoredColumns: [], warnings, errors, sampleRows: [] };
+    return createEmptyCsvImportPreview(warnings, errors);
   }
 
   const parsed = parseCsvRows(csvText);
@@ -257,7 +292,7 @@ export function buildLoreTableCsvImportPreview(
   const headers = rawHeaders.map((header) => header.trim());
   if (headers.length === 0 || headers.every((header) => header === "")) {
     errors.push("CSV needs a header row.");
-    return { headers: [], rowCount: 0, mappedColumns: [], unmappedColumns: [], ignoredColumns: [], warnings, errors, sampleRows: [] };
+    return createEmptyCsvImportPreview(warnings, errors);
   }
 
   const mappings = buildCsvColumnMappings(headers, loreType);
@@ -280,13 +315,16 @@ export function buildLoreTableCsvImportPreview(
   }
 
   const fieldsById = new Map(loreType.fieldDefinitions.map((field) => [field.id, field]));
-  const sampleRows = nonEmptyRows.slice(0, sampleLimit).map(({ row, rowNumber }) => {
+  const rows = nonEmptyRows.map(({ row, rowNumber }) => {
     const rowWarnings: string[] = [];
+    const rowErrors: string[] = [];
     const title = titleMapping ? (row[titleMapping.index] ?? "").trim() : "";
     if (titleMapping && !title) {
-      rowWarnings.push(`Row ${rowNumber}: title is blank.`);
+      const message = `Row ${rowNumber}: title is blank.`;
+      rowWarnings.push(message);
+      rowErrors.push(message);
     }
-    const customFields: Record<string, string> = {};
+    const customFields: Record<string, LoreCustomFieldValue> = {};
     for (const mapping of mappings) {
       if (mapping.target !== "custom_field" || !mapping.fieldId || !mapping.fieldKey) continue;
       const field = fieldsById.get(mapping.fieldId);
@@ -294,24 +332,63 @@ export function buildLoreTableCsvImportPreview(
       const normalized = normalizeCsvPreviewValue(row[mapping.index] ?? "", field, rowNumber);
       customFields[mapping.fieldKey] = normalized.value;
       if (normalized.warning) rowWarnings.push(normalized.warning);
+      if (normalized.error) rowErrors.push(normalized.error);
     }
-    return { rowNumber, title, customFields, warnings: rowWarnings };
+    return { rowNumber, title, customFields, warnings: rowWarnings, errors: rowErrors };
   });
 
-  for (const row of sampleRows) {
+  for (const row of rows) {
     warnings.push(...row.warnings);
+    errors.push(...row.errors);
   }
 
   return {
     headers,
     rowCount: nonEmptyRows.length,
+    validRowCount: rows.filter((row) => row.errors.length === 0).length,
     mappedColumns,
     unmappedColumns,
     ignoredColumns,
     warnings,
     errors,
-    sampleRows,
+    rows,
+    sampleRows: rows.slice(0, sampleLimit),
   };
+}
+
+export function canApplyLoreTableCsvImport(
+  preview: LoreTableCsvImportPreview | null | undefined,
+  loreType: LoreType | null | undefined,
+  isImporting = false,
+) {
+  return Boolean(loreType && preview && preview.errors.length === 0 && preview.validRowCount > 0 && !isImporting);
+}
+
+export function buildLoreTableCsvImportDrafts(
+  preview: LoreTableCsvImportPreview,
+  loreType: LoreType,
+): LoreTableCsvImportDraft[] {
+  if (!canApplyLoreTableCsvImport(preview, loreType)) return [];
+  const defaults = buildDefaultLoreTableCustomFields(loreType);
+  return preview.rows.map((row) => {
+    const csvCustomFields = Object.fromEntries(
+      Object.entries(row.customFields).filter(([, value]) => value !== ""),
+    );
+    return {
+      title: row.title,
+      loreTypeId: loreType.id,
+      fieldsJson: stringifyLoreItemFields({
+        loreTypeId: loreType.id,
+        templateId: null,
+        traits: [],
+        details: "",
+        customFields: {
+          ...defaults,
+          ...csvCustomFields,
+        },
+      }),
+    };
+  });
 }
 
 export function buildLoreTableViewDraft(name: string, state: LoreTableViewState): LoreTableViewDraft {
