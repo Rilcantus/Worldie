@@ -14,6 +14,7 @@ import { useTabs } from "./useTabs";
 import { useWorkspaceNavigation } from "./useWorkspaceNavigation";
 import { useWorldStructures } from "./useWorldStructures";
 import { getDirtyNavigationDecision, resolveEditorSaveState, shouldContinueAfterGuard } from "./dirtyState";
+import { buildProjectExportSuccessMessage, buildWorldExportSuccessMessage } from "./exportFeedbackState";
 import { getSeededLoreTypes } from "../lib/loreTypes";
 import { exportProjectMarkdown, exportWorldMarkdown, pickExportFolder, setProjectStoreErrorHandler } from "../lib/data";
 
@@ -317,9 +318,7 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
             projectWorlds.activeWorldId,
             exportRoot,
           );
-          feedback.showToast(
-            `Exported ${result.documentCount} documents, ${result.lorePageCount} lore pages, ${result.relationshipCount} relationships, and ${result.timelineEventCount} timeline events to ${result.exportPath}.`,
-          );
+          feedback.showToast(buildWorldExportSuccessMessage(result));
         } catch (error) {
           await projectWorlds.recoverActiveProjectError(error, "Worldie could not export this world.");
         }
@@ -336,9 +335,7 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
         if (!exportRoot) return;
         try {
           const result = await exportProjectMarkdown(projectWorlds.activeProjectId, exportRoot);
-          feedback.showToast(
-            `Exported ${result.worldCount} worlds, ${result.documentCount} documents, ${result.lorePageCount} lore pages, ${result.relationshipCount} relationships, and ${result.timelineEventCount} timeline events to ${result.exportPath}.`,
-          );
+          feedback.showToast(buildProjectExportSuccessMessage(result));
         } catch (error) {
           await projectWorlds.recoverActiveProjectError(error, "Worldie could not export this project.");
         }
