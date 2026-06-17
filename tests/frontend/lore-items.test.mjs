@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   parseLoreItemFields,
+  renameLoreCustomField,
   stringifyLoreItemFields,
 } from "../../.tmp-frontend-tests/src/lib/loreItems.js";
 
@@ -70,4 +71,24 @@ test("parseLoreItemFields keeps legacy key-value lore fields as traits", () => {
   );
   assert.equal(fields.details, "Legacy details.");
   assert.deepEqual(fields.customFields, {});
+});
+
+test("renameLoreCustomField preserves definition-backed values while renaming manual fields", () => {
+  const renamed = renameLoreCustomField(
+    {
+      species: "Human",
+      age: 31,
+      "Custom field": "Courier guild",
+      Notes: "Carries sealed letters.",
+    },
+    "Custom field",
+    "Faction",
+  );
+
+  assert.deepEqual(renamed, {
+    species: "Human",
+    age: 31,
+    Faction: "Courier guild",
+    Notes: "Carries sealed letters.",
+  });
 });

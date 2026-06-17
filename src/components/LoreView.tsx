@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent 
 import type { LorePage, LoreTableView } from "../lib/data";
 import {
   parseLoreItemFields,
+  renameLoreCustomField,
   stringifyLoreItemFields,
   type LoreCustomFields,
   type LoreCustomFieldValue,
@@ -293,16 +294,9 @@ export const LoreView = memo(function LoreView({
   };
 
   const renameCustomField = (previousName: string, nextName: string) => {
-    const normalizedName = normalizeCustomFieldName(nextName);
-    const nextFields: LoreCustomFields = {};
-    for (const [name, value] of manualCustomFieldEntries) {
-      if (name === previousName) {
-        nextFields[normalizedName] = value;
-      } else if (name !== normalizedName) {
-        nextFields[name] = value;
-      }
-    }
-    persistCustomFields(nextFields);
+    persistCustomFields(
+      renameLoreCustomField(loreItemFields.customFields, previousName, normalizeCustomFieldName(nextName)),
+    );
   };
 
   const updateCustomFieldValue = (name: string, value: string) => {

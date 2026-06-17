@@ -123,3 +123,22 @@ export function stringifyLoreItemFields(fields: LoreItemFields) {
     2,
   );
 }
+
+export function renameLoreCustomField(
+  customFields: LoreCustomFields,
+  previousName: string,
+  nextName: string,
+): LoreCustomFields {
+  const normalizedName = nextName.trim() || "Custom field";
+  const nextFields: LoreCustomFields = {};
+
+  for (const [name, value] of Object.entries(customFields)) {
+    if (name === previousName) {
+      nextFields[normalizedName] = value;
+    } else if (name !== normalizedName) {
+      nextFields[name] = value;
+    }
+  }
+
+  return nextFields;
+}
