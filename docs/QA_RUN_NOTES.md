@@ -50,6 +50,57 @@ Verification commands:
 - `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
 - `git diff --check` - passed with line-ending warnings only.
 
+## 2026-06-17 - Selectable Scan Lore Review
+
+Environment:
+
+- Windows desktop development workspace
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+
+Pass/fail notes:
+
+- Scan Lore review now shows selectable matched lore items.
+- Matched non-ambiguous items default to selected.
+- Link selected only links checked lore items.
+- Dismiss still clears the review without changing document text.
+- Ambiguous duplicate titles remain skipped and are not selectable.
+
+Bugs found:
+
+- None during implementation; this was a focused review UX improvement.
+
+Bugs fixed:
+
+- None.
+
+Deferred issues:
+
+- Project-wide and cross-world lore scanning are still not implemented.
+- No automatic relationship creation or background auto-linking.
+- The review prompt has simple per-item checkboxes, not a full modal with snippets.
+
+Manual QA checklist:
+
+- Create lore items `Urzoth`, `Valral`, and `Karzug`.
+- Write a document with plain mentions of each.
+- Click Scan Lore and confirm all three are checked by default.
+- Uncheck `Valral`, then Link selected.
+- Confirm `Urzoth` and `Karzug` are linked while `Valral` remains plain text.
+- Rescan and confirm only remaining unlinked matches are offered.
+- Uncheck every item and confirm Link selected is disabled.
+- Add duplicate lore titles and confirm they appear as skipped ambiguous titles, not checkboxes.
+- Confirm punctuation, Unicode, emoji, `***` page breaks, and existing links remain intact.
+
+Verification commands:
+
+- `npm run test:frontend` - passed, 225 frontend tests.
+- `npm run test` - not defined in `package.json`; returned `Missing script: "test"`.
+- `npm run typecheck` - passed.
+- `npm run build` - failed with the documented managed-shell Vite access issue.
+- `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
+- `git diff --check` - passed with line-ending warnings only.
+
 ## 2026-06-17 Write/Preview Unicode Display Regression
 
 Environment:

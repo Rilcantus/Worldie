@@ -17,6 +17,7 @@ import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import { resolveLoreLinks } from "../lib/loreLinks";
 import { sanitizeInvalidUnicodeSurrogates } from "../lib/textSanitizer";
 import {
+  buildBulkLoreScanSelectionState,
   buildLoreCreateDefaultCustomFields,
   buildLoreCreateDraftPayload,
   getLoreSelectionActionState,
@@ -266,6 +267,7 @@ export const EditorView = memo(function EditorView({
   const [selectionLoreActionPosition, setSelectionLoreActionPosition] = useState<FloatingActionPosition | null>(null);
   const [linkMentionsPrompt, setLinkMentionsPrompt] = useState<LinkMentionsPromptState | null>(null);
   const [bulkLoreScanPrompt, setBulkLoreScanPrompt] = useState<BulkLoreScanPromptState | null>(null);
+  const [selectedBulkLorePageIds, setSelectedBulkLorePageIds] = useState<string[]>([]);
   const isTypewriterMode = editorMode === "typewriter";
   const hasPendingTypewriterDraft = isTypewriterMode && trimTypewriterCommit(typewriterDraft).length > 0;
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
@@ -327,6 +329,7 @@ export const EditorView = memo(function EditorView({
     setIsDocumentMenuOpen(false);
     setLinkMentionsPrompt(null);
     setBulkLoreScanPrompt(null);
+    setSelectedBulkLorePageIds([]);
     previewDocumentIdRef.current = activeDocumentId;
     setPreviewContentSnapshot(null);
   }, [activeDocumentId]);
@@ -516,6 +519,10 @@ export const EditorView = memo(function EditorView({
     loreType: selectedSelectionLoreType,
     hasActiveDocument: Boolean(activeDocumentId),
     isDialogOpen: Boolean(selectionLoreDialog),
+  });
+  const bulkLoreScanSelectionState = buildBulkLoreScanSelectionState({
+    items: bulkLoreScanPrompt?.items ?? [],
+    selectedPageIds: selectedBulkLorePageIds,
   });
   const shouldShowSelectionLoreAction = selectionLoreActionState.canShow && Boolean(selectionLoreActionPosition);
   const selectionLoreActionStyle: CSSProperties | undefined = selectionLoreActionPosition
@@ -716,6 +723,7 @@ export const EditorView = memo(function EditorView({
     pendingSelectionRef.current = next.selection;
     updateSelectionSnapshot(next.selection);
     setBulkLoreScanPrompt(null);
+    setSelectedBulkLorePageIds([]);
     if (isTypewriterMode) {
       setTypewriterDraft(sanitizedText);
     } else {
@@ -960,26 +968,31 @@ export const EditorView = memo(function EditorView({
   const scanCurrentDocumentLoreMentions = () => {
     const result = scanBulkLoreMentions(activeEditorText, availableLorePages);
     setLinkMentionsPrompt(null);
-    setBulkLoreScanPrompt(
-      result.totalMentions > 0 || result.ambiguousTitles.length > 0
-        ? result
-        : {
-            ...result,
-            items: [],
-          },
-    );
+    setBulkLoreScanPrompt(result);
+    setSelectedBulkLorePageIds(result.items.map((item) => item.page.id));
   };
 
   const linkAllBulkLoreMentions = () => {
-    if (!bulkLoreScanPrompt || bulkLoreScanPrompt.totalMentions === 0) return;
+    if (!bulkLoreScanPrompt || !bulkLoreScanSelectionState.canLinkSelected) return;
+    const selectedPageIds = new Set(bulkLoreScanSelectionState.selectedPageIds);
     applyEditorUpdate((content, selection) => {
-      const result = linkBulkLoreMentions(content, availableLorePages);
+      const result = linkBulkLoreMentions(content, availableLorePages, selectedPageIds);
       return {
         text: result.text,
         selection,
       };
     });
     setBulkLoreScanPrompt(null);
+    setSelectedBulkLorePageIds([]);
+  };
+
+  const toggleBulkLoreScanItem = (pageId: string, checked: boolean) => {
+    setSelectedBulkLorePageIds((current) => {
+      if (checked) {
+        return current.includes(pageId) ? current : [...current, pageId];
+      }
+      return current.filter((id) => id !== pageId);
+    });
   };
 
   const requestOpenDocument = (doc: Document) => {
@@ -1685,9 +1698,20 @@ export const EditorView = memo(function EditorView({
                     </span>
                     <div className="bulk-lore-scan-list">
                       {bulkLoreScanPrompt.items.map((item) => (
-                        <span key={item.page.id} className="bulk-lore-scan-chip">
-                          {item.title} - {item.count}
-                        </span>
+                        <label key={item.page.id} className="bulk-lore-scan-item">
+                          <input
+                            type="checkbox"
+                            checked={selectedBulkLorePageIds.includes(item.page.id)}
+                            onChange={(event) => toggleBulkLoreScanItem(item.page.id, event.target.checked)}
+                          />
+                          <span className="bulk-lore-scan-item-title">{item.title}</span>
+                          {item.page.type ? (
+                            <span className="bulk-lore-scan-item-type">{item.page.type}</span>
+                          ) : null}
+                          <span className="bulk-lore-scan-item-count">
+                            {item.count} {item.count === 1 ? "mention" : "mentions"}
+                          </span>
+                        </label>
                       ))}
                     </div>
                   </>
@@ -1707,11 +1731,23 @@ export const EditorView = memo(function EditorView({
                   type="button"
                   className="link-mentions-btn"
                   onClick={linkAllBulkLoreMentions}
-                  disabled={bulkLoreScanPrompt.totalMentions === 0}
+                  disabled={!bulkLoreScanSelectionState.canLinkSelected}
                 >
-                  Link all
+                  Link selected
+                  {bulkLoreScanSelectionState.selectedMentionCount > 0
+                    ? ` (${bulkLoreScanSelectionState.selectedMentionCount} ${
+                        bulkLoreScanSelectionState.selectedMentionCount === 1 ? "mention" : "mentions"
+                      })`
+                    : ""}
                 </button>
-                <button type="button" className="link-mentions-btn ghost" onClick={() => setBulkLoreScanPrompt(null)}>
+                <button
+                  type="button"
+                  className="link-mentions-btn ghost"
+                  onClick={() => {
+                    setBulkLoreScanPrompt(null);
+                    setSelectedBulkLorePageIds([]);
+                  }}
+                >
                   Dismiss
                 </button>
               </div>

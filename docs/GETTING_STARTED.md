@@ -82,7 +82,7 @@ The editor has two document modes. Write mode is the editable source view and sh
 
 ## Scan Existing Lore In A Document
 
-When you are writing a new document after lore pages already exist, use Scan Lore from the document editor toolbar. Worldie scans the active document for exact, unlinked mentions of lore pages in the current world and shows a review prompt before changing anything.
+When you are writing a new document after lore pages already exist, use Scan Lore from the document editor toolbar. Worldie scans the active document for exact, unlinked mentions of lore pages in the current world and shows a review prompt before changing anything. Each matched lore item starts checked, and you can uncheck anything you do not want linked before using Link selected.
 
 The first version is intentionally conservative:
 
@@ -92,7 +92,7 @@ The first version is intentionally conservative:
 - It matches longer lore titles before shorter ones.
 - It skips duplicate lore titles as ambiguous instead of guessing.
 
-Use Link all when the review counts look right, or Dismiss to leave the document unchanged. Future project-wide scanning should be opt-in, separate current-world matches from other-world matches, require explicit confirmation for cross-world lore links, and eventually report any cross-world connection metadata.
+Use Link selected when the review counts look right, or Dismiss to leave the document unchanged. Future project-wide scanning should be opt-in, separate current-world matches from other-world matches, require explicit confirmation for cross-world lore links, and eventually report any cross-world connection metadata.
 
 ## How To Use CSV Export And Import Safely
 

@@ -252,11 +252,57 @@ test("linkBulkLoreMentions links all found mentions while preserving punctuation
   );
 });
 
+test("linkBulkLoreMentions only links selected lore page ids", () => {
+  const source = "Urzoth met Valral. Karzug watched.";
+  const result = linkBulkLoreMentions(
+    source,
+    [
+      { id: "lore-urzoth", title: "Urzoth" },
+      { id: "lore-valral", title: "Valral" },
+      { id: "lore-karzug", title: "Karzug" },
+    ],
+    new Set(["lore-urzoth", "lore-karzug"]),
+  );
+
+  assert.equal(result.count, 2);
+  assert.equal(result.text, "[[Urzoth]] met Valral. [[Karzug]] watched.");
+  assert.equal(source, "Urzoth met Valral. Karzug watched.");
+});
+
+test("linkBulkLoreMentions with no selected ids does not mutate source", () => {
+  const source = "Urzoth met Valral.";
+  const result = linkBulkLoreMentions(
+    source,
+    [
+      { id: "lore-urzoth", title: "Urzoth" },
+      { id: "lore-valral", title: "Valral" },
+    ],
+    [],
+  );
+
+  assert.equal(result.count, 0);
+  assert.equal(result.text, source);
+});
+
 test("linkBulkLoreMentions prefers longer titles before shorter overlapping titles", () => {
   const result = linkBulkLoreMentions("Blacktooth clan met Blacktooth.", [
     { id: "lore-blacktooth", title: "Blacktooth" },
     { id: "lore-blacktooth-clan", title: "Blacktooth clan" },
   ]);
+
+  assert.equal(result.count, 2);
+  assert.equal(result.text, "[[Blacktooth clan]] met [[Blacktooth]].");
+});
+
+test("linkBulkLoreMentions keeps longer selected titles first when shorter titles are also selected", () => {
+  const result = linkBulkLoreMentions(
+    "Blacktooth clan met Blacktooth.",
+    [
+      { id: "lore-blacktooth", title: "Blacktooth" },
+      { id: "lore-blacktooth-clan", title: "Blacktooth clan" },
+    ],
+    ["lore-blacktooth", "lore-blacktooth-clan"],
+  );
 
   assert.equal(result.count, 2);
   assert.equal(result.text, "[[Blacktooth clan]] met [[Blacktooth]].");

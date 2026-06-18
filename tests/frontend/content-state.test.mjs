@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   buildLoreCreateDefaultCustomFields,
+  buildBulkLoreScanSelectionState,
   buildLoreCreateDraftPayload,
   buildLoreEditorDraftPage,
   getLoreCreateDraftState,
@@ -308,6 +309,51 @@ test("editor toolbar document state keeps the active document visible across mod
     selectedDocumentTitle: "New Document 2",
     canSwitchDocuments: true,
   });
+});
+
+test("bulk lore scan selection defaults all matched items to selected", () => {
+  const state = buildBulkLoreScanSelectionState({
+    items: [
+      { page: { id: "lore-urzoth" }, count: 5 },
+      { page: { id: "lore-valral" }, count: 3 },
+    ],
+  });
+
+  assert.deepEqual(state.selectedPageIds, ["lore-urzoth", "lore-valral"]);
+  assert.equal(state.selectedMentionCount, 8);
+  assert.equal(state.selectedItemCount, 2);
+  assert.equal(state.canLinkSelected, true);
+});
+
+test("bulk lore scan selection disables linking when none are selected", () => {
+  const state = buildBulkLoreScanSelectionState({
+    items: [
+      { page: { id: "lore-urzoth" }, count: 5 },
+      { page: { id: "lore-valral" }, count: 3 },
+    ],
+    selectedPageIds: [],
+  });
+
+  assert.deepEqual(state.selectedPageIds, []);
+  assert.equal(state.selectedMentionCount, 0);
+  assert.equal(state.selectedItemCount, 0);
+  assert.equal(state.canLinkSelected, false);
+});
+
+test("bulk lore scan selection counts only checked items", () => {
+  const state = buildBulkLoreScanSelectionState({
+    items: [
+      { page: { id: "lore-urzoth" }, count: 5 },
+      { page: { id: "lore-valral" }, count: 3 },
+      { page: { id: "lore-karzug" }, count: 2 },
+    ],
+    selectedPageIds: ["lore-valral", "lore-karzug"],
+  });
+
+  assert.deepEqual(state.selectedPageIds, ["lore-valral", "lore-karzug"]);
+  assert.equal(state.selectedMentionCount, 5);
+  assert.equal(state.selectedItemCount, 2);
+  assert.equal(state.canLinkSelected, true);
 });
 
 test("new lore draft payload uses entered title selected type template and tags", () => {

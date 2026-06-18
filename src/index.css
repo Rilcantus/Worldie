@@ -1117,17 +1117,43 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 }
 
 .bulk-lore-scan-list {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 6px;
 }
 
-.bulk-lore-scan-chip {
+.bulk-lore-scan-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
   border: 1px solid rgba(157, 125, 232, 0.28);
-  border-radius: 999px;
+  border-radius: 7px;
   background: rgba(157, 125, 232, 0.12);
   color: var(--text-secondary);
-  padding: 3px 7px;
+  padding: 5px 7px;
+}
+
+.bulk-lore-scan-item input {
+  accent-color: var(--accent-bright);
+}
+
+.bulk-lore-scan-item-title {
+  min-width: 0;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulk-lore-scan-item-type,
+.bulk-lore-scan-item-count {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.bulk-lore-scan-item-count {
+  grid-column: 2 / 4;
 }
 
 .bulk-lore-scan-warning {

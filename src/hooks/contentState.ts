@@ -219,6 +219,25 @@ export function buildEditorToolbarDocumentState({
   };
 }
 
+export function buildBulkLoreScanSelectionState({
+  items,
+  selectedPageIds,
+}: {
+  items: Array<{ page: { id: string }; count: number }>;
+  selectedPageIds?: Iterable<string> | null;
+}) {
+  const itemIds = items.map((item) => item.page.id);
+  const selectedSet = selectedPageIds ? new Set(selectedPageIds) : new Set(itemIds);
+  const selectedItems = items.filter((item) => selectedSet.has(item.page.id));
+  const selectedMentionCount = selectedItems.reduce((sum, item) => sum + item.count, 0);
+  return {
+    selectedPageIds: itemIds.filter((id) => selectedSet.has(id)),
+    selectedMentionCount,
+    selectedItemCount: selectedItems.length,
+    canLinkSelected: selectedMentionCount > 0,
+  };
+}
+
 export function buildLoreEditorDraftPage(
   page: LorePage,
   updates: Pick<LorePage, "title" | "type"> & { tagsJson: string; fieldsJson: string },

@@ -369,7 +369,7 @@ export type LoreMentionMatch = {
 };
 
 export type BulkLoreMentionItem = {
-  page: Pick<LorePage, "id" | "title">;
+  page: Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>;
   title: string;
   count: number;
 };
@@ -387,7 +387,7 @@ export type BulkLoreScanResult = {
 };
 
 type BulkLoreMentionCandidate = {
-  page: Pick<LorePage, "id" | "title">;
+  page: Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>;
   title: string;
 };
 
@@ -453,8 +453,10 @@ function doRangesOverlap(left: { start: number; end: number }, right: { start: n
   return left.start < right.end && right.start < left.end;
 }
 
-function getBulkLoreMentionCandidates(lorePages: Array<Pick<LorePage, "id" | "title">>) {
-  const pagesByTitle = new Map<string, Array<Pick<LorePage, "id" | "title">>>();
+function getBulkLoreMentionCandidates(
+  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
+) {
+  const pagesByTitle = new Map<string, Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>>();
   for (const page of lorePages) {
     const title = page.title.trim();
     if (title.length < MIN_BULK_LORE_TITLE_LENGTH) continue;
@@ -485,7 +487,7 @@ function getBulkLoreMentionCandidates(lorePages: Array<Pick<LorePage, "id" | "ti
 
 function collectBulkLoreMentionMatches(
   text: string,
-  lorePages: Array<Pick<LorePage, "id" | "title">>,
+  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
 ) {
   const { candidates, ambiguousTitles } = getBulkLoreMentionCandidates(lorePages);
   const occupiedRanges: Array<{ start: number; end: number }> = [];
@@ -505,7 +507,7 @@ function collectBulkLoreMentionMatches(
 
 export function scanBulkLoreMentions(
   text: string,
-  lorePages: Array<Pick<LorePage, "id" | "title">>,
+  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
 ): BulkLoreScanResult {
   const { matchedCandidates, ambiguousTitles } = collectBulkLoreMentionMatches(text, lorePages);
   const items = matchedCandidates.map(({ page, title, matches }) => ({
@@ -525,9 +527,14 @@ export function scanBulkLoreMentions(
 
 export function linkBulkLoreMentions(
   text: string,
-  lorePages: Array<Pick<LorePage, "id" | "title">>,
+  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
+  selectedPageIds?: Iterable<string>,
 ) {
-  const { matchedCandidates, ambiguousTitles } = collectBulkLoreMentionMatches(text, lorePages);
+  const selectedPageIdSet = selectedPageIds ? new Set(selectedPageIds) : null;
+  const candidatePages = selectedPageIdSet
+    ? lorePages.filter((page) => selectedPageIdSet.has(page.id))
+    : lorePages;
+  const { matchedCandidates, ambiguousTitles } = collectBulkLoreMentionMatches(text, candidatePages);
   const replacements = matchedCandidates.flatMap((candidate) =>
     candidate.matches.map((match) => ({
       start: match.start,
