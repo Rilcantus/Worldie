@@ -1,5 +1,60 @@
 # QA Run Notes
 
+## 2026-06-17 - Explicit Cross-World Scan Lore Phase 1
+
+Environment:
+
+- Windows desktop development workspace
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+
+Pass/fail notes:
+
+- Scan Lore remains current-world-only by default.
+- The review panel now offers `Include Other Worlds` as an explicit opt-in action.
+- Other-world matches are grouped separately and show the source world name.
+- Other-world matches default unchecked, including individual mention checkboxes.
+- Plain `[[Title]]` linking is allowed only for globally unambiguous other-world titles.
+- Title collisions with current-world lore or multiple other worlds are reported as ambiguous/skipped.
+- No relationship metadata, hidden target maps, ID-backed link syntax, or storage changes were added.
+
+Bugs found:
+
+- None during implementation.
+
+Bugs fixed:
+
+- Tightened editor lore-page props so default Scan Lore and editor link resolution use current-world lore, while all-project lore is only used for explicit cross-world expansion.
+
+Deferred issues:
+
+- ID-backed or target-mapped lore links.
+- Cross-world relationship/reference metadata.
+- Project-wide rename/update link tooling.
+- Cross-world graph visualization.
+
+Manual QA checklist:
+
+- Create two worlds.
+- In the current world, add lore item `Urzoth`.
+- In another world, add unique lore item `Starfall Gate`.
+- Add a colliding title in both worlds, such as `Valral`.
+- Write a current-world document containing `Urzoth`, `Starfall Gate`, and `Valral`.
+- Click Scan Lore and confirm only current-world matches are shown/selected.
+- Click Include Other Worlds.
+- Confirm `Starfall Gate` appears in Other Worlds, shows its source world, and is unchecked.
+- Confirm `Valral` is reported as ambiguous/skipped rather than selectable.
+- Select one `Starfall Gate` mention and Link selected.
+- Save, close/reopen, and confirm only selected mentions became `[[Lore Links]]`.
+
+Verification commands:
+
+- `npm run test:frontend` - passed, 240 frontend tests.
+- `npm run test` - not available; `package.json` does not define a top-level `test` script.
+- `npm run typecheck` - passed.
+- `npm run build` - hit the known managed-shell Vite access issue.
+- Direct Vite build with `C:\Program Files\nodejs\node.exe` - passed.
+
 ## 2026-06-17 - Cross-World Scan Lore Design
 
 Environment:

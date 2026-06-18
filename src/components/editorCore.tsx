@@ -380,26 +380,33 @@ export type BulkLoreMentionSnippet = {
 };
 
 export type BulkLoreMentionItem = {
-  page: Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>;
+  page: Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type" | "worldId">>;
   title: string;
   count: number;
   snippets: BulkLoreMentionSnippet[];
+  scope?: "current" | "other";
+  sourceWorldName?: string;
 };
 
 export type BulkLoreAmbiguousTitle = {
   title: string;
   count: number;
+  reason?: "duplicate-current-world" | "current-world-collision" | "duplicate-other-worlds";
+  worldNames?: string[];
 };
 
 export type BulkLoreScanResult = {
   items: BulkLoreMentionItem[];
+  otherWorldItems?: BulkLoreMentionItem[];
   ambiguousTitles: BulkLoreAmbiguousTitle[];
+  otherWorldAmbiguousTitles?: BulkLoreAmbiguousTitle[];
   totalMentions: number;
   skippedAmbiguousCount: number;
+  includesOtherWorlds?: boolean;
 };
 
 type BulkLoreMentionCandidate = {
-  page: Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>;
+  page: Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type" | "worldId">>;
   title: string;
 };
 
@@ -467,9 +474,9 @@ function doRangesOverlap(left: { start: number; end: number }, right: { start: n
 }
 
 function getBulkLoreMentionCandidates(
-  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
+  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type" | "worldId">>>,
 ) {
-  const pagesByTitle = new Map<string, Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>>();
+  const pagesByTitle = new Map<string, Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type" | "worldId">>>>();
   for (const page of lorePages) {
     const title = page.title.trim();
     if (title.length < MIN_BULK_LORE_TITLE_LENGTH) continue;
@@ -500,7 +507,7 @@ function getBulkLoreMentionCandidates(
 
 function collectBulkLoreMentionMatches(
   text: string,
-  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
+  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type" | "worldId">>>,
 ) {
   const { candidates, ambiguousTitles } = getBulkLoreMentionCandidates(lorePages);
   const occupiedRanges: Array<{ start: number; end: number }> = [];
@@ -540,7 +547,7 @@ function buildBulkLoreMentionSnippet(pageId: string, text: string, match: LoreMe
 
 export function scanBulkLoreMentions(
   text: string,
-  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
+  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type" | "worldId">>>,
 ): BulkLoreScanResult {
   const { matchedCandidates, ambiguousTitles } = collectBulkLoreMentionMatches(text, lorePages);
   const items = matchedCandidates.map(({ page, title, matches }) => ({
@@ -556,6 +563,82 @@ export function scanBulkLoreMentions(
     ambiguousTitles,
     totalMentions,
     skippedAmbiguousCount: ambiguousTitles.length,
+  };
+}
+
+export function scanProjectLoreMentions({
+  text,
+  lorePages,
+  currentWorldId,
+  worldsById = new Map(),
+}: {
+  text: string;
+  lorePages: Array<Pick<LorePage, "id" | "title" | "worldId"> & Partial<Pick<LorePage, "type">>>;
+  currentWorldId: string;
+  worldsById?: Map<string, string>;
+}): BulkLoreScanResult {
+  const currentWorldPages = lorePages.filter((page) => page.worldId === currentWorldId);
+  const otherWorldPages = lorePages.filter((page) => page.worldId !== currentWorldId);
+  const currentResult = scanBulkLoreMentions(text, currentWorldPages).items.map((item) => ({
+    ...item,
+    scope: "current" as const,
+  }));
+  const currentAmbiguousTitles = scanBulkLoreMentions(text, currentWorldPages).ambiguousTitles.map((item) => ({
+    ...item,
+    reason: "duplicate-current-world" as const,
+  }));
+  const currentTitles = new Set(currentWorldPages.map((page) => page.title.trim()).filter(Boolean));
+  const otherPagesByTitle = new Map<string, typeof otherWorldPages>();
+  for (const page of otherWorldPages) {
+    const title = page.title.trim();
+    if (title.length < MIN_BULK_LORE_TITLE_LENGTH) continue;
+    otherPagesByTitle.set(title, [...(otherPagesByTitle.get(title) ?? []), page]);
+  }
+
+  const eligibleOtherWorldPages: typeof otherWorldPages = [];
+  const otherWorldAmbiguousTitles: BulkLoreAmbiguousTitle[] = [];
+  for (const [title, pages] of otherPagesByTitle) {
+    const worldNames = [...new Set(pages.map((page) => worldsById.get(page.worldId) ?? "Other world"))].sort();
+    if (currentTitles.has(title)) {
+      otherWorldAmbiguousTitles.push({
+        title,
+        count: pages.length + currentWorldPages.filter((page) => page.title.trim() === title).length,
+        reason: "current-world-collision",
+        worldNames,
+      });
+      continue;
+    }
+    if (pages.length > 1) {
+      otherWorldAmbiguousTitles.push({
+        title,
+        count: pages.length,
+        reason: "duplicate-other-worlds",
+        worldNames,
+      });
+      continue;
+    }
+    const page = pages[0];
+    if (page) eligibleOtherWorldPages.push(page);
+  }
+
+  const otherResult = scanBulkLoreMentions(text, eligibleOtherWorldPages);
+  const otherWorldItems = otherResult.items.map((item) => ({
+    ...item,
+    scope: "other" as const,
+    sourceWorldName: item.page.worldId ? worldsById.get(item.page.worldId) ?? "Other world" : "Other world",
+  }));
+  const totalMentions =
+    currentResult.reduce((sum, item) => sum + item.count, 0) +
+    otherWorldItems.reduce((sum, item) => sum + item.count, 0);
+
+  return {
+    items: currentResult,
+    otherWorldItems,
+    ambiguousTitles: currentAmbiguousTitles,
+    otherWorldAmbiguousTitles,
+    totalMentions,
+    skippedAmbiguousCount: currentAmbiguousTitles.length + otherWorldAmbiguousTitles.length,
+    includesOtherWorlds: true,
   };
 }
 
@@ -599,7 +682,7 @@ export function linkSelectedBulkLoreMentions(text: string, items: BulkLoreMentio
 
 export function linkBulkLoreMentions(
   text: string,
-  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
+  lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type" | "worldId">>>,
   selectedPageIds?: Iterable<string>,
 ) {
   const selectedPageIdSet = selectedPageIds ? new Set(selectedPageIds) : null;

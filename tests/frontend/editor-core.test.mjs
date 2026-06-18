@@ -29,6 +29,7 @@ import {
   outdentSelectedLines,
   resolvePastedEditorText,
   scanBulkLoreMentions,
+  scanProjectLoreMentions,
   serializeFormattedInlineContent,
   sourceSelectionToDisplay,
   toggleLinePrefix,
@@ -281,6 +282,107 @@ test("scanBulkLoreMentions snippets handle regex-special titles and ignore large
     "Cask (North)": "Cask (North)",
   });
   assert.equal(result.totalMentions, 2);
+});
+
+test("scanProjectLoreMentions keeps default current-world scan separate from other worlds", () => {
+  const source = "Urzoth met Starfall Gate.";
+  const currentOnly = scanBulkLoreMentions(source, [{ id: "lore-urzoth", worldId: "world-current", title: "Urzoth" }]);
+  const projectScan = scanProjectLoreMentions({
+    text: source,
+    currentWorldId: "world-current",
+    worldsById: new Map([["world-other", "Outer Archive"]]),
+    lorePages: [
+      { id: "lore-urzoth", worldId: "world-current", title: "Urzoth" },
+      { id: "lore-gate", worldId: "world-other", title: "Starfall Gate", type: "Location" },
+    ],
+  });
+
+  assert.deepEqual(currentOnly.items.map((item) => item.title), ["Urzoth"]);
+  assert.deepEqual(projectScan.items.map((item) => item.title), ["Urzoth"]);
+  assert.deepEqual(projectScan.otherWorldItems.map((item) => [item.title, item.sourceWorldName, item.page.type]), [
+    ["Starfall Gate", "Outer Archive", "Location"],
+  ]);
+});
+
+test("scanProjectLoreMentions reports current-world and other-world title collisions as ambiguous", () => {
+  const result = scanProjectLoreMentions({
+    text: "Urzoth crossed the bridge.",
+    currentWorldId: "world-current",
+    worldsById: new Map([
+      ["world-current", "Duskfen"],
+      ["world-other", "Outer Archive"],
+    ]),
+    lorePages: [
+      { id: "lore-current", worldId: "world-current", title: "Urzoth" },
+      { id: "lore-other", worldId: "world-other", title: "Urzoth" },
+    ],
+  });
+
+  assert.deepEqual(result.items.map((item) => item.title), ["Urzoth"]);
+  assert.deepEqual(result.otherWorldItems, []);
+  assert.deepEqual(result.otherWorldAmbiguousTitles.map((item) => [item.title, item.reason]), [
+    ["Urzoth", "current-world-collision"],
+  ]);
+});
+
+test("scanProjectLoreMentions reports duplicate other-world titles as ambiguous", () => {
+  const result = scanProjectLoreMentions({
+    text: "Starfall Gate opened.",
+    currentWorldId: "world-current",
+    worldsById: new Map([
+      ["world-a", "Outer Archive"],
+      ["world-b", "Glass Coast"],
+    ]),
+    lorePages: [
+      { id: "lore-a", worldId: "world-a", title: "Starfall Gate" },
+      { id: "lore-b", worldId: "world-b", title: "Starfall Gate" },
+    ],
+  });
+
+  assert.equal(result.totalMentions, 0);
+  assert.deepEqual(result.otherWorldItems, []);
+  assert.deepEqual(result.otherWorldAmbiguousTitles.map((item) => [item.title, item.reason, item.worldNames]), [
+    ["Starfall Gate", "duplicate-other-worlds", ["Glass Coast", "Outer Archive"]],
+  ]);
+});
+
+test("scanProjectLoreMentions keeps duplicate same-world titles ambiguous", () => {
+  const result = scanProjectLoreMentions({
+    text: "Urzoth met Valral.",
+    currentWorldId: "world-current",
+    lorePages: [
+      { id: "lore-urzoth-1", worldId: "world-current", title: "Urzoth" },
+      { id: "lore-urzoth-2", worldId: "world-current", title: "Urzoth" },
+      { id: "lore-valral", worldId: "world-current", title: "Valral" },
+    ],
+  });
+
+  assert.deepEqual(result.items.map((item) => item.title), ["Valral"]);
+  assert.deepEqual(result.ambiguousTitles.map((item) => [item.title, item.reason]), [
+    ["Urzoth", "duplicate-current-world"],
+  ]);
+});
+
+test("selected other-world mentions link as plain lore links only when explicitly selected", () => {
+  const source = "Urzoth met Starfall Gate. Starfall Gate opened.";
+  const scan = scanProjectLoreMentions({
+    text: source,
+    currentWorldId: "world-current",
+    lorePages: [
+      { id: "lore-urzoth", worldId: "world-current", title: "Urzoth" },
+      { id: "lore-gate", worldId: "world-other", title: "Starfall Gate" },
+    ],
+  });
+  const currentMentionIds = scan.items.flatMap((item) => item.snippets.map((snippet) => snippet.id));
+  const currentOnly = linkSelectedBulkLoreMentions(source, [...scan.items, ...scan.otherWorldItems], currentMentionIds);
+  const withOther = linkSelectedBulkLoreMentions(
+    source,
+    [...scan.items, ...scan.otherWorldItems],
+    [...currentMentionIds, scan.otherWorldItems[0].snippets[0].id],
+  );
+
+  assert.equal(currentOnly.text, "[[Urzoth]] met Starfall Gate. Starfall Gate opened.");
+  assert.equal(withOther.text, "[[Urzoth]] met [[Starfall Gate]]. Starfall Gate opened.");
 });
 
 test("linkSelectedBulkLoreMentions links only checked mentions for the same lore item", () => {

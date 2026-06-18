@@ -6,6 +6,8 @@ Worldie now supports safe current-world bulk lore linking from the document edit
 
 This note defines a recommended design for future project-wide Scan Lore without changing the current `.worldie` storage format or implementing the feature yet.
 
+Status update: Phase 1 is implemented. Worldie keeps current-world Scan Lore as the default and offers an explicit `Include Other Worlds` action from the review panel. Other-world matches are grouped separately, default unchecked, and are selectable only when the title is globally unambiguous under the existing plain `[[Title]]` link syntax.
+
 ## Current Behavior
 
 Scan Lore currently works only against lore pages in the active document's current world.

@@ -359,6 +359,22 @@ test("bulk lore scan selection counts only checked mentions", () => {
   assert.equal(state.canLinkSelected, true);
 });
 
+test("bulk lore scan selection leaves unchecked other-world mentions out of the count", () => {
+  const state = buildBulkLoreScanSelectionState({
+    items: [
+      { page: { id: "lore-current" }, count: 1, snippets: [{ id: "current-1" }] },
+      { page: { id: "lore-other" }, count: 2, snippets: [{ id: "other-1" }, { id: "other-2" }] },
+    ],
+    selectedMentionIds: ["current-1", "other-2"],
+  });
+
+  assert.deepEqual(state.selectedMentionIds, ["current-1", "other-2"]);
+  assert.deepEqual(state.selectedPageIds, ["lore-current", "lore-other"]);
+  assert.equal(state.selectedMentionCount, 2);
+  assert.equal(state.selectedItemCount, 2);
+  assert.equal(state.canLinkSelected, true);
+});
+
 test("new lore draft payload uses entered title selected type template and tags", () => {
   assert.equal(
     buildLoreCreateDraftPayload({

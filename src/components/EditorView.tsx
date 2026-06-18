@@ -62,9 +62,11 @@ import {
   serializeEditorDom,
   setSelectionOffsets,
   scanBulkLoreMentions,
+  scanProjectLoreMentions,
   sourceSelectionToDisplay,
   toggleLinePrefix,
   trimTypewriterCommit,
+  type BulkLoreMentionItem,
   type BulkLoreScanResult,
   type EditorFormattingState,
   type SelectionOffsets,
@@ -78,6 +80,8 @@ type EditorViewProps = {
   docListWidth: number;
   documents: Document[];
   availableLorePages: LorePage[];
+  allProjectLorePages: LorePage[];
+  worlds: WorldUI[];
   templates: LoreTemplate[];
   loreTypes: LoreType[];
   activeDocumentId: string | null;
@@ -190,6 +194,8 @@ export const EditorView = memo(function EditorView({
   docListWidth,
   documents,
   availableLorePages,
+  allProjectLorePages,
+  worlds,
   templates,
   loreTypes,
   activeDocumentId,
@@ -277,6 +283,7 @@ export const EditorView = memo(function EditorView({
     () => new Map(availableLorePages.map((page) => [page.id, page])),
     [availableLorePages],
   );
+  const worldNamesById = useMemo(() => new Map(worlds.map((world) => [world.id, world.name])), [worlds]);
   const firstAvailableLorePage = useMemo(() => availableLorePages[0] ?? null, [availableLorePages]);
   const selectedLorePage = useMemo(
     () => (selectedLorePageId ? availableLorePagesById.get(selectedLorePageId) ?? firstAvailableLorePage : firstAvailableLorePage),
@@ -523,7 +530,7 @@ export const EditorView = memo(function EditorView({
     isDialogOpen: Boolean(selectionLoreDialog),
   });
   const bulkLoreScanSelectionState = buildBulkLoreScanSelectionState({
-    items: bulkLoreScanPrompt?.items ?? [],
+    items: bulkLoreScanPrompt ? [...bulkLoreScanPrompt.items, ...(bulkLoreScanPrompt.otherWorldItems ?? [])] : [],
     selectedMentionIds: selectedBulkLoreMentionIds,
   });
   const shouldShowSelectionLoreAction = selectionLoreActionState.canShow && Boolean(selectionLoreActionPosition);
@@ -976,11 +983,28 @@ export const EditorView = memo(function EditorView({
     setExpandedBulkLoreSnippetPageIds([]);
   };
 
+  const includeOtherWorldLoreMentions = () => {
+    if (!activeWorld?.id || bulkLoreScanPrompt?.includesOtherWorlds) return;
+    const result = scanProjectLoreMentions({
+      text: activeEditorText,
+      lorePages: allProjectLorePages,
+      currentWorldId: activeWorld.id,
+      worldsById: worldNamesById,
+    });
+    setBulkLoreScanPrompt(result);
+    setSelectedBulkLoreMentionIds(result.items.flatMap((item) => item.snippets.map((snippet) => snippet.id)));
+    setExpandedBulkLoreSnippetPageIds([]);
+  };
+
   const linkAllBulkLoreMentions = () => {
     if (!bulkLoreScanPrompt || !bulkLoreScanSelectionState.canLinkSelected) return;
     const selectedMentionIds = new Set(bulkLoreScanSelectionState.selectedMentionIds);
     applyEditorUpdate((content, selection) => {
-      const result = linkSelectedBulkLoreMentions(content, bulkLoreScanPrompt.items, selectedMentionIds);
+      const result = linkSelectedBulkLoreMentions(
+        content,
+        [...bulkLoreScanPrompt.items, ...(bulkLoreScanPrompt.otherWorldItems ?? [])],
+        selectedMentionIds,
+      );
       return {
         text: result.text,
         selection,
@@ -992,7 +1016,8 @@ export const EditorView = memo(function EditorView({
   };
 
   const toggleBulkLoreScanItem = (pageId: string, checked: boolean) => {
-    const mentionIds = bulkLoreScanPrompt?.items.find((item) => item.page.id === pageId)?.snippets.map((snippet) => snippet.id) ?? [];
+    const scanItems = bulkLoreScanPrompt ? [...bulkLoreScanPrompt.items, ...(bulkLoreScanPrompt.otherWorldItems ?? [])] : [];
+    const mentionIds = scanItems.find((item) => item.page.id === pageId)?.snippets.map((snippet) => snippet.id) ?? [];
     setSelectedBulkLoreMentionIds((current) => {
       if (checked) {
         return [...current, ...mentionIds.filter((id) => !current.includes(id))];
@@ -1574,6 +1599,73 @@ export const EditorView = memo(function EditorView({
     updateSelectionLoreActionPosition(displaySelection ? getSelectionFloatingActionPosition(editor) : null);
   };
 
+  const renderBulkLoreScanItems = (items: BulkLoreMentionItem[]) => (
+    <div className="bulk-lore-scan-list">
+      {items.map((item) => {
+        const isExpanded = expandedBulkLoreSnippetPageIds.includes(item.page.id);
+        const visibleSnippets = isExpanded ? item.snippets : item.snippets.slice(0, 3);
+        const hiddenSnippetCount = Math.max(0, item.snippets.length - visibleSnippets.length);
+        const itemMentionIds = item.snippets.map((snippet) => snippet.id);
+        const selectedItemMentionCount = itemMentionIds.filter((id) => selectedBulkLoreMentionIds.includes(id)).length;
+        const isItemChecked = selectedItemMentionCount > 0 && selectedItemMentionCount === itemMentionIds.length;
+        const isItemPartiallyChecked = selectedItemMentionCount > 0 && selectedItemMentionCount < itemMentionIds.length;
+
+        return (
+          <div key={item.page.id} className="bulk-lore-scan-item">
+            <label className="bulk-lore-scan-item-header">
+              <input
+                type="checkbox"
+                checked={isItemChecked}
+                ref={(input) => {
+                  if (input) {
+                    input.indeterminate = isItemPartiallyChecked;
+                  }
+                }}
+                onChange={(event) => toggleBulkLoreScanItem(item.page.id, event.target.checked)}
+              />
+              <span className="bulk-lore-scan-item-title">{item.title}</span>
+              {item.page.type ? <span className="bulk-lore-scan-item-type">{item.page.type}</span> : null}
+              <span className="bulk-lore-scan-item-count">
+                {item.count} {item.count === 1 ? "mention" : "mentions"}
+                {item.sourceWorldName ? ` - ${item.sourceWorldName}` : ""}
+              </span>
+            </label>
+            {visibleSnippets.length > 0 ? (
+              <div className="bulk-lore-scan-snippets" aria-label={`Snippets for ${item.title}`}>
+                {visibleSnippets.map((snippet, index) => (
+                  <label className="bulk-lore-scan-snippet-row" key={`${item.page.id}-${snippet.start}-${index}`}>
+                    <input
+                      type="checkbox"
+                      checked={selectedBulkLoreMentionIds.includes(snippet.id)}
+                      disabled={selectedItemMentionCount === 0}
+                      onChange={(event) => toggleBulkLoreScanMention(snippet.id, event.target.checked)}
+                    />
+                    <span className="bulk-lore-scan-snippet">
+                      {snippet.leadingTruncated ? <span className="bulk-lore-scan-snippet-ellipsis">...</span> : null}
+                      <span>{snippet.before}</span>
+                      <mark>{snippet.match}</mark>
+                      <span>{snippet.after}</span>
+                      {snippet.trailingTruncated ? <span className="bulk-lore-scan-snippet-ellipsis">...</span> : null}
+                    </span>
+                  </label>
+                ))}
+                {item.snippets.length > 3 ? (
+                  <button
+                    type="button"
+                    className="bulk-lore-scan-snippet-toggle"
+                    onClick={() => toggleBulkLoreScanSnippets(item.page.id)}
+                  >
+                    {isExpanded ? "Show fewer" : `+${hiddenSnippetCount} more`}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <>
       <EditorDocumentList
@@ -1715,90 +1807,54 @@ export const EditorView = memo(function EditorView({
                     <span>
                       Found {bulkLoreScanPrompt.totalMentions} unlinked{" "}
                       {bulkLoreScanPrompt.totalMentions === 1 ? "mention" : "mentions"} across{" "}
-                      {bulkLoreScanPrompt.items.length} lore {bulkLoreScanPrompt.items.length === 1 ? "item" : "items"}.
+                      {bulkLoreScanPrompt.items.length + (bulkLoreScanPrompt.otherWorldItems?.length ?? 0)} lore{" "}
+                      {bulkLoreScanPrompt.items.length + (bulkLoreScanPrompt.otherWorldItems?.length ?? 0) === 1 ? "item" : "items"}.
                     </span>
-                    <div className="bulk-lore-scan-list">
-                      {bulkLoreScanPrompt.items.map((item) => {
-                        const isExpanded = expandedBulkLoreSnippetPageIds.includes(item.page.id);
-                        const visibleSnippets = isExpanded ? item.snippets : item.snippets.slice(0, 3);
-                        const hiddenSnippetCount = Math.max(0, item.snippets.length - visibleSnippets.length);
-                        const itemMentionIds = item.snippets.map((snippet) => snippet.id);
-                        const selectedItemMentionCount = itemMentionIds.filter((id) => selectedBulkLoreMentionIds.includes(id)).length;
-                        const isItemChecked = selectedItemMentionCount > 0 && selectedItemMentionCount === itemMentionIds.length;
-                        const isItemPartiallyChecked = selectedItemMentionCount > 0 && selectedItemMentionCount < itemMentionIds.length;
-
-                        return (
-                          <div key={item.page.id} className="bulk-lore-scan-item">
-                            <label className="bulk-lore-scan-item-header">
-                              <input
-                                type="checkbox"
-                                checked={isItemChecked}
-                                ref={(input) => {
-                                  if (input) {
-                                    input.indeterminate = isItemPartiallyChecked;
-                                  }
-                                }}
-                                onChange={(event) => toggleBulkLoreScanItem(item.page.id, event.target.checked)}
-                              />
-                              <span className="bulk-lore-scan-item-title">{item.title}</span>
-                              {item.page.type ? (
-                                <span className="bulk-lore-scan-item-type">{item.page.type}</span>
-                              ) : null}
-                              <span className="bulk-lore-scan-item-count">
-                                {item.count} {item.count === 1 ? "mention" : "mentions"}
-                              </span>
-                            </label>
-                            {visibleSnippets.length > 0 ? (
-                              <div className="bulk-lore-scan-snippets" aria-label={`Snippets for ${item.title}`}>
-                                {visibleSnippets.map((snippet, index) => (
-                                  <label className="bulk-lore-scan-snippet-row" key={`${item.page.id}-${snippet.start}-${index}`}>
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedBulkLoreMentionIds.includes(snippet.id)}
-                                      disabled={selectedItemMentionCount === 0}
-                                      onChange={(event) => toggleBulkLoreScanMention(snippet.id, event.target.checked)}
-                                    />
-                                    <span className="bulk-lore-scan-snippet">
-                                      {snippet.leadingTruncated ? (
-                                        <span className="bulk-lore-scan-snippet-ellipsis">...</span>
-                                      ) : null}
-                                      <span>{snippet.before}</span>
-                                      <mark>{snippet.match}</mark>
-                                      <span>{snippet.after}</span>
-                                      {snippet.trailingTruncated ? (
-                                        <span className="bulk-lore-scan-snippet-ellipsis">...</span>
-                                      ) : null}
-                                    </span>
-                                  </label>
-                                ))}
-                                {item.snippets.length > 3 ? (
-                                  <button
-                                    type="button"
-                                    className="bulk-lore-scan-snippet-toggle"
-                                    onClick={() => toggleBulkLoreScanSnippets(item.page.id)}
-                                  >
-                                    {isExpanded ? "Show fewer" : `+${hiddenSnippetCount} more`}
-                                  </button>
-                                ) : null}
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
+                    {bulkLoreScanPrompt.items.length > 0 ? (
+                      <section className="bulk-lore-scan-group" aria-label="Current world matches">
+                        <div className="bulk-lore-scan-group-title">Current World</div>
+                        {renderBulkLoreScanItems(bulkLoreScanPrompt.items)}
+                      </section>
+                    ) : null}
+                    {bulkLoreScanPrompt.otherWorldItems && bulkLoreScanPrompt.otherWorldItems.length > 0 ? (
+                      <section className="bulk-lore-scan-group" aria-label="Other world matches">
+                        <div className="bulk-lore-scan-group-title">Other Worlds</div>
+                        {renderBulkLoreScanItems(bulkLoreScanPrompt.otherWorldItems)}
+                      </section>
+                    ) : null}
                   </>
                 ) : (
                   <span>No unlinked current-world lore mentions found.</span>
                 )}
                 {bulkLoreScanPrompt.ambiguousTitles.length > 0 ? (
                   <div className="bulk-lore-scan-warning">
-                    Skipped ambiguous duplicate{" "}
+                    Current-world ambiguous{" "}
                     {bulkLoreScanPrompt.ambiguousTitles.length === 1 ? "title" : "titles"}:{" "}
                     {bulkLoreScanPrompt.ambiguousTitles.map((item) => item.title).join(", ")}
                   </div>
                 ) : null}
+                {bulkLoreScanPrompt.otherWorldAmbiguousTitles && bulkLoreScanPrompt.otherWorldAmbiguousTitles.length > 0 ? (
+                  <div className="bulk-lore-scan-warning">
+                    Other-world ambiguous/skipped{" "}
+                    {bulkLoreScanPrompt.otherWorldAmbiguousTitles.length === 1 ? "title" : "titles"}:{" "}
+                    {bulkLoreScanPrompt.otherWorldAmbiguousTitles
+                      .map((item) => `${item.title}${item.worldNames?.length ? ` (${item.worldNames.join(", ")})` : ""}`)
+                      .join(", ")}
+                  </div>
+                ) : null}
               </div>
               <div className="link-mentions-actions">
+                {!bulkLoreScanPrompt.includesOtherWorlds ? (
+                  <button
+                    type="button"
+                    className="link-mentions-btn ghost"
+                    onClick={includeOtherWorldLoreMentions}
+                    disabled={!activeWorld?.id || allProjectLorePages.every((page) => page.worldId === activeWorld?.id)}
+                    title="Explicitly scan lore pages from other worlds in this project"
+                  >
+                    Include Other Worlds
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="link-mentions-btn"

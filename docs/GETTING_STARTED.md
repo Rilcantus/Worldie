@@ -94,7 +94,7 @@ The first version is intentionally conservative:
 - It matches longer lore titles before shorter ones.
 - It skips duplicate lore titles as ambiguous instead of guessing.
 
-Use Link selected when the review counts look right, or Dismiss to leave the document unchanged. Current Scan Lore intentionally scans current-world lore only. Future project-wide scanning is planned as an explicit opt-in flow that separates current-world matches from other-world matches, requires deliberate selection for cross-world lore links, and eventually reports cross-world connection metadata. See `docs/CROSS_WORLD_SCAN_LORE_DESIGN.md` for the design direction.
+Use Link selected when the review counts look right, or Dismiss to leave the document unchanged. Current Scan Lore intentionally scans current-world lore by default. From the review panel, use Include Other Worlds when you explicitly want to search the rest of the project. Other-world matches appear in a separate group, show their source world, and start unchecked. Titles that collide with current-world lore or other worlds are skipped as ambiguous until Worldie has ID-backed links. See `docs/CROSS_WORLD_SCAN_LORE_DESIGN.md` for the longer design direction.
 
 ## How To Use CSV Export And Import Safely
 
