@@ -1,5 +1,11 @@
 import { memo, useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent as ReactMouseEvent, type SetStateAction } from "react";
-import { getAtlasPointFromClientPosition, type AtlasMarkerDraft } from "../lib/atlas";
+import {
+  buildAtlasMarkerTypeOptions,
+  filterAtlasMarkers,
+  getAtlasPointFromClientPosition,
+  type AtlasMarkerDraft,
+  type AtlasMarkerFilterMode,
+} from "../lib/atlas";
 import type { LorePage, MapMarker, WorldMap } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 import type { SaveState } from "../hooks/dirtyState";
@@ -77,17 +83,35 @@ export const AtlasView = memo(function AtlasView({
   const [mapNameDraft, setMapNameDraft] = useState("");
   const [mapDescriptionDraft, setMapDescriptionDraft] = useState("");
   const [mapBackgroundDraft, setMapBackgroundDraft] = useState<WorldMap["backgroundType"]>("grid");
+  const [markerFilterMode, setMarkerFilterMode] = useState<AtlasMarkerFilterMode>("all");
+  const [markerTypeFilter, setMarkerTypeFilter] = useState("");
+  const [markerSearch, setMarkerSearch] = useState("");
   const [dragPreview, setDragPreview] = useState<{ markerId: string; point: { x: number; y: number } } | null>(null);
 
   const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
   const linkedLorePage = activeMarker?.lorePageId ? lorePagesById.get(activeMarker.lorePageId) ?? null : null;
-  const markerTypes = ["location", "city", "landmark", "dungeon", "battle", "resource", "custom"];
+  const markerTypes = useMemo(() => buildAtlasMarkerTypeOptions(markers), [markers]);
+  const filteredMarkers = useMemo(
+    () =>
+      filterAtlasMarkers(markers, {
+        mode: markerFilterMode,
+        markerType: markerTypeFilter,
+        search: markerSearch,
+      }),
+    [markerFilterMode, markerSearch, markerTypeFilter, markers],
+  );
 
   useEffect(() => {
     setMapNameDraft(activeMap?.name ?? "");
     setMapDescriptionDraft(activeMap?.description ?? "");
     setMapBackgroundDraft(activeMap?.backgroundType ?? "grid");
   }, [activeMap]);
+
+  useEffect(() => {
+    setMarkerFilterMode("all");
+    setMarkerTypeFilter("");
+    setMarkerSearch("");
+  }, [activeMapId]);
 
   const getCanvasPoint = (event: ReactMouseEvent<HTMLElement>) => {
     if (!activeMap || !canvasRef.current) return null;
@@ -235,7 +259,11 @@ export const AtlasView = memo(function AtlasView({
             <div className="meta-dot"></div> {activeWorld?.name ?? "World"}
           </div>
           <div className="meta-tag">Marker-only Atlas</div>
-          {activeMap ? <div className="meta-tag">{markers.length} markers</div> : null}
+          {activeMap ? (
+            <div className="meta-tag">
+              {filteredMarkers.length} of {markers.length} markers
+            </div>
+          ) : null}
         </div>
 
         <div className="atlas-layout">
@@ -265,7 +293,7 @@ export const AtlasView = memo(function AtlasView({
                 onPointerUp={finishMarkerDrag}
                 onPointerLeave={finishMarkerDrag}
               >
-                {markers.map((marker) => {
+                {filteredMarkers.map((marker) => {
                   const previewPoint = dragPreview?.markerId === marker.id ? dragPreview.point : null;
                   const markerX = previewPoint?.x ?? marker.x;
                   const markerY = previewPoint?.y ?? marker.y;
@@ -336,6 +364,78 @@ export const AtlasView = memo(function AtlasView({
 
             <div className="lore-panel">
               <div className="lore-panel-header">
+                <div className="linked-lore-label">Markers</div>
+                <div className="relationship-count">{filteredMarkers.length}</div>
+              </div>
+              <div className="atlas-marker-filter-row">
+                <select
+                  className="lore-input"
+                  value={markerFilterMode}
+                  onChange={(event) => setMarkerFilterMode(event.target.value as AtlasMarkerFilterMode)}
+                  disabled={!activeMap}
+                  aria-label="Marker filter"
+                >
+                  <option value="all">All markers</option>
+                  <option value="type">By type</option>
+                  <option value="linked">Linked to lore</option>
+                  <option value="unlinked">Unlinked markers</option>
+                </select>
+                {markerFilterMode === "type" ? (
+                  <select
+                    className="lore-input"
+                    value={markerTypeFilter}
+                    onChange={(event) => setMarkerTypeFilter(event.target.value)}
+                    disabled={!activeMap}
+                    aria-label="Marker type filter"
+                  >
+                    <option value="">Choose type</option>
+                    {markerTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
+              <input
+                className="lore-input"
+                value={markerSearch}
+                onChange={(event) => setMarkerSearch(event.target.value)}
+                disabled={!activeMap}
+                placeholder="Search marker title or notes"
+                aria-label="Search markers"
+              />
+              <div className="atlas-marker-list">
+                {!activeMap ? (
+                  <div className="rp-empty">Create a map before organizing markers.</div>
+                ) : markers.length === 0 ? (
+                  <div className="rp-empty">No markers yet.</div>
+                ) : filteredMarkers.length === 0 ? (
+                  <div className="rp-empty">No markers match this filter.</div>
+                ) : (
+                  filteredMarkers.map((marker) => {
+                    const markerLorePage = marker.lorePageId ? lorePagesById.get(marker.lorePageId) ?? null : null;
+                    return (
+                      <button
+                        key={marker.id}
+                        className={`atlas-marker-list-item ${marker.id === activeMarkerId ? "active" : ""}`}
+                        type="button"
+                        onClick={() => onSelectMarker(marker.id)}
+                      >
+                        <span>
+                          <strong>{marker.title}</strong>
+                          <small>{marker.markerType || "No type"}</small>
+                        </span>
+                        <span className="atlas-marker-list-meta">{markerLorePage ? "linked" : "unlinked"}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="lore-panel">
+              <div className="lore-panel-header">
                 <div className="linked-lore-label">Marker Details</div>
               </div>
               {!activeMarker ? (
@@ -355,20 +455,22 @@ export const AtlasView = memo(function AtlasView({
                   <label className="lore-label" htmlFor="atlas-marker-type">
                     Type
                   </label>
-                  <select
+                  <input
                     id="atlas-marker-type"
                     className="lore-input"
+                    list="atlas-marker-type-presets"
                     value={markerDraft.markerType}
                     onChange={(event) => onMarkerDraftChange((current) => ({ ...current, markerType: event.target.value }))}
                     onBlur={saveMarker}
-                  >
-                    <option value="">No type</option>
+                    placeholder="Type or choose a preset"
+                  />
+                  <datalist id="atlas-marker-type-presets">
                     {markerTypes.map((type) => (
                       <option key={type} value={type}>
                         {type}
                       </option>
                     ))}
-                  </select>
+                  </datalist>
                   <label className="lore-label" htmlFor="atlas-marker-lore">
                     Linked lore page
                   </label>

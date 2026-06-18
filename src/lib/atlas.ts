@@ -13,6 +13,18 @@ export type AtlasMarkerDraft = {
   lorePageId: string;
 };
 
+export type AtlasMarkerFilterMode = "all" | "type" | "linked" | "unlinked";
+
+export const ATLAS_MARKER_TYPE_PRESETS = [
+  "location",
+  "city",
+  "landmark",
+  "dungeon",
+  "battle",
+  "resource",
+  "custom",
+];
+
 export function clampAtlasPoint(point: AtlasPoint, map: Pick<WorldMap, "width" | "height">): AtlasPoint {
   const width = Number.isFinite(map.width) && map.width > 0 ? map.width : 1;
   const height = Number.isFinite(map.height) && map.height > 0 ? map.height : 1;
@@ -70,4 +82,44 @@ export function hasUnsavedAtlasMarkerDraft(marker: MapMarker | null | undefined,
 export function resolveAtlasMarkerSaveState(hasUnsavedDraft: boolean, saveState: SaveState): SaveState {
   if (saveState === "saving" || saveState === "error") return saveState;
   return hasUnsavedDraft ? "dirty" : saveState;
+}
+
+export function normalizeAtlasMarkerType(markerType: string | null | undefined) {
+  return (markerType ?? "").trim();
+}
+
+export function buildAtlasMarkerTypeOptions(markers: Pick<MapMarker, "markerType">[]) {
+  const options = new Set(ATLAS_MARKER_TYPE_PRESETS);
+  for (const marker of markers) {
+    const markerType = normalizeAtlasMarkerType(marker.markerType);
+    if (markerType) options.add(markerType);
+  }
+  return [...options].sort((a, b) => a.localeCompare(b));
+}
+
+export function filterAtlasMarkers(
+  markers: MapMarker[],
+  {
+    mode = "all",
+    markerType = "",
+    search = "",
+  }: {
+    mode?: AtlasMarkerFilterMode;
+    markerType?: string;
+    search?: string;
+  },
+) {
+  const normalizedType = normalizeAtlasMarkerType(markerType).toLocaleLowerCase();
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  return markers.filter((marker) => {
+    const markerTypeValue = normalizeAtlasMarkerType(marker.markerType);
+    if (mode === "type" && markerTypeValue.toLocaleLowerCase() !== normalizedType) return false;
+    if (mode === "linked" && !marker.lorePageId) return false;
+    if (mode === "unlinked" && marker.lorePageId) return false;
+    if (!normalizedSearch) return true;
+    return (
+      marker.title.toLocaleLowerCase().includes(normalizedSearch) ||
+      (marker.description ?? "").toLocaleLowerCase().includes(normalizedSearch)
+    );
+  });
 }
