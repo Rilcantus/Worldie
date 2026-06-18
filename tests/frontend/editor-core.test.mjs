@@ -198,6 +198,41 @@ test("renderPreviewContent can show raw or readable lore link labels without cha
   assert.equal(source, "The [[Blacktooth clan]] arrived.");
 });
 
+test("buildEditorDisplayRepresentation preserves unicode source characters for Write mode", () => {
+  const source = "\u201cSend Valral,\u201d he said.\nyou\u2019re, I\u2019d, you\u2019d\nword \u2014 word\n[[Urzoth]]\n***\n\ud83d\udd25";
+  const representation = buildEditorDisplayRepresentation(source);
+
+  assert.equal(representation.html.includes("\u201cSend Valral,\u201d"), true);
+  assert.equal(representation.html.includes("you\u2019re, I\u2019d, you\u2019d"), true);
+  assert.equal(representation.html.includes("word \u2014 word"), true);
+  assert.equal(representation.html.includes("[[Urzoth]]"), true);
+  assert.equal(representation.html.includes("\ud83d\udd25"), true);
+  assert.equal(representation.html.includes("\u00e2\u20ac\u0153"), false);
+  assert.equal(representation.html.includes("\u00c3\u00a2"), false);
+  assert.equal(representation.html.includes("\u00e2\u20ac\u2122"), false);
+});
+
+test("renderPreviewContent preserves smart punctuation unicode and lore links without mojibake", () => {
+  const lore = { id: "lore-urzoth", title: "Urzoth" };
+  const linkedLore = new Map([["urzoth", lore]]);
+  const source = "\u201cSend Valral,\u201d he said.\nyou\u2019re, I\u2019d, you\u2019d\nword \u2014 word\n[[Urzoth]]\n***\n\ud83d\udd25";
+  const rawPreview = renderPreviewContent(source, linkedLore, () => {});
+  const readablePreview = renderPreviewContent(source, linkedLore, () => {}, { readableLoreLinks: true });
+  const rawSummary = rawPreview.map(summarizePreviewNode);
+  const readableSummary = readablePreview.map(summarizePreviewNode);
+
+  assert.equal(rawSummary[0].children[0].children[0], "\u201cSend Valral,\u201d he said.");
+  assert.equal(rawSummary[1].children[0].children[0], "you\u2019re, I\u2019d, you\u2019d");
+  assert.equal(rawSummary[2].children[0].children[0], "word \u2014 word");
+  assert.equal(rawSummary[3].children[0].children[0], "[[Urzoth]]");
+  assert.equal(readableSummary[3].children[0].children[0], "Urzoth");
+  assert.equal(rawSummary[5].children[0].children[0], "\ud83d\udd25");
+  assert.equal(JSON.stringify(rawSummary).includes("\u00e2\u20ac\u0153"), false);
+  assert.equal(JSON.stringify(rawSummary).includes("\u00c3\u00a2"), false);
+  assert.equal(JSON.stringify(rawSummary).includes("\u00e2\u20ac\u2122"), false);
+  assert.equal(source.includes("\u201c") && source.includes("\u2019") && source.includes("\u2014"), true);
+});
+
 test("renderPreviewContent readable lore links handles multiple links and punctuation", () => {
   const linkedLore = new Map([
     ["blacktooth clan", { id: "lore-1", title: "Blacktooth clan" }],

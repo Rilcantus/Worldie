@@ -452,7 +452,7 @@ export const EditorView = memo(function EditorView({
       setSelectionOffsets(editor, displaySelection.start, displaySelection.end);
       pendingSelectionRef.current = null;
     }
-  }, [activeDocumentId, activeEditorText, editorDisplay.html, isPreviewOpen]);
+  }, [activeDocumentId, activeEditorText, editorDisplay.html]);
 
   useEffect(() => {
     const syncSelection = () => {

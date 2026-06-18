@@ -1,5 +1,36 @@
 # QA Run Notes
 
+## 2026-06-17 Write/Preview Unicode Display Regression
+
+Environment:
+
+- Windows managed Codex desktop shell
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+
+Observed regression:
+
+- After the Write/Preview mode polish, smart punctuation could display as mojibake in the document editor, such as `â€œ` for smart quotes and `â€™` for curly apostrophes.
+- The suspected trigger was switching editor modes after the editable surface started unmounting/remounting between Write and Preview.
+
+Data-safety notes:
+
+- No cleanup or migration was added.
+- A read-only check of `C:\Users\admin\Documents\Cosmidol.worldie` found mojibake sequences already present in the saved `documents.content_json` for `White Touch`.
+- The fix avoids a mode-switch HTML remount round trip; it does not rewrite saved document content.
+- Repairing already-saved mojibake should be a separate, user-confirmed recovery action, not an automatic migration.
+
+Fix:
+
+- Kept the Write-mode contenteditable mounted while Preview is open, hiding it visually instead of unmounting it.
+- Removed the mode-toggle resync dependency that rebuilt the editor DOM when switching modes.
+- Added regression coverage for smart quotes, curly apostrophes, em dashes, emoji, `***` scene breaks, and `[[Lore Links]]` in Write-mode representation and Preview rendering.
+
+Verification:
+
+- Frontend tests verify that Unicode text renders directly and is not converted into mojibake sequences such as `â€œ` or `â€™`.
+- Manual target text: `“Send Valral,” he said.`, `you’re, I’d, you’d`, `word — word`, `[[Urzoth]]`, `***`, and `🔥`.
+
 ## 2026-06-17 Invalid Unicode Paste Save Failure
 
 Environment:
