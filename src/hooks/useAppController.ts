@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppFeedback } from "./useAppFeedback";
+import { useAtlas } from "./useAtlas";
 import { useContentManager } from "./useContentManager";
 import { useContentTabActions } from "./useContentTabActions";
 import { useLoreTemplates } from "./useLoreTemplates";
@@ -58,6 +59,14 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
     activeProjectId: projectWorlds.activeProjectId,
     activeWorldId: projectWorlds.activeWorldId,
     allLorePages: content.allLorePages,
+    recoverActiveProjectError: projectWorlds.recoverActiveProjectError,
+    confirmAction: feedback.confirmAction,
+    showToast: feedback.showToast,
+  });
+
+  const atlas = useAtlas({
+    activeProjectId: projectWorlds.activeProjectId,
+    activeWorldId: projectWorlds.activeWorldId,
     recoverActiveProjectError: projectWorlds.recoverActiveProjectError,
     confirmAction: feedback.confirmAction,
     showToast: feedback.showToast,
@@ -379,6 +388,7 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
       loreTypes,
       loreTemplates,
       worldStructures,
+      atlas,
       tabs,
       search,
       contentTabActions,
@@ -397,6 +407,7 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
       loreTypes,
       loreTemplates,
       worldStructures,
+      atlas,
       tabs,
       search,
       contentTabActions,

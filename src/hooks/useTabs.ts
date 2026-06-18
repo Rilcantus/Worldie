@@ -185,7 +185,7 @@ export function useTabs({
       pendingWorldScopedTabId.current = null;
       return;
     }
-    if ((tab.kind === "rels" || tab.kind === "timeline") && tab.worldId === activeWorldId) {
+    if ((tab.kind === "rels" || tab.kind === "timeline" || tab.kind === "atlas") && tab.worldId === activeWorldId) {
       pendingWorldScopedTabId.current = null;
     }
   }, [activeWorldId, tabsById]);
@@ -227,7 +227,7 @@ export function useTabs({
       const next = prev.map((tab) => {
         if (
           tab.id !== activeTabId ||
-          (tab.kind !== "rels" && tab.kind !== "timeline") ||
+          (tab.kind !== "rels" && tab.kind !== "timeline" && tab.kind !== "atlas") ||
           tab.worldId === activeWorldId
         ) {
           return tab;
@@ -246,7 +246,7 @@ export function useTabs({
     if (!activeTab || tabsProjectId !== activeProjectId) return;
     if (
       (pendingWorldScopedTabId.current === activeTab.id || activeWorldId === null) &&
-      (activeTab.kind === "rels" || activeTab.kind === "timeline") &&
+      (activeTab.kind === "rels" || activeTab.kind === "timeline" || activeTab.kind === "atlas") &&
       activeTab.worldId &&
       activeTab.worldId !== activeWorldId
     ) {
@@ -299,7 +299,8 @@ export function useTabs({
       lcreate: 4,
       rels: 5,
       timeline: 6,
-      new: 7,
+      atlas: 7,
+      new: 8,
     };
     return [...tabs].sort((a, b) => priority[a.kind] - priority[b.kind]);
   }, [tabs]);
@@ -321,7 +322,7 @@ export function useTabs({
   }, [activeProjectId, activeTabId, canLeaveCurrentView, openTab]);
 
   const openSpecialTab = useCallback(
-    async (kind: "rels" | "timeline", worldId = activeWorldId, options?: NavigationOptions) => {
+    async (kind: "rels" | "timeline" | "atlas", worldId = activeWorldId, options?: NavigationOptions) => {
       const actionProjectId = activeProjectId;
       const nextTabId = kind;
       const isAlreadyActive =
@@ -333,8 +334,8 @@ export function useTabs({
       openTab({
         id: kind,
         kind,
-        label: kind === "rels" ? "Relationships" : "Timeline",
-        icon: kind === "rels" ? "R" : "T",
+        label: kind === "rels" ? "Relationships" : kind === "timeline" ? "Timeline" : "Atlas",
+        icon: kind === "rels" ? "R" : kind === "timeline" ? "T" : "A",
         worldId,
       });
     },

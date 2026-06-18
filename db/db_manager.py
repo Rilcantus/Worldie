@@ -198,6 +198,38 @@ def _init_project_db(db_path, create_if_missing=False):
     )
     c.execute(
         """
+        CREATE TABLE IF NOT EXISTS maps (
+            id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            width INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            background_type TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS map_markers (
+            id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL,
+            map_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            x REAL NOT NULL,
+            y REAL NOT NULL,
+            marker_type TEXT,
+            lore_page_id TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    c.execute(
+        """
         CREATE TABLE IF NOT EXISTS custom_field_schemas (
             id TEXT PRIMARY KEY,
             world_id TEXT NOT NULL,
@@ -257,6 +289,13 @@ def _init_project_db(db_path, create_if_missing=False):
     _ensure_column(conn, "timeline_events", "event_type", "TEXT")
     _ensure_column(conn, "timeline_events", "track", "TEXT")
     _ensure_column(conn, "timeline_events", "linked_page_id", "TEXT")
+    _ensure_column(conn, "maps", "description", "TEXT")
+    _ensure_column(conn, "maps", "width", "INTEGER")
+    _ensure_column(conn, "maps", "height", "INTEGER")
+    _ensure_column(conn, "maps", "background_type", "TEXT")
+    _ensure_column(conn, "map_markers", "description", "TEXT")
+    _ensure_column(conn, "map_markers", "marker_type", "TEXT")
+    _ensure_column(conn, "map_markers", "lore_page_id", "TEXT")
     _ensure_column(conn, "lore_types", "icon", "TEXT")
     _ensure_column(conn, "lore_types", "field_definitions_json", "TEXT")
     _ensure_column(conn, "lore_table_views", "visible_columns_json", "TEXT")
@@ -1125,6 +1164,8 @@ def delete_world(project_uuid, world_id):
     c.execute("DELETE FROM documents WHERE world_id = ?", (world_id,))
     c.execute("DELETE FROM timeline_events WHERE world_id = ?", (world_id,))
     c.execute("DELETE FROM relationships WHERE world_id = ?", (world_id,))
+    c.execute("DELETE FROM map_markers WHERE world_id = ?", (world_id,))
+    c.execute("DELETE FROM maps WHERE world_id = ?", (world_id,))
     c.execute("DELETE FROM custom_field_schemas WHERE world_id = ?", (world_id,))
     c.execute("DELETE FROM lore_table_views WHERE world_id = ?", (world_id,))
     c.execute("DELETE FROM worlds WHERE id = ?", (world_id,))
@@ -1515,6 +1556,208 @@ def delete_timeline_event(project_uuid, event_id):
     conn = _project_conn(db_path)
     c = conn.cursor()
     c.execute("DELETE FROM timeline_events WHERE id = ?", (event_id,))
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+
+
+def create_map(
+    project_uuid,
+    world_id,
+    name,
+    description=None,
+    width=1200,
+    height=800,
+    background_type="grid",
+):
+    db_path = _get_project_filepath(project_uuid)
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    now = _now_iso()
+    map_id = str(uuid.uuid4())
+    name, description, background_type = _sanitize_text_values(name, description, background_type)
+    safe_width = int(width or 1200)
+    safe_height = int(height or 800)
+    c.execute(
+        """
+        INSERT INTO maps (
+            id, world_id, name, description, width, height, background_type, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (map_id, world_id, name, description, safe_width, safe_height, background_type or "grid", now, now),
+    )
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+    return map_id
+
+
+def list_maps(project_uuid, world_id):
+    db_path = _get_project_filepath(project_uuid)
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT id, world_id, name, description, width, height, background_type, created_at, updated_at
+        FROM maps
+        WHERE world_id = ?
+        ORDER BY updated_at DESC
+        """,
+        (world_id,),
+    )
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+
+def update_map(
+    project_uuid,
+    map_id,
+    name=OMITTED,
+    description=OMITTED,
+    width=OMITTED,
+    height=OMITTED,
+    background_type=OMITTED,
+):
+    db_path = _get_project_filepath(project_uuid)
+    conn = _project_conn(db_path)
+    _update_partial(
+        conn,
+        "maps",
+        "id",
+        map_id,
+        [
+            ("name", name),
+            ("description", description),
+            ("width", width),
+            ("height", height),
+            ("background_type", background_type),
+        ],
+    )
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+
+
+def delete_map(project_uuid, map_id):
+    db_path = _get_project_filepath(project_uuid)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM map_markers WHERE map_id = ?", (map_id,))
+    c.execute("DELETE FROM maps WHERE id = ?", (map_id,))
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+
+
+def create_map_marker(
+    project_uuid,
+    world_id,
+    map_id,
+    title,
+    x,
+    y,
+    description=None,
+    marker_type=None,
+    lore_page_id=None,
+):
+    db_path = _get_project_filepath(project_uuid)
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    now = _now_iso()
+    marker_id = str(uuid.uuid4())
+    title, description, marker_type, lore_page_id = _sanitize_text_values(
+        title,
+        description,
+        marker_type,
+        lore_page_id,
+    )
+    c.execute(
+        """
+        INSERT INTO map_markers (
+            id, world_id, map_id, title, description, x, y, marker_type, lore_page_id, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            marker_id,
+            world_id,
+            map_id,
+            title,
+            description,
+            float(x),
+            float(y),
+            marker_type,
+            lore_page_id,
+            now,
+            now,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+    return marker_id
+
+
+def list_map_markers(project_uuid, map_id):
+    db_path = _get_project_filepath(project_uuid)
+    _init_project_db(db_path)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT id, world_id, map_id, title, description, x, y, marker_type, lore_page_id, created_at, updated_at
+        FROM map_markers
+        WHERE map_id = ?
+        ORDER BY updated_at DESC
+        """,
+        (map_id,),
+    )
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+
+def update_map_marker(
+    project_uuid,
+    marker_id,
+    title=OMITTED,
+    description=OMITTED,
+    x=OMITTED,
+    y=OMITTED,
+    marker_type=OMITTED,
+    lore_page_id=OMITTED,
+):
+    db_path = _get_project_filepath(project_uuid)
+    conn = _project_conn(db_path)
+    _update_partial(
+        conn,
+        "map_markers",
+        "id",
+        marker_id,
+        [
+            ("title", title),
+            ("description", description),
+            ("x", x),
+            ("y", y),
+            ("marker_type", marker_type),
+            ("lore_page_id", lore_page_id),
+        ],
+    )
+    conn.commit()
+    conn.close()
+    _touch_project(project_uuid)
+
+
+def delete_map_marker(project_uuid, marker_id):
+    db_path = _get_project_filepath(project_uuid)
+    conn = _project_conn(db_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM map_markers WHERE id = ?", (marker_id,))
     conn.commit()
     conn.close()
     _touch_project(project_uuid)

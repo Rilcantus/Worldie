@@ -23,6 +23,7 @@ export default function App() {
     loreTypes,
     loreTemplates,
     worldStructures,
+    atlas,
     tabs,
     search,
     contentTabActions,
@@ -67,6 +68,10 @@ export default function App() {
 
   const handleOpenTimelineTab = useCallback(() => {
     tabs.openSpecialTab("timeline");
+  }, [tabs.openSpecialTab]);
+
+  const handleOpenAtlasTab = useCallback(() => {
+    tabs.openSpecialTab("atlas");
   }, [tabs.openSpecialTab]);
 
   const quickOpenState = useMemo(
@@ -297,6 +302,7 @@ export default function App() {
           onOpenLoreTypes={tabs.openLoreTypesTab}
           onOpenRelationships={handleOpenRelationshipsTab}
           onOpenTimeline={handleOpenTimelineTab}
+          onOpenAtlas={handleOpenAtlasTab}
           onFocusSearch={search.openQuickOpen}
         />
 
@@ -343,6 +349,7 @@ export default function App() {
           onOpenLoreCategory={workspaceNavigation.openLoreCategoryForWorld}
           onOpenRelationships={sidebarActions.openRelationshipsForWorld}
           onOpenTimeline={sidebarActions.openTimelineForWorld}
+          onOpenAtlas={sidebarActions.openAtlasForWorld}
         />
 
         {!panelLayout.isSidebarCollapsed ? (
@@ -399,6 +406,13 @@ export default function App() {
           timelineTrack={worldStructures.timelineTrack}
           timelineLinkedPageId={worldStructures.timelineLinkedPageId}
           timelineDescription={worldStructures.timelineDescription}
+          maps={atlas.maps}
+          mapMarkers={atlas.markers}
+          activeMap={atlas.activeMap}
+          activeMarker={atlas.activeMarker}
+          activeMapId={atlas.activeMapId}
+          activeMarkerId={atlas.activeMarkerId}
+          atlasIsLoading={atlas.isLoading}
           totalWordCount={content.totalWordCount}
           recentDocuments={content.recentDocuments}
           recentLorePages={content.recentLorePages}
@@ -423,6 +437,7 @@ export default function App() {
           onOpenLoreTypes={mainContentActions.openLoreTypes}
           onOpenRelationships={mainContentActions.openRelationships}
           onOpenTimeline={mainContentActions.openTimeline}
+          onOpenAtlas={mainContentActions.openAtlas}
           onAddDocument={mainContentActions.addDocument}
           onExportWorldMarkdown={exportActions.exportActiveWorldMarkdown}
           onExportProjectMarkdown={exportActions.exportProjectMarkdown}
@@ -484,6 +499,15 @@ export default function App() {
           onTimelineTrackChange={worldStructures.setTimelineTrack}
           onTimelineLinkedPageChange={worldStructures.setTimelineLinkedPageId}
           onTimelineDescriptionChange={worldStructures.setTimelineDescription}
+          onSelectMap={atlas.setActiveMapId}
+          onSelectMapMarker={atlas.setActiveMarkerId}
+          onAddMap={atlas.addMap}
+          onUpdateMap={atlas.reviseMap}
+          onRemoveMap={atlas.removeMap}
+          onAddMapMarker={atlas.addMarker}
+          onUpdateMapMarker={atlas.reviseMarker}
+          onMoveMapMarker={atlas.moveMarker}
+          onRemoveMapMarker={atlas.removeMarker}
           onSelectSearchResult={search.selectSearchResult}
           onStartDocListResize={handleStartDocListResize}
           onStartRightPanelResize={handleStartRightPanelResize}

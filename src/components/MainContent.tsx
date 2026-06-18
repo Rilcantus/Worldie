@@ -1,5 +1,5 @@
 import { memo, useCallback, type MouseEvent as ReactMouseEvent } from "react";
-import type { Document, LorePage, LoreTableView, Relationship, TimelineEvent } from "../lib/data";
+import type { Document, LorePage, LoreTableView, MapMarker, Relationship, TimelineEvent, WorldMap } from "../lib/data";
 import type { LoreCustomFields, LoreCustomFieldValue } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
@@ -16,6 +16,7 @@ import { TemplatesView } from "./TemplatesView";
 import { LoreTypesView } from "./LoreTypesView";
 import { RelationshipsView } from "./RelationshipsView";
 import { TimelineView } from "./TimelineView";
+import { AtlasView } from "./AtlasView";
 import { ContextPanel } from "./ContextPanel";
 import { useContextPanelModel } from "../hooks/useContextPanelModel";
 
@@ -65,6 +66,13 @@ type MainContentProps = {
   timelineTrack: string;
   timelineLinkedPageId: string;
   timelineDescription: string;
+  maps: WorldMap[];
+  mapMarkers: MapMarker[];
+  activeMap: WorldMap | null;
+  activeMarker: MapMarker | null;
+  activeMapId: string | null;
+  activeMarkerId: string | null;
+  atlasIsLoading: boolean;
   totalWordCount: number;
   recentDocuments: Document[];
   recentLorePages: LorePage[];
@@ -89,6 +97,7 @@ type MainContentProps = {
   onOpenLoreTypes: () => void;
   onOpenRelationships: () => void;
   onOpenTimeline: () => void;
+  onOpenAtlas: () => void;
   onAddDocument: () => void;
   onExportWorldMarkdown: () => void;
   onExportProjectMarkdown: () => void;
@@ -183,6 +192,18 @@ type MainContentProps = {
   onTimelineTrackChange: (value: string) => void;
   onTimelineLinkedPageChange: (value: string) => void;
   onTimelineDescriptionChange: (value: string) => void;
+  onSelectMap: (mapId: string) => void;
+  onSelectMapMarker: (markerId: string) => void;
+  onAddMap: () => void;
+  onUpdateMap: (mapId: string, updates: Partial<Pick<WorldMap, "name" | "description" | "backgroundType">>) => Promise<boolean>;
+  onRemoveMap: (mapId: string) => void;
+  onAddMapMarker: (point: { x: number; y: number }) => void;
+  onUpdateMapMarker: (
+    markerId: string,
+    updates: Partial<Pick<MapMarker, "title" | "description" | "x" | "y" | "markerType" | "lorePageId">>,
+  ) => Promise<boolean>;
+  onMoveMapMarker: (markerId: string, point: { x: number; y: number }) => Promise<boolean>;
+  onRemoveMapMarker: (markerId: string) => void;
   onSelectSearchResult: (result: SearchResult) => void;
   onStartDocListResize: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onStartRightPanelResize: (event: ReactMouseEvent<HTMLDivElement>) => void;
@@ -474,6 +495,39 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onTrackChange={props.onTimelineTrackChange}
               onLinkedPageChange={props.onTimelineLinkedPageChange}
               onDescriptionChange={props.onTimelineDescriptionChange}
+              onOpenLore={props.onOpenLore}
+            />
+          ) : null}
+
+          {props.activeNav === "atlas" ? (
+            <AtlasView
+              isDocListCollapsed={props.isDocListCollapsed}
+              isSidebarCollapsed={props.isSidebarCollapsed}
+              isRightPanelCollapsed={props.isRightPanelCollapsed}
+              docListWidth={props.docListWidth}
+              maps={props.maps}
+              markers={props.mapMarkers}
+              activeMap={props.activeMap}
+              activeMarker={props.activeMarker}
+              activeMapId={props.activeMapId}
+              activeMarkerId={props.activeMarkerId}
+              lorePages={props.allLorePages}
+              activeWorld={props.activeWorld}
+              isLoading={props.atlasIsLoading}
+              onCollapseDocList={props.onCollapseDocList}
+              onExpandDocList={props.onExpandDocList}
+              onExpandSidebar={props.onExpandSidebar}
+              onExpandRightPanel={props.onExpandRightPanel}
+              onResizeStart={props.onStartDocListResize}
+              onSelectMap={props.onSelectMap}
+              onSelectMarker={props.onSelectMapMarker}
+              onAddMap={props.onAddMap}
+              onUpdateMap={props.onUpdateMap}
+              onRemoveMap={props.onRemoveMap}
+              onAddMarker={props.onAddMapMarker}
+              onUpdateMarker={props.onUpdateMapMarker}
+              onMoveMarker={props.onMoveMapMarker}
+              onRemoveMarker={props.onRemoveMapMarker}
               onOpenLore={props.onOpenLore}
             />
           ) : null}

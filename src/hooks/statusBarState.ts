@@ -45,6 +45,8 @@ export function buildStatusBarModel({
             ? "Relationships"
             : activeNav === "timeline"
               ? "Timeline"
+              : activeNav === "atlas"
+                ? "Atlas"
               : "New Tab";
 
   const detailLabel =
@@ -58,7 +60,11 @@ export function buildStatusBarModel({
             ? "Open Page"
             : activeNav === "rels"
               ? "Relationships"
-              : "Timeline";
+              : activeNav === "timeline"
+                ? "Timeline"
+                : activeNav === "atlas"
+                  ? "Atlas"
+                  : "Open Page";
 
   return {
     projectTitle,

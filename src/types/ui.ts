@@ -21,7 +21,7 @@ export type RecentItem = {
   color: string;
 };
 
-export type TabKind = "workbench" | "editor" | "lore" | "rels" | "timeline" | "templates" | "ltypes" | "lcreate" | "new";
+export type TabKind = "workbench" | "editor" | "lore" | "rels" | "timeline" | "atlas" | "templates" | "ltypes" | "lcreate" | "new";
 
 export type TabItem = {
   id: string;

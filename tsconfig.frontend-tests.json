@@ -9,6 +9,7 @@
   "include": [
     "src/lib/browserStorage.ts",
     "src/lib/customFieldDefinitions.ts",
+    "src/lib/atlas.ts",
     "src/lib/loreItems.ts",
     "src/lib/loreTable.ts",
     "src/lib/loreTemplates.ts",

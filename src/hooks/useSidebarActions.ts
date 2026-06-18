@@ -11,7 +11,7 @@ type UseSidebarActionsArgs = {
   removeWorld: (worldId: string) => Promise<void>;
   activeWorldId: string | null;
   canLeaveCurrentView: () => Promise<boolean>;
-  openSpecialTab: (kind: "rels" | "timeline", worldId?: string | null) => Promise<void>;
+  openSpecialTab: (kind: "rels" | "timeline" | "atlas", worldId?: string | null) => Promise<void>;
 };
 
 export function useSidebarActions({
@@ -85,6 +85,13 @@ export function useSidebarActions({
     [openSpecialTab],
   );
 
+  const openAtlasForWorld = useCallback(
+    (worldId: string) => {
+      void openSpecialTab("atlas", worldId);
+    },
+    [openSpecialTab],
+  );
+
   return useMemo(
     () => ({
       cancelProjectEdit,
@@ -96,6 +103,7 @@ export function useSidebarActions({
       removeWorld: handleRemoveWorld,
       openRelationshipsForWorld,
       openTimelineForWorld,
+      openAtlasForWorld,
     }),
     [
       cancelProjectEdit,
@@ -107,6 +115,7 @@ export function useSidebarActions({
       handleRemoveWorld,
       openRelationshipsForWorld,
       openTimelineForWorld,
+      openAtlasForWorld,
     ],
   );
 }

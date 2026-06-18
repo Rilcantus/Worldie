@@ -225,6 +225,85 @@ class ProjectStoreTests(unittest.TestCase):
         reopened = self.db_manager.list_timeline_events(reopened_uuid, world_id)[0]
         self.assertEqual(reopened[5], "Secret History")
 
+    def test_atlas_map_and_marker_crud_persists_in_project_file(self):
+        project_uuid, project_path = self.db_manager.add_project("Atlas Project", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+        lore_id = self.db_manager.create_lore_page(project_uuid, world_id, "Red Harbor", "Location")
+
+        map_id = self.db_manager.create_map(
+            project_uuid,
+            world_id,
+            "Duskfen Map",
+            description="A working atlas board.",
+            width=1400,
+            height=900,
+            background_type="grid",
+        )
+        marker_id = self.db_manager.create_map_marker(
+            project_uuid,
+            world_id,
+            map_id,
+            "Red Harbor",
+            240.5,
+            320.25,
+            description="Harbor city marker.",
+            marker_type="city",
+            lore_page_id=lore_id,
+        )
+
+        maps = self.db_manager.list_maps(project_uuid, world_id)
+        self.assertEqual(len(maps), 1)
+        self.assertEqual(maps[0][0], map_id)
+        self.assertEqual(maps[0][2], "Duskfen Map")
+        self.assertEqual(maps[0][4], 1400)
+        self.assertEqual(maps[0][6], "grid")
+
+        markers = self.db_manager.list_map_markers(project_uuid, map_id)
+        self.assertEqual(len(markers), 1)
+        self.assertEqual(markers[0][0], marker_id)
+        self.assertEqual(markers[0][3], "Red Harbor")
+        self.assertEqual(markers[0][5], 240.5)
+        self.assertEqual(markers[0][8], lore_id)
+
+        self.db_manager.update_map(project_uuid, map_id, name="Duskfen Political Map", description=None)
+        self.db_manager.update_map_marker(
+            project_uuid,
+            marker_id,
+            title="Red Harbor Docks",
+            x=512,
+            y=128,
+            marker_type="landmark",
+            lore_page_id=None,
+        )
+
+        reopened_uuid, _, _ = self.db_manager.open_project(project_path)
+        reopened_maps = self.db_manager.list_maps(reopened_uuid, world_id)
+        reopened_markers = self.db_manager.list_map_markers(reopened_uuid, map_id)
+        self.assertEqual(reopened_maps[0][2], "Duskfen Political Map")
+        self.assertIsNone(reopened_maps[0][3])
+        self.assertEqual(reopened_markers[0][3], "Red Harbor Docks")
+        self.assertEqual(reopened_markers[0][5], 512)
+        self.assertEqual(reopened_markers[0][6], 128)
+        self.assertEqual(reopened_markers[0][7], "landmark")
+        self.assertIsNone(reopened_markers[0][8])
+
+        self.db_manager.delete_map_marker(reopened_uuid, marker_id)
+        self.assertEqual(self.db_manager.list_map_markers(reopened_uuid, map_id), [])
+        self.assertEqual(len(self.db_manager.list_lore_pages(reopened_uuid, world_id)), 1)
+
+    def test_deleting_atlas_map_deletes_markers_only(self):
+        project_uuid, _ = self.db_manager.add_project("Atlas Delete", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+        lore_id = self.db_manager.create_lore_page(project_uuid, world_id, "Red Harbor", "Location")
+        map_id = self.db_manager.create_map(project_uuid, world_id, "Duskfen Map")
+        self.db_manager.create_map_marker(project_uuid, world_id, map_id, "Red Harbor", 10, 20, lore_page_id=lore_id)
+
+        self.db_manager.delete_map(project_uuid, map_id)
+
+        self.assertEqual(self.db_manager.list_maps(project_uuid, world_id), [])
+        self.assertEqual(self.db_manager.list_map_markers(project_uuid, map_id), [])
+        self.assertEqual(len(self.db_manager.list_lore_pages(project_uuid, world_id)), 1)
+
     def test_document_update_handles_large_unicode_pasted_content(self):
         project_uuid, project_path = self.db_manager.add_project("Large Paste", "")
         world_id = self.db_manager.create_world(project_uuid, "Draft World")

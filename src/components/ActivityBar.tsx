@@ -10,6 +10,7 @@ type ActivityBarProps = {
   onOpenLoreTypes: () => void;
   onOpenRelationships: () => void;
   onOpenTimeline: () => void;
+  onOpenAtlas: () => void;
   onFocusSearch: () => void;
 };
 
@@ -23,6 +24,7 @@ export const ActivityBar = memo(function ActivityBar({
   onOpenLoreTypes,
   onOpenRelationships,
   onOpenTimeline,
+  onOpenAtlas,
   onFocusSearch,
 }: ActivityBarProps) {
   const disabledTitle = "Open or create a project first";
@@ -82,6 +84,15 @@ export const ActivityBar = memo(function ActivityBar({
         disabled={!hasActiveProject}
       >
         T
+      </button>
+      <button
+        className={`ab-icon ${activeNav === "atlas" ? "active" : ""}`}
+        title={hasActiveProject ? "Atlas" : disabledTitle}
+        type="button"
+        onClick={onOpenAtlas}
+        disabled={!hasActiveProject}
+      >
+        A
       </button>
       <button
         className="ab-icon"

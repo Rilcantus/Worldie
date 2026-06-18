@@ -45,6 +45,7 @@ type SidebarProps = {
   onOpenLoreCategory: (worldId: string, categoryId: string) => void;
   onOpenRelationships: (worldId: string) => void;
   onOpenTimeline: (worldId: string) => void;
+  onOpenAtlas: (worldId: string) => void;
 };
 
 export const Sidebar = memo(function Sidebar({
@@ -90,6 +91,7 @@ export const Sidebar = memo(function Sidebar({
   onOpenLoreCategory,
   onOpenRelationships,
   onOpenTimeline,
+  onOpenAtlas,
 }: SidebarProps) {
   const worldClickTimeoutRef = useRef<number | null>(null);
   const projectMenuRef = useRef<HTMLDivElement | null>(null);
@@ -420,6 +422,13 @@ export const Sidebar = memo(function Sidebar({
                     onClick={() => onOpenTimeline(world.id)}
                   >
                     <span className="nav-icon">{"\u23F3"}</span> Timeline
+                  </button>
+                  <button
+                    className={`nav-item ${world.id === activeWorldId && activeNav === "atlas" ? "active" : ""}`}
+                    type="button"
+                    onClick={() => onOpenAtlas(world.id)}
+                  >
+                    <span className="nav-icon">{"\u25CE"}</span> Atlas
                   </button>
                 </div>
               ) : null}

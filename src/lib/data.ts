@@ -160,6 +160,32 @@ type TimelineEvent = {
   updatedAt?: string;
 };
 
+type WorldMap = {
+  id: string;
+  worldId: string;
+  name: string;
+  description?: string | null;
+  width: number;
+  height: number;
+  backgroundType: "blank" | "grid";
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type MapMarker = {
+  id: string;
+  worldId: string;
+  mapId: string;
+  title: string;
+  description?: string | null;
+  x: number;
+  y: number;
+  markerType?: string | null;
+  lorePageId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 const isTauri = () =>
   typeof window !== "undefined" &&
   ("__TAURI__" in window || "__TAURI_INTERNALS__" in window);
@@ -764,6 +790,74 @@ export async function deleteTimelineEvent(projectId: string, eventId: string): P
   await invokeProjectStore("delete_timeline_event", { projectId, eventId });
 }
 
+export async function listMaps(projectId: string, worldId: string): Promise<WorldMap[]> {
+  const response = await invokeProjectStore<{ maps?: WorldMap[] }>("list_maps", { projectId, worldId });
+  return response.maps ?? [];
+}
+
+export async function createMap(
+  projectId: string,
+  worldId: string,
+  data: Pick<WorldMap, "name" | "description" | "width" | "height" | "backgroundType">,
+): Promise<WorldMap> {
+  const response = await invokeProjectStore<{ mapId?: string }>("create_map", {
+    projectId,
+    worldId,
+    ...data,
+  });
+  if (!response.mapId) {
+    throw new ProjectStoreError("Worldie could not create the map in the active project file.");
+  }
+  return { id: response.mapId, worldId, ...data };
+}
+
+export async function updateMap(
+  projectId: string,
+  mapId: string,
+  updates: Partial<Pick<WorldMap, "name" | "description" | "width" | "height" | "backgroundType">>,
+): Promise<void> {
+  await invokeProjectStore("update_map", omitUndefined({ projectId, mapId, ...updates }));
+}
+
+export async function deleteMap(projectId: string, mapId: string): Promise<void> {
+  await invokeProjectStore("delete_map", { projectId, mapId });
+}
+
+export async function listMapMarkers(projectId: string, mapId: string): Promise<MapMarker[]> {
+  const response = await invokeProjectStore<{ markers?: MapMarker[] }>("list_map_markers", { projectId, mapId });
+  return response.markers ?? [];
+}
+
+export async function createMapMarker(
+  projectId: string,
+  worldId: string,
+  mapId: string,
+  data: Pick<MapMarker, "title" | "description" | "x" | "y" | "markerType" | "lorePageId">,
+): Promise<MapMarker> {
+  const response = await invokeProjectStore<{ markerId?: string }>("create_map_marker", {
+    projectId,
+    worldId,
+    mapId,
+    ...data,
+  });
+  if (!response.markerId) {
+    throw new ProjectStoreError("Worldie could not create the map marker in the active project file.");
+  }
+  return { id: response.markerId, worldId, mapId, ...data };
+}
+
+export async function updateMapMarker(
+  projectId: string,
+  markerId: string,
+  updates: Partial<Pick<MapMarker, "title" | "description" | "x" | "y" | "markerType" | "lorePageId">>,
+): Promise<void> {
+  await invokeProjectStore("update_map_marker", omitUndefined({ projectId, markerId, ...updates }));
+}
+
+export async function deleteMapMarker(projectId: string, markerId: string): Promise<void> {
+  await invokeProjectStore("delete_map_marker", { projectId, markerId });
+}
+
 export type {
   Project,
   World,
@@ -775,6 +869,8 @@ export type {
   Document,
   Relationship,
   TimelineEvent,
+  WorldMap,
+  MapMarker,
   WorldMarkdownExportResult,
   ProjectMarkdownExportResult,
   LoreTableCsvExportResult,

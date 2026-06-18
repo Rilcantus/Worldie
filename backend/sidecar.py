@@ -13,12 +13,16 @@ from db.db_manager import (
     create_document,
     create_lore_page,
     create_lore_table_view,
+    create_map,
+    create_map_marker,
     create_relationship,
     create_timeline_event,
     create_world,
     delete_document,
     delete_lore_page,
     delete_lore_table_view,
+    delete_map,
+    delete_map_marker,
     delete_project,
     delete_relationship,
     delete_timeline_event,
@@ -32,6 +36,8 @@ from db.db_manager import (
     list_lore_templates,
     list_lore_table_views,
     list_lore_types,
+    list_map_markers,
+    list_maps,
     open_project,
     list_lore_pages,
     list_relationships,
@@ -43,6 +49,8 @@ from db.db_manager import (
     update_document,
     update_lore_page,
     update_lore_table_view,
+    update_map,
+    update_map_marker,
     update_project_title,
     update_relationship,
     update_timeline_event,
@@ -549,6 +557,142 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
         if not project_id or not event_id:
             return {"status": "error", "message": "projectId and eventId required"}
         delete_timeline_event(project_id, event_id)
+        return {"status": "ok"}
+
+    if action == "list_maps":
+        project_id = data.get("projectId")
+        world_id = data.get("worldId")
+        if not project_id or not world_id:
+            return {"status": "error", "message": "projectId and worldId required"}
+        rows = list_maps(project_id, world_id)
+        return {
+            "status": "ok",
+            "maps": [
+                {
+                    "id": row[0],
+                    "worldId": row[1],
+                    "name": row[2],
+                    "description": row[3],
+                    "width": row[4],
+                    "height": row[5],
+                    "backgroundType": row[6],
+                    "createdAt": row[7],
+                    "updatedAt": row[8],
+                }
+                for row in rows
+            ],
+        }
+
+    if action == "create_map":
+        project_id = data.get("projectId")
+        world_id = data.get("worldId")
+        name = data.get("name", "New Map")
+        if not project_id or not world_id:
+            return {"status": "error", "message": "projectId and worldId required"}
+        map_id = create_map(
+            project_id,
+            world_id,
+            name,
+            description=data.get("description"),
+            width=data.get("width", 1200),
+            height=data.get("height", 800),
+            background_type=data.get("backgroundType", "grid"),
+        )
+        return {"status": "ok", "mapId": map_id}
+
+    if action == "update_map":
+        project_id = data.get("projectId")
+        map_id = data.get("mapId")
+        if not project_id or not map_id:
+            return {"status": "error", "message": "projectId and mapId required"}
+        update_map(
+            project_id,
+            map_id,
+            name=_optional(data, "name"),
+            description=_optional(data, "description"),
+            width=_optional(data, "width"),
+            height=_optional(data, "height"),
+            background_type=_optional(data, "backgroundType"),
+        )
+        return {"status": "ok"}
+
+    if action == "delete_map":
+        project_id = data.get("projectId")
+        map_id = data.get("mapId")
+        if not project_id or not map_id:
+            return {"status": "error", "message": "projectId and mapId required"}
+        delete_map(project_id, map_id)
+        return {"status": "ok"}
+
+    if action == "list_map_markers":
+        project_id = data.get("projectId")
+        map_id = data.get("mapId")
+        if not project_id or not map_id:
+            return {"status": "error", "message": "projectId and mapId required"}
+        rows = list_map_markers(project_id, map_id)
+        return {
+            "status": "ok",
+            "markers": [
+                {
+                    "id": row[0],
+                    "worldId": row[1],
+                    "mapId": row[2],
+                    "title": row[3],
+                    "description": row[4],
+                    "x": row[5],
+                    "y": row[6],
+                    "markerType": row[7],
+                    "lorePageId": row[8],
+                    "createdAt": row[9],
+                    "updatedAt": row[10],
+                }
+                for row in rows
+            ],
+        }
+
+    if action == "create_map_marker":
+        project_id = data.get("projectId")
+        world_id = data.get("worldId")
+        map_id = data.get("mapId")
+        title = data.get("title", "New Marker")
+        if not project_id or not world_id or not map_id:
+            return {"status": "error", "message": "projectId, worldId, and mapId required"}
+        marker_id = create_map_marker(
+            project_id,
+            world_id,
+            map_id,
+            title,
+            data.get("x", 0),
+            data.get("y", 0),
+            description=data.get("description"),
+            marker_type=data.get("markerType"),
+            lore_page_id=data.get("lorePageId"),
+        )
+        return {"status": "ok", "markerId": marker_id}
+
+    if action == "update_map_marker":
+        project_id = data.get("projectId")
+        marker_id = data.get("markerId")
+        if not project_id or not marker_id:
+            return {"status": "error", "message": "projectId and markerId required"}
+        update_map_marker(
+            project_id,
+            marker_id,
+            title=_optional(data, "title"),
+            description=_optional(data, "description"),
+            x=_optional(data, "x"),
+            y=_optional(data, "y"),
+            marker_type=_optional(data, "markerType"),
+            lore_page_id=_optional(data, "lorePageId"),
+        )
+        return {"status": "ok"}
+
+    if action == "delete_map_marker":
+        project_id = data.get("projectId")
+        marker_id = data.get("markerId")
+        if not project_id or not marker_id:
+            return {"status": "error", "message": "projectId and markerId required"}
+        delete_map_marker(project_id, marker_id)
         return {"status": "ok"}
 
     if action == "list_lore_table_views":

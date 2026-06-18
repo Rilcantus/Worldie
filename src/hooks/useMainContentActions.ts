@@ -5,7 +5,7 @@ type UseMainContentActionsArgs = {
   setIsDocListCollapsed: (value: boolean) => void;
   setIsRightPanelCollapsed: (value: boolean) => void;
   canLeaveCurrentView: () => Promise<boolean>;
-  openSpecialTab: (kind: "rels" | "timeline") => void;
+  openSpecialTab: (kind: "rels" | "timeline" | "atlas") => void;
   openNewTab: () => void;
   openWorkbenchTab: () => void;
   openLoreCreateTab: () => void;
@@ -95,6 +95,7 @@ export function useMainContentActions({
       collapseRightPanel: () => setIsRightPanelCollapsed(true),
       openRelationships: () => openSpecialTab("rels"),
       openTimeline: () => openSpecialTab("timeline"),
+      openAtlas: () => openSpecialTab("atlas"),
       openTemplates: () => openTemplatesTab(),
       openLoreTypes: () => openLoreTypesTab(),
       openLoreCreate: () => openLoreCreateTab(),
