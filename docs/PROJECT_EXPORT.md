@@ -90,6 +90,8 @@ Relationships are exported as Markdown files under `Relationships/`.
 
 Timeline events are exported as Markdown files under `Timeline/`.
 
+Atlas maps are exported as Markdown files under `Atlas/`. Each map file contains the map notes and a marker list.
+
 The generated `index.md` includes:
 
 - project title
@@ -99,6 +101,8 @@ The generated `index.md` includes:
 - total lore page count
 - total relationship count
 - total timeline event count
+- total Atlas map count
+- total Atlas marker count
 
 Each generated world `index.md` includes:
 
@@ -108,10 +112,12 @@ Each generated world `index.md` includes:
 - lore page count
 - relationship count
 - timeline event count
+- Atlas map count
 - links to exported document files
 - links to exported lore files
 - links to exported relationship files
 - links to exported timeline files
+- links to exported Atlas map files
 
 ## Content Rules
 
@@ -121,11 +127,14 @@ Each generated world `index.md` includes:
 - Lore custom fields are exported as a simple Markdown list under `## Custom Fields`.
 - Relationships include source lore, target lore, relationship type, and notes when available.
 - Timeline events include date text, event type, linked lore, and description when available.
+- Atlas maps include map size, background type, map notes, and their markers.
+- Atlas markers include title, marker type, linked lore title when available, position, and notes.
 - Wiki-style links such as `[[Some Lore]]` are preserved as text.
 - Empty or cleared lore custom field values are skipped.
 - Linked lore IDs are resolved to lore names when possible.
 - Missing linked lore is exported with a readable fallback instead of stopping the export.
 - Timeline entries in `index.md` are sorted by the first number found in their date text when possible, with unknown dates kept after dated entries.
+- Active-world export includes only Atlas maps and markers from the selected world. Full-project export includes each world's Atlas maps inside that world's folder.
 - Filenames are made safe for Windows and common filesystems.
 - Duplicate titles receive numeric suffixes, such as `Scene.md` and `Scene-2.md`.
 - Duplicate world folder names receive numeric suffixes, such as `World` and `World-2`.
@@ -136,6 +145,7 @@ Each generated world `index.md` includes:
 - Lore Table CSV update applies by `Worldie ID` only and does not create missing pages.
 - Lore Table CSV does not include formulas, bulk edits, title fallback matching, blank-cell clearing, manual mapping UI, an import undo stack, post-import bulk edit review, or a full database workspace.
 - Media is not exported yet.
+- Atlas export is marker-only. Routes, shapes, regions, drawing layers, map media, and timeline event links are not exported yet.
 - Exported files are not synced back into the `.worldie` project.
 - Timeline date sorting is intentionally simple and does not yet understand full calendars, eras, date ranges, or custom chronology rules.
 - Full-project export is a folder export, not a Spaci bundle.

@@ -601,6 +601,35 @@ def _build_timeline_markdown(event, lore_titles_by_id):
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _build_map_markdown(world_map, markers, lore_titles_by_id):
+    _, _, title, description, width, height, background_type, created_at, updated_at = world_map
+    lines = [f"# {title}", ""]
+    if width or height:
+        lines.append(f"Size: {width or ''} x {height or ''}")
+    if background_type:
+        lines.append(f"Background: {background_type}")
+    if created_at or updated_at:
+        lines.extend([f"Created: {created_at or ''}", f"Updated: {updated_at or ''}"])
+    if description:
+        lines.extend(["", "## Notes", "", description])
+    lines.extend(["", "## Markers", ""])
+    if markers:
+        for marker in markers:
+            _, _, _, marker_title, marker_description, x, y, marker_type, lore_page_id, _, _ = marker
+            lines.append(f"### {marker_title}")
+            if marker_type:
+                lines.append(f"Type: {marker_type}")
+            if lore_page_id:
+                lines.append(f"Linked lore: {_lore_title(lore_titles_by_id, lore_page_id)}")
+            lines.append(f"Position: {x}, {y}")
+            if marker_description:
+                lines.extend(["", marker_description])
+            lines.append("")
+    else:
+        lines.append("No markers.")
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def _append_index_section(lines, title, entries, empty_message):
     lines.extend(["", f"## {title}", ""])
     if entries:
@@ -611,7 +640,7 @@ def _append_index_section(lines, title, entries, empty_message):
         lines.append(f"- {empty_message}")
 
 
-def _build_export_index(project_title, world, document_entries, lore_entries, relationship_entries, timeline_entries):
+def _build_export_index(project_title, world, document_entries, lore_entries, relationship_entries, timeline_entries, map_entries):
     _, _, world_title, description, _, _ = world
     lines = [
         f"# {world_title}",
@@ -621,6 +650,7 @@ def _build_export_index(project_title, world, document_entries, lore_entries, re
         f"Lore pages: {len(lore_entries)}",
         f"Relationships: {len(relationship_entries)}",
         f"Timeline events: {len(timeline_entries)}",
+        f"Atlas maps: {len(map_entries)}",
     ]
     if description:
         lines.extend(["", "## World Notes", "", description])
@@ -628,6 +658,7 @@ def _build_export_index(project_title, world, document_entries, lore_entries, re
     _append_index_section(lines, "Lore Pages", lore_entries, "No lore pages exported.")
     _append_index_section(lines, "Relationships", relationship_entries, "No relationships exported.")
     _append_index_section(lines, "Timeline", timeline_entries, "No timeline events exported.")
+    _append_index_section(lines, "Atlas", map_entries, "No maps exported.")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -640,6 +671,8 @@ def _build_project_export_index(project_title, world_entries, totals):
         f"Lore pages: {totals['lorePageCount']}",
         f"Relationships: {totals['relationshipCount']}",
         f"Timeline events: {totals['timelineEventCount']}",
+        f"Atlas maps: {totals['mapCount']}",
+        f"Atlas markers: {totals['markerCount']}",
         "",
         "## Worlds",
         "",
@@ -648,7 +681,8 @@ def _build_project_export_index(project_title, world_entries, totals):
         for entry in world_entries:
             summary = (
                 f"{entry['documentCount']} docs, {entry['lorePageCount']} lore, "
-                f"{entry['relationshipCount']} relationships, {entry['timelineEventCount']} timeline events"
+                f"{entry['relationshipCount']} relationships, {entry['timelineEventCount']} timeline events, "
+                f"{entry['mapCount']} maps"
             )
             lines.append(f"- [{entry['title']}]({entry['relativePath']}) - {summary}")
     else:
@@ -889,6 +923,26 @@ def _fetch_world_export_data(conn, project_uuid, world_id):
         (world_id,),
     )
     timeline_events = c.fetchall()
+    c.execute(
+        """
+        SELECT id, world_id, name, description, width, height, background_type, created_at, updated_at
+        FROM maps
+        WHERE world_id = ?
+        ORDER BY name COLLATE NOCASE, id
+        """,
+        (world_id,),
+    )
+    maps = c.fetchall()
+    c.execute(
+        """
+        SELECT id, world_id, map_id, title, description, x, y, marker_type, lore_page_id, created_at, updated_at
+        FROM map_markers
+        WHERE world_id = ?
+        ORDER BY title COLLATE NOCASE, id
+        """,
+        (world_id,),
+    )
+    map_markers = c.fetchall()
     return {
         "world": world,
         "documents": documents,
@@ -896,6 +950,8 @@ def _fetch_world_export_data(conn, project_uuid, world_id):
         "loreTypes": lore_types,
         "relationships": relationships,
         "timelineEvents": timeline_events,
+        "maps": maps,
+        "mapMarkers": map_markers,
     }
 
 
@@ -908,13 +964,19 @@ def _write_world_markdown_export(project_title, world_data, export_path):
     lore_types = world_data["loreTypes"]
     relationships = world_data["relationships"]
     timeline_events = world_data["timelineEvents"]
+    maps = world_data["maps"]
+    map_markers = world_data["mapMarkers"]
     used_paths = set()
     exported_files = []
     document_entries = []
     lore_entries = []
     relationship_entries = []
     timeline_entries = []
+    map_entries = []
     lore_titles_by_id = {page[0]: page[2] for page in lore_pages}
+    markers_by_map_id = {}
+    for marker in map_markers:
+        markers_by_map_id.setdefault(marker[2], []).append(marker)
     field_definitions_by_type = {}
     for name, slug, field_definitions_json in lore_types:
         definitions = _parse_lore_type_field_definitions(field_definitions_json)
@@ -987,10 +1049,27 @@ def _write_world_markdown_export(project_title, world_data, export_path):
         exported_files.append(entry)
         timeline_entries.append(entry)
 
+    atlas_root = os.path.join(export_path, "Atlas")
+    for world_map in maps:
+        map_id, _, title, _, _, _, _, _, _ = world_map
+        markers = markers_by_map_id.get(map_id, [])
+        filename = f"{_safe_export_name(title, 'map')}.md"
+        file_path = _dedupe_export_path(atlas_root, filename, used_paths)
+        _write_text_file(file_path, _build_map_markdown(world_map, markers, lore_titles_by_id))
+        entry = {
+            "kind": "map",
+            "title": title,
+            "path": file_path,
+            "relativePath": _relative_export_path(file_path, export_path),
+            "summary": f"{len(markers)} markers",
+        }
+        exported_files.append(entry)
+        map_entries.append(entry)
+
     index_path = os.path.join(export_path, "index.md")
     _write_text_file(
         index_path,
-        _build_export_index(project_title, world, document_entries, lore_entries, relationship_entries, timeline_entries),
+        _build_export_index(project_title, world, document_entries, lore_entries, relationship_entries, timeline_entries, map_entries),
     )
     exported_files.insert(
         0,
@@ -1010,6 +1089,8 @@ def _write_world_markdown_export(project_title, world_data, export_path):
         "lorePageCount": len(lore_pages),
         "relationshipCount": len(relationships),
         "timelineEventCount": len(timeline_events),
+        "mapCount": len(maps),
+        "markerCount": len(map_markers),
         "files": exported_files,
     }
 
@@ -1084,6 +1165,8 @@ def export_project_markdown(project_uuid, export_root):
             "lorePageCount": 0,
             "relationshipCount": 0,
             "timelineEventCount": 0,
+            "mapCount": 0,
+            "markerCount": 0,
         }
         for world in worlds:
             world_data = _fetch_world_export_data(conn, project_uuid, world[0])
@@ -1095,6 +1178,8 @@ def export_project_markdown(project_uuid, export_root):
             totals["lorePageCount"] += world_export["lorePageCount"]
             totals["relationshipCount"] += world_export["relationshipCount"]
             totals["timelineEventCount"] += world_export["timelineEventCount"]
+            totals["mapCount"] += world_export["mapCount"]
+            totals["markerCount"] += world_export["markerCount"]
             world_entries.append(
                 {
                     "title": world[2],
@@ -1104,6 +1189,8 @@ def export_project_markdown(project_uuid, export_root):
                     "lorePageCount": world_export["lorePageCount"],
                     "relationshipCount": world_export["relationshipCount"],
                     "timelineEventCount": world_export["timelineEventCount"],
+                    "mapCount": world_export["mapCount"],
+                    "markerCount": world_export["markerCount"],
                 }
             )
     finally:
@@ -1128,6 +1215,8 @@ def export_project_markdown(project_uuid, export_root):
         "lorePageCount": totals["lorePageCount"],
         "relationshipCount": totals["relationshipCount"],
         "timelineEventCount": totals["timelineEventCount"],
+        "mapCount": totals["mapCount"],
+        "markerCount": totals["markerCount"],
         "worlds": world_entries,
         "files": files,
     }

@@ -1520,6 +1520,72 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIn("## Timeline", index_text)
         self.assertLess(index_text.index("[Founding]"), index_text.index("[Arrival]"))
 
+    def test_export_world_markdown_writes_atlas_maps_and_markers(self):
+        project_uuid, project_path = self.db_manager.add_project("Atlas Export", "")
+        world_id = self.db_manager.create_world(project_uuid, "Emberfall")
+        other_world_id = self.db_manager.create_world(project_uuid, "Glass Coast")
+        lore_id = self.db_manager.create_lore_page(project_uuid, world_id, "Red Harbor", "Place")
+        map_id = self.db_manager.create_map(
+            project_uuid,
+            world_id,
+            "Harbor Map",
+            description="A working map of [[Red Harbor]].",
+            width=1600,
+            height=900,
+            background_type="grid",
+        )
+        self.db_manager.create_map_marker(
+            project_uuid,
+            world_id,
+            map_id,
+            "South Gate",
+            125.5,
+            300,
+            description="Guarded road into [[Red Harbor]].",
+            marker_type="landmark",
+            lore_page_id=lore_id,
+        )
+        self.db_manager.create_map_marker(
+            project_uuid,
+            world_id,
+            map_id,
+            "Unknown Shrine",
+            999,
+            12,
+            description="No linked lore yet.",
+            marker_type="shrine",
+        )
+        other_map_id = self.db_manager.create_map(project_uuid, other_world_id, "Other Map")
+        self.db_manager.create_map_marker(project_uuid, other_world_id, other_map_id, "Other Marker", 10, 20)
+        source_bytes = Path(project_path).read_bytes()
+
+        result = self.db_manager.export_world_markdown(project_uuid, world_id, str(self.temp_path / "exports"))
+
+        self.assertEqual(result["mapCount"], 1)
+        self.assertEqual(result["markerCount"], 2)
+        self.assertEqual(Path(project_path).read_bytes(), source_bytes)
+        map_files = [Path(file["path"]) for file in result["files"] if file["kind"] == "map"]
+        self.assertEqual(len(map_files), 1)
+        self.assertEqual(map_files[0].name, "Harbor Map.md")
+        map_text = map_files[0].read_text(encoding="utf-8")
+        self.assertIn("# Harbor Map", map_text)
+        self.assertIn("Size: 1600 x 900", map_text)
+        self.assertIn("Background: grid", map_text)
+        self.assertIn("A working map of [[Red Harbor]].", map_text)
+        self.assertIn("### South Gate", map_text)
+        self.assertIn("Type: landmark", map_text)
+        self.assertIn("Linked lore: Red Harbor", map_text)
+        self.assertIn("Position: 125.5, 300.0", map_text)
+        self.assertIn("Guarded road into [[Red Harbor]].", map_text)
+        self.assertIn("### Unknown Shrine", map_text)
+        self.assertIn("Type: shrine", map_text)
+        self.assertNotIn("Other Marker", map_text)
+
+        index_text = (Path(result["exportPath"]) / "index.md").read_text(encoding="utf-8")
+        self.assertIn("Atlas maps: 1", index_text)
+        self.assertIn("## Atlas", index_text)
+        self.assertIn("[Harbor Map](Atlas/Harbor Map.md) - 2 markers", index_text)
+
     def test_export_world_markdown_dedupes_duplicate_relationship_and_timeline_titles(self):
         project_uuid, _ = self.db_manager.add_project("Duplicate World Bible", "")
         world_id = self.db_manager.create_world(project_uuid, "Mirror World")
@@ -1547,8 +1613,12 @@ class ProjectStoreTests(unittest.TestCase):
         self.db_manager.update_document(project_uuid, doc_id, content_json="Mara visits [[Red Harbor]].")
         self.db_manager.create_relationship(project_uuid, emberfall_id, mara_id, harbor_id, "visits", "Route notes.")
         self.db_manager.create_timeline_event(project_uuid, emberfall_id, "Arrival", event_date="847 AE")
+        map_id = self.db_manager.create_map(project_uuid, emberfall_id, "Harbor Map")
+        self.db_manager.create_map_marker(project_uuid, emberfall_id, map_id, "Gate", 10, 20, lore_page_id=harbor_id)
         self.db_manager.create_document(project_uuid, glass_coast_id, "Coast Notes")
         self.db_manager.create_lore_page(project_uuid, glass_coast_id, "Salt Market", "Place")
+        coast_map_id = self.db_manager.create_map(project_uuid, glass_coast_id, "Coast Map")
+        self.db_manager.create_map_marker(project_uuid, glass_coast_id, coast_map_id, "Market", 30, 40)
         source_bytes = Path(project_path).read_bytes()
 
         result = self.db_manager.export_project_markdown(project_uuid, str(self.temp_path / "exports"))
@@ -1559,6 +1629,8 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(result["lorePageCount"], 3)
         self.assertEqual(result["relationshipCount"], 1)
         self.assertEqual(result["timelineEventCount"], 1)
+        self.assertEqual(result["mapCount"], 2)
+        self.assertEqual(result["markerCount"], 2)
         self.assertEqual(Path(project_path).read_bytes(), source_bytes)
 
         export_path = Path(result["exportPath"])
@@ -1569,6 +1641,8 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertTrue((export_path / "Emberfall" / "Documents" / "Chapter 01.md").exists())
         self.assertTrue((export_path / "Emberfall" / "Relationships").is_dir())
         self.assertTrue((export_path / "Emberfall" / "Timeline").is_dir())
+        self.assertTrue((export_path / "Emberfall" / "Atlas" / "Harbor Map.md").exists())
+        self.assertTrue((export_path / "Glass-Coast" / "Atlas" / "Coast Map.md").exists())
 
         index_text = (export_path / "index.md").read_text(encoding="utf-8")
         self.assertIn("# Atlas: Project", index_text)
@@ -1577,6 +1651,8 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIn("Lore pages: 3", index_text)
         self.assertIn("Relationships: 1", index_text)
         self.assertIn("Timeline events: 1", index_text)
+        self.assertIn("Atlas maps: 2", index_text)
+        self.assertIn("Atlas markers: 2", index_text)
         self.assertIn("[Emberfall](Emberfall/index.md)", index_text)
         self.assertIn("[Glass/Coast](Glass-Coast/index.md)", index_text)
 
