@@ -198,3 +198,123 @@ Verification commands run:
 - `npm run build` - failed with documented managed-shell Vite access issue.
 - `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
 - `cargo check` - not run; no Tauri/Rust files changed.
+## 2026-06-17 - Emergency Unicode/Mojibake Regression Follow-Up
+
+Environment: Windows desktop development workspace, React frontend tests, Python project-store tests.
+
+Pass/fail notes:
+- Investigating a repeated data-safety report where smart punctuation such as `“`, `’`, and `—` can appear as mojibake like `â€œ`, `â€™`, and `â€”` after editor/preview/lore-link workflows.
+- Added the exact known-good sample to frontend and backend regression coverage:
+
+```text
+“Send Valral,” he said. “You’re not pale.”
+I’d rather keep this — even if it’s strange.
+[[Urzoth]] watched.
+
+🔥
+```
+
+Bugs found:
+- The paste flow preferred extracted clipboard HTML before clean `text/plain`. If the HTML lane already contained mojibake while the plain-text lane was valid Unicode, Worldie could import the corrupted text into the editor body.
+
+Bugs fixed:
+- Paste normalization now prefers clean plain text when extracted clipboard HTML contains suspicious mojibake sequences.
+- Document save payloads now emit a developer warning if mojibake-like text is about to be saved. This is diagnostic only and does not auto-repair or block user content.
+
+Deferred issues:
+- Already-corrupted saved documents still need a separate, user-approved recovery workflow. No automatic cleanup or migration was added.
+- Full manual desktop verification against the active user project should only be done after backing up the `.worldie` file.
+
+Manual reproduction checklist:
+- Back up the active `.worldie` file first.
+- Paste the known-good sample into a document.
+- Save.
+- Switch Write/Preview repeatedly.
+- Toggle Readable Links on/off.
+- Create Lore from `Urzoth`.
+- Link other mentions in the current document.
+- Save and close/reopen.
+- Confirm the exact Unicode sample survives and no `â€œ`, `â€™`, `â€”`, or unexpected `�` appears.
+
+Verification commands:
+- `npm run test:frontend` - first run exposed a frontend test-bundle import issue for the new sanitizer dependency; rerun passed, 210 frontend tests.
+- `npm run test:python` - passed, 49 Python tests.
+- `npm run test` - not defined in `package.json`; ran twice per request and both returned `Missing script: "test"`.
+- `npm run typecheck` - passed.
+- `npm run build` - failed with the documented managed-shell Vite access issue.
+- `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
+- `git diff --check` - passed with line-ending warnings only.
+
+## 2026-06-17 - Preview Layout/Document Context Regression
+
+Environment: Windows desktop development workspace, React frontend tests.
+
+Pass/fail notes:
+- User reported Preview mode still did not show the active document properly even though the same document was visible in Write mode.
+- This pass intentionally did not attempt mojibake recovery. Existing corrupted text remains a separate, user-approved recovery concern.
+
+Bugs found:
+- The editable document body was hidden with `display: none` and the Preview surface was inserted as a sibling without a stable shared document-body slot. That kept the React node mounted but let Preview lose the same body layout behavior as Write mode.
+
+Bugs fixed:
+- Added a stable editor body stack so the document header/title/meta remains visible in both Write and Preview.
+- Preview now renders inside the same document body slot with the same active document body snapshot.
+- The contenteditable body stays mounted, but in Preview it is visually hidden and non-interactive instead of being removed from layout.
+
+Deferred issues:
+- Manual desktop QA should use a backed-up `.worldie` file before testing the active user project.
+- Already-saved mojibake still needs a separate recovery workflow if the user wants it.
+
+Manual QA checklist:
+- Open `White Touch` in Write; confirm title/header/body visible.
+- Switch to Preview; confirm title/header/body still visible.
+- Toggle Readable Links; confirm body remains visible.
+- Switch to `New Document 1` while still in Preview; confirm title/header/body update.
+- Switch back to Write; confirm `New Document 1` editable body visible.
+- Switch back to `White Touch`; confirm it is visible.
+- Confirm mode switches alone do not trigger a save.
+
+Verification commands:
+- `npm run test` - not defined in `package.json`; returned `Missing script: "test"`.
+- `npm run test:frontend` - passed, 211 frontend tests.
+- `npm run typecheck` - passed.
+- `npm run build` - failed with the documented managed-shell Vite access issue.
+- `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
+- `git diff --check` - passed with line-ending warnings only.
+
+## 2026-06-17 - Preview Toolbar Document Selector Regression
+
+Environment: Windows desktop development workspace, React frontend tests.
+
+Pass/fail notes:
+- User clarified that the visible Preview regression was the active document selector/title control disappearing from the toolbar, not only the Preview body surface.
+- The earlier body-stack fix was insufficient because the document selector was still placed at the end of the overflowing write-tool group.
+
+Bugs found:
+- The document selector was rendered unconditionally, but it lived after the write-only formatting/lore controls in the horizontally scrolling toolbar main group. In Preview, the persistent mode controls could visually occupy the document selector's expected area while the selector was pushed out of sight.
+
+Bugs fixed:
+- Moved the active document selector into the persistent toolbar-side group immediately before the Write/Preview segmented control.
+- Kept the selector functional in both Write and Preview so users can switch documents while previewing.
+- Added toolbar state coverage for preserving the active document identity across mode changes and document switches.
+
+Deferred issues:
+- Manual desktop QA should still use a backed-up `.worldie` file before testing the active user project.
+- Existing mojibake content was not repaired or modified.
+
+Manual QA checklist:
+- Open `White Touch` in Write; confirm selector shows `White Touch`.
+- Switch to Preview; confirm selector still shows `White Touch`.
+- In Preview, use the selector to choose `New Document 2`; confirm Preview updates.
+- Switch back to Write; confirm selector still shows `New Document 2` and editable body appears.
+- Switch back to `White Touch`; confirm selector remains visible.
+- Confirm Readable Links appears only in Preview.
+- Confirm mode switches alone do not trigger a save.
+
+Verification commands:
+- `npm run test` - not defined in `package.json`; returned `Missing script: "test"`.
+- `npm run test:frontend` - passed, 212 frontend tests.
+- `npm run typecheck` - passed.
+- `npm run build` - failed with the documented managed-shell Vite access issue.
+- `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
+- `git diff --check` - passed with line-ending warnings only.

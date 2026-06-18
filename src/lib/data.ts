@@ -19,7 +19,7 @@ import {
   buildLoreTableViewUpdatePayload,
 } from "./loreTableViews";
 import { resolveProjectStoreErrorMessage } from "./projectStoreErrors";
-import { sanitizeTextForPersistence } from "./textSanitizer";
+import { containsSuspiciousMojibake, sanitizeTextForPersistence } from "./textSanitizer";
 export {
   buildLoreTableViewPayload,
   buildLoreTableViewUpdatePayload,
@@ -183,14 +183,38 @@ function reportProjectStoreError(message: string) {
   projectStoreErrorHandler?.(message);
 }
 
+function collectSuspiciousMojibakePaths(value: unknown, path = "data"): string[] {
+  if (typeof value === "string") {
+    return containsSuspiciousMojibake(value) ? [path] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) => collectSuspiciousMojibakePaths(entry, `${path}[${index}]`));
+  }
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  return Object.entries(value).flatMap(([key, entry]) => collectSuspiciousMojibakePaths(entry, `${path}.${key}`));
+}
+
+function warnSuspiciousMojibakeBeforeSave(action: string, data: unknown) {
+  if (action !== "update_document" && action !== "create_document") return;
+  const paths = collectSuspiciousMojibakePaths(data);
+  if (paths.length === 0) return;
+  console.warn(
+    `Worldie detected mojibake-like text before ${action}. Saving unchanged for data safety. Fields: ${paths.join(", ")}`,
+  );
+}
+
 async function invokeProjectStore<T>(action: string, data?: Record<string, unknown>) {
   if (!isTauri()) {
     throw new ProjectStoreError("Project data requires the desktop app and an active .worldie project file.");
   }
     const { invoke } = await importTauriCore();
+  const sanitizedData = sanitizeTextForPersistence(data);
+  warnSuspiciousMojibakeBeforeSave(action, sanitizedData);
   try {
     return (await invoke("sidecar_request", {
-      payload: { action, data: sanitizeTextForPersistence(data) },
+      payload: { action, data: sanitizedData },
     })) as T;
   } catch (error) {
     const message = resolveProjectStoreErrorMessage(action, error);

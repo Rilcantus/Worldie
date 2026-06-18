@@ -1,4 +1,5 @@
 const REPLACEMENT_CHARACTER = "\uFFFD";
+const SUSPICIOUS_MOJIBAKE_PATTERN = /\u00e2\u20ac.|\u00c3[\u0080-\u00bf]|\u00c2[\u0080-\u00bf]/u;
 
 export function sanitizeInvalidUnicodeSurrogates(value: string): string {
   let sanitized = "";
@@ -21,6 +22,10 @@ export function sanitizeInvalidUnicodeSurrogates(value: string): string {
     sanitized += value[index];
   }
   return sanitized;
+}
+
+export function containsSuspiciousMojibake(value: string): boolean {
+  return SUSPICIOUS_MOJIBAKE_PATTERN.test(value);
 }
 
 export function sanitizeTextForPersistence<T>(value: T): T {

@@ -979,6 +979,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 .tb-select-doc {
   min-width: 180px;
 }
+.editor-toolbar-doc-select {
+  flex: 0 1 240px;
+  max-width: 280px;
+}
 .toolbar-compact-hide {
   flex-shrink: 0;
 }
@@ -1350,8 +1354,20 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   color: var(--text-muted);
   pointer-events: none;
 }
+.editor-body-stack {
+  position: relative;
+  min-height: 480px;
+}
+.editor-body-stack-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
 .doc-editor-preview-hidden {
-  display: none;
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
 }
 
 .typewriter-layout {
@@ -1442,13 +1458,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 
 .editor-preview-reading-mode {
   margin-top: 0;
-  min-height: 420px;
+  min-height: 480px;
   padding: clamp(22px, 4vw, 42px);
   background:
     linear-gradient(180deg, rgba(20, 17, 31, 0.96), rgba(14, 12, 22, 0.98)),
     var(--bg-card);
   border-color: rgba(157, 125, 232, 0.22);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  overflow: visible;
 }
 
 .editor-preview-body {
@@ -1592,6 +1609,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
 
   .tb-select-doc {
     min-width: 146px;
+  }
+
+  .editor-toolbar-doc-select {
+    flex-basis: 190px;
   }
 
   .toolbar-compact-hide {

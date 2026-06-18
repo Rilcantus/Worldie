@@ -186,6 +186,39 @@ export function resolveDocumentPreviewContent(
   return previewContentSnapshot ?? documentContent;
 }
 
+export function buildDocumentModeSurfaceState({
+  documentTitle,
+  documentContent,
+  previewContentSnapshot,
+  isPreviewOpen,
+}: {
+  documentTitle: string;
+  documentContent: string;
+  previewContentSnapshot?: string | null;
+  isPreviewOpen: boolean;
+}) {
+  return {
+    mode: isPreviewOpen ? ("preview" as const) : ("write" as const),
+    title: documentTitle,
+    body: isPreviewOpen ? resolveDocumentPreviewContent(documentContent, previewContentSnapshot) : documentContent,
+  };
+}
+
+export function buildEditorToolbarDocumentState({
+  activeDocumentId,
+  orderedDocuments,
+}: {
+  activeDocumentId: string | null;
+  orderedDocuments: Array<{ id: string; title: string }>;
+}) {
+  const activeDocument = orderedDocuments.find((document) => document.id === activeDocumentId) ?? null;
+  return {
+    selectedDocumentId: activeDocument?.id ?? "",
+    selectedDocumentTitle: activeDocument?.title ?? "",
+    canSwitchDocuments: orderedDocuments.length > 0,
+  };
+}
+
 export function buildLoreEditorDraftPage(
   page: LorePage,
   updates: Pick<LorePage, "title" | "type"> & { tagsJson: string; fieldsJson: string },

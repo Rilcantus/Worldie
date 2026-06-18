@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { LorePage } from "../lib/data";
+import { containsSuspiciousMojibake } from "../lib/textSanitizer.js";
 
 export type SelectionOffsets = {
   start: number;
@@ -991,15 +992,24 @@ export function resolvePastedEditorText(options: {
   plainText?: string;
   fallbackPlainText?: string;
 }) {
+  const fallbackText = options.plainText || options.fallbackPlainText || "";
+  const normalizedFallbackText = normalizePastedText(fallbackText);
+
   if (options.html) {
     const extracted = extractEditorTextFromHtml(options.html);
     if (extracted) {
+      if (
+        normalizedFallbackText &&
+        containsSuspiciousMojibake(extracted) &&
+        !containsSuspiciousMojibake(normalizedFallbackText)
+      ) {
+        return normalizedFallbackText;
+      }
       return extracted;
     }
   }
 
-  const fallbackText = options.plainText || options.fallbackPlainText || "";
-  return normalizePastedText(fallbackText);
+  return normalizedFallbackText;
 }
 
 export function getSelectionText(text: string, selection: SelectionOffsets | null) {

@@ -52,6 +52,20 @@ function summarizePreviewNode(node) {
   };
 }
 
+const KNOWN_GOOD_UNICODE_SAMPLE = "\u201cSend Valral,\u201d he said. \u201cYou\u2019re not pale.\u201d\nI\u2019d rather keep this \u2014 even if it\u2019s strange.\n[[Urzoth]] watched.\n\n\ud83d\udd25";
+const MOJIBAKE_TOKENS = [
+  "\u00e2\u20ac\u0153",
+  "\u00e2\u20ac\u2122",
+  "\u00e2\u20ac\u201d",
+  "\u00e2\u20ac",
+];
+
+function assertNoMojibake(text) {
+  for (const token of MOJIBAKE_TOKENS) {
+    assert.equal(text.includes(token), false, `Unexpected mojibake token ${JSON.stringify(token)} in ${text}`);
+  }
+}
+
 function withFakeHtmlDocument(childNodes, callback) {
   const originalDocument = globalThis.document;
   const originalNode = globalThis.Node;
@@ -231,6 +245,71 @@ test("renderPreviewContent preserves smart punctuation unicode and lore links wi
   assert.equal(JSON.stringify(rawSummary).includes("\u00c3\u00a2"), false);
   assert.equal(JSON.stringify(rawSummary).includes("\u00e2\u20ac\u2122"), false);
   assert.equal(source.includes("\u201c") && source.includes("\u2019") && source.includes("\u2014"), true);
+});
+
+test("known-good unicode sample survives editor helper round trips", () => {
+  const lore = { id: "lore-urzoth", title: "Urzoth" };
+  const linkedLore = new Map([["urzoth", lore]]);
+  const source = KNOWN_GOOD_UNICODE_SAMPLE;
+  const plainMentionSource = source.replace("[[Urzoth]]", "Urzoth");
+  const representation = buildEditorDisplayRepresentation(source);
+  const rawPreview = JSON.stringify(renderPreviewContent(source, linkedLore, () => {}));
+  const readablePreview = JSON.stringify(renderPreviewContent(source, linkedLore, () => {}, { readableLoreLinks: true }));
+  const linkedSelection = replaceSelectionWithLoreLink(
+    plainMentionSource,
+    {
+      start: plainMentionSource.indexOf("Urzoth"),
+      end: plainMentionSource.indexOf("Urzoth") + "Urzoth".length,
+    },
+    "Urzoth",
+  );
+  const linkedMentions = linkUnlinkedLoreMentions(plainMentionSource, "Urzoth");
+
+  assert.equal(normalizePastedText(source), source);
+  assert.equal(resolvePastedEditorText({ plainText: source }), source);
+  assert.equal(representation.html.includes("\u201cSend Valral,\u201d"), true);
+  assert.equal(rawPreview.includes("\u201cSend Valral,\u201d"), true);
+  assert.equal(readablePreview.includes("Urzoth"), true);
+  assert.equal(linkedSelection.text, source);
+  assert.equal(linkedMentions.count, 1);
+  assert.equal(linkedMentions.text, source);
+  assertNoMojibake(representation.html);
+  assertNoMojibake(rawPreview);
+  assertNoMojibake(readablePreview);
+  assertNoMojibake(linkedSelection.text);
+  assertNoMojibake(linkedMentions.text);
+});
+
+test("resolvePastedEditorText prefers clean plain text when clipboard html extraction is mojibake", () => {
+  withFakeHtmlDocument((FakeElement, FakeTextNode) => [
+    new FakeElement("P", [
+      new FakeTextNode("\u00e2\u20ac\u0153Send Valral,\u00e2\u20ac\ufffd he said. You\u00e2\u20ac\u2122re not pale."),
+    ]),
+  ], () => {
+    assert.equal(
+      resolvePastedEditorText({
+        html: "<p>mojibake html</p>",
+        plainText: "\u201cSend Valral,\u201d he said. You\u2019re not pale.",
+      }),
+      "\u201cSend Valral,\u201d he said. You\u2019re not pale.",
+    );
+  });
+});
+
+test("resolvePastedEditorText keeps html extraction when plain text is also suspicious", () => {
+  withFakeHtmlDocument((FakeElement, FakeTextNode) => [
+    new FakeElement("P", [
+      new FakeTextNode("\u00e2\u20ac\u0153Send Valral,\u00e2\u20ac\ufffd"),
+    ]),
+  ], () => {
+    assert.equal(
+      resolvePastedEditorText({
+        html: "<p>mojibake html</p>",
+        plainText: "\u00e2\u20ac\u0153Send Valral,\u00e2\u20ac\ufffd",
+      }),
+      "\u00e2\u20ac\u0153Send Valral,\u00e2\u20ac\ufffd",
+    );
+  });
 });
 
 test("renderPreviewContent readable lore links handles multiple links and punctuation", () => {

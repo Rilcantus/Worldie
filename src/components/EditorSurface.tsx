@@ -121,7 +121,7 @@ export const EditorSurface = memo(function EditorSurface({
           </div>
         </div>
       ) : (
-        <>
+        <div className={`editor-body-stack ${isPreviewOpen ? "editor-body-stack-preview" : ""}`}>
           <div
             ref={editorRef}
             className={[
@@ -142,13 +142,14 @@ export const EditorSurface = memo(function EditorSurface({
             onKeyUp={onSyncSelection}
             spellCheck
             aria-hidden={isPreviewOpen}
+            tabIndex={isPreviewOpen ? -1 : undefined}
           />
           {isPreviewOpen ? (
             <div className="editor-preview editor-preview-reading-mode">
               <div className="editor-preview-body">{renderedPreview}</div>
             </div>
           ) : null}
-        </>
+        </div>
       )}
 
       {isDetailsOpen && !isFocusMode ? (

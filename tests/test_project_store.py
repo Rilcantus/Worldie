@@ -284,6 +284,34 @@ class ProjectStoreTests(unittest.TestCase):
         document = self.db_manager.list_documents(project_uuid, world_id)[0]
         self.assertEqual(document[3], pasted_text)
 
+    def test_document_save_reopen_preserves_known_good_unicode_sample(self):
+        project_uuid, project_path = self.db_manager.add_project("Known Good Unicode", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        document_id = self.db_manager.create_document(project_uuid, world_id, "White Touch")
+        sample = (
+            "\u201cSend Valral,\u201d he said. \u201cYou\u2019re not pale.\u201d\n"
+            "I\u2019d rather keep this \u2014 even if it\u2019s strange.\n"
+            "[[Urzoth]] watched.\n\n"
+            "\U0001f525"
+        )
+
+        response = self.sidecar._handle_request(
+            {
+                "action": "update_document",
+                "data": {
+                    "projectId": project_uuid,
+                    "documentId": document_id,
+                    "contentJson": sample,
+                },
+            }
+        )
+        self.assertEqual(response["status"], "ok")
+
+        reopened_uuid, _, _ = self.db_manager.open_project(project_path)
+        document = self.db_manager.list_documents(reopened_uuid, world_id)[0]
+        self.assertEqual(document[3], sample)
+        self.assertNotIn("\u00e2\u20ac", document[3])
+
     def test_large_pasted_document_with_invalid_surrogate_saves_and_reopens(self):
         project_uuid, project_path = self.db_manager.add_project("Large Invalid Paste", "")
         world_id = self.db_manager.create_world(project_uuid, "Draft World")

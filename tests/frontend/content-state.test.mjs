@@ -9,6 +9,8 @@ import {
   getLoreSelectionActionState,
   getLoreSelectionCreateState,
   getDocumentEditorModeState,
+  buildDocumentModeSurfaceState,
+  buildEditorToolbarDocumentState,
   resolveDocumentPreviewContent,
   buildInitialLoreFields,
   buildLoreTypeCounts,
@@ -230,6 +232,82 @@ test("document preview content uses live write snapshot without mutating active 
   assert.equal(resolveDocumentPreviewContent(savedContent, unsavedSnapshot), unsavedSnapshot);
   assert.equal(resolveDocumentPreviewContent(savedContent, null), savedContent);
   assert.equal(savedContent, "Saved [[Urzoth]] source");
+});
+
+test("document preview content preserves known-good unicode sample exactly", () => {
+  const text = "\u201cSend Valral,\u201d he said. \u201cYou\u2019re not pale.\u201d\nI\u2019d rather keep this \u2014 even if it\u2019s strange.\n[[Urzoth]] watched.\n\n\ud83d\udd25";
+
+  assert.equal(resolveDocumentPreviewContent("Saved text", text), text);
+  assert.equal(resolveDocumentPreviewContent(text, null), text);
+});
+
+test("document mode surface state keeps active title and body across write and preview", () => {
+  const documentA = {
+    title: "White Touch",
+    body: "White Touch body with [[Urzoth]]",
+    draft: "Unsaved White Touch draft",
+  };
+  const documentB = {
+    title: "New Document 1",
+    body: "New Document 1 body",
+  };
+
+  assert.deepEqual(buildDocumentModeSurfaceState({
+    documentTitle: documentA.title,
+    documentContent: documentA.body,
+    isPreviewOpen: false,
+  }), {
+    mode: "write",
+    title: documentA.title,
+    body: documentA.body,
+  });
+
+  assert.deepEqual(buildDocumentModeSurfaceState({
+    documentTitle: documentA.title,
+    documentContent: documentA.body,
+    previewContentSnapshot: documentA.draft,
+    isPreviewOpen: true,
+  }), {
+    mode: "preview",
+    title: documentA.title,
+    body: documentA.draft,
+  });
+
+  assert.deepEqual(buildDocumentModeSurfaceState({
+    documentTitle: documentB.title,
+    documentContent: documentB.body,
+    previewContentSnapshot: null,
+    isPreviewOpen: true,
+  }), {
+    mode: "preview",
+    title: documentB.title,
+    body: documentB.body,
+  });
+});
+
+test("editor toolbar document state keeps the active document visible across modes", () => {
+  const orderedDocuments = [
+    { id: "doc-white-touch", title: "White Touch" },
+    { id: "doc-new-2", title: "New Document 2" },
+  ];
+
+  assert.deepEqual(buildEditorToolbarDocumentState({
+    activeDocumentId: "doc-white-touch",
+    orderedDocuments,
+  }), {
+    selectedDocumentId: "doc-white-touch",
+    selectedDocumentTitle: "White Touch",
+    canSwitchDocuments: true,
+  });
+
+  assert.deepEqual(buildEditorToolbarDocumentState({
+    activeDocumentId: "doc-new-2",
+    orderedDocuments,
+  }), {
+    selectedDocumentId: "doc-new-2",
+    selectedDocumentTitle: "New Document 2",
+    canSwitchDocuments: true,
+  });
 });
 
 test("new lore draft payload uses entered title selected type template and tags", () => {

@@ -267,8 +267,11 @@ export const EditorToolbar = memo(function EditorToolbar({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="editor-toolbar-side">
         <select
-          className="tb-select tb-select-doc"
+          className="tb-select tb-select-doc editor-toolbar-doc-select"
           value={activeDocumentId ?? ""}
           onChange={(event) => {
             const nextDocument = orderedDocumentsById.get(event.target.value);
@@ -284,9 +287,6 @@ export const EditorToolbar = memo(function EditorToolbar({
             </option>
           ))}
         </select>
-      </div>
-
-      <div className="editor-toolbar-side">
         <div className="editor-mode-segment" role="group" aria-label="Editor mode">
           <button
             className={`editor-mode-btn ${!isPreviewOpen ? "active" : ""}`}
