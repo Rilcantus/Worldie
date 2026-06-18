@@ -235,6 +235,53 @@ test("scanBulkLoreMentions avoids larger-word matches", () => {
   assert.equal(result.totalMentions, 1);
 });
 
+test("scanBulkLoreMentions includes review snippets around matches", () => {
+  const source = "Valral watched as Urzoth entered the hut and lowered his spear.";
+  const result = scanBulkLoreMentions(source, [{ id: "lore-urzoth", title: "Urzoth" }]);
+  const snippet = result.items[0].snippets[0];
+
+  assert.equal(snippet.match, "Urzoth");
+  assert.equal(snippet.before.includes("Valral watched as "), true);
+  assert.equal(snippet.after.includes(" entered the hut"), true);
+  assert.equal(source, "Valral watched as Urzoth entered the hut and lowered his spear.");
+});
+
+test("scanBulkLoreMentions snippets preserve unicode emoji and page breaks", () => {
+  const source = "\u201cUrzoth,\u201d Valral said. \ud83d\udd25\n***\nUrzoth \u2014 again.";
+  const result = scanBulkLoreMentions(source, [{ id: "lore-urzoth", title: "Urzoth" }]);
+  const snippetText = result.items[0].snippets.map((snippet) => `${snippet.before}${snippet.match}${snippet.after}`).join("\n");
+
+  assert.equal(result.totalMentions, 2);
+  assert.equal(snippetText.includes("\u201cUrzoth,\u201d"), true);
+  assert.equal(snippetText.includes("\ud83d\udd25"), true);
+  assert.equal(snippetText.includes("***"), true);
+  assert.equal(snippetText.includes("\u2014"), true);
+});
+
+test("scanBulkLoreMentions snippets skip already linked matches", () => {
+  const result = scanBulkLoreMentions("[[Urzoth]] watched Urzoth return.", [
+    { id: "lore-urzoth", title: "Urzoth" },
+  ]);
+
+  assert.equal(result.totalMentions, 1);
+  assert.equal(result.items[0].snippets.length, 1);
+  assert.equal(result.items[0].snippets[0].match, "Urzoth");
+  assert.equal(result.items[0].snippets[0].start, "[[Urzoth]] watched ".length);
+});
+
+test("scanBulkLoreMentions snippets handle regex-special titles and ignore larger words", () => {
+  const result = scanBulkLoreMentions("A+B met Cask (North). A+Bard stayed home.", [
+    { id: "lore-plus", title: "A+B" },
+    { id: "lore-cask", title: "Cask (North)" },
+  ]);
+
+  assert.deepEqual(Object.fromEntries(result.items.map((item) => [item.title, item.snippets[0].match])), {
+    "A+B": "A+B",
+    "Cask (North)": "Cask (North)",
+  });
+  assert.equal(result.totalMentions, 2);
+});
+
 test("linkBulkLoreMentions links all found mentions while preserving punctuation unicode and page breaks", () => {
   const result = linkBulkLoreMentions(
     "\u201cUrzoth,\u201d Valral said.\n***\nKarzug \u2014 Urzoth \ud83d\udd25",

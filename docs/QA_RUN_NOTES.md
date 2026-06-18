@@ -1,5 +1,55 @@
 # QA Run Notes
 
+## 2026-06-17 - Scan Lore Snippet Review
+
+Environment:
+
+- Windows desktop development workspace
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+
+Pass/fail notes:
+
+- Scan Lore review now includes context snippets under each matched lore item.
+- Snippets are generated from unlinked current-document matches only and do not mutate source text.
+- Snippet rendering is plain React text with a highlighted match segment; it does not use raw HTML injection.
+- The first three snippets show by default, with a compact expand/collapse control for additional matches.
+- Lore-item checkbox selection remains independent from snippet expand/collapse.
+
+Bugs found:
+
+- None during implementation.
+
+Bugs fixed:
+
+- Added safer review context so writers can verify matched mentions before linking selected lore items.
+
+Deferred issues:
+
+- Individual mention selection is still deferred.
+- Project-wide and cross-world scanning remain deferred and should be explicit later.
+- Relationship metadata creation from linked mentions remains deferred.
+
+Manual QA checklist:
+
+- Create lore items `Urzoth`, `Valral`, and `Karzug`.
+- Write a document with several plain mentions, punctuation, Unicode, emoji, and `***` page breaks.
+- Include an existing `[[Urzoth]]` link and confirm Scan Lore does not show it as a snippet match.
+- Click Scan Lore and confirm each matched lore item shows context snippets with the matched phrase highlighted.
+- Expand/collapse an item with more than three snippets.
+- Uncheck one item, then Link selected.
+- Confirm only checked lore items are linked and unchecked item text remains plain.
+- Save, close/reopen, and confirm linked document text persists.
+
+Verification commands:
+
+- `npm run test:frontend` - passed, 229 frontend tests.
+- `npm run test` - not available; `package.json` does not define a top-level `test` script.
+- `npm run typecheck` - passed.
+- `npm run build` - hit the known managed-shell Vite access issue.
+- Direct Vite build with `C:\Program Files\nodejs\node.exe` - passed.
+- `git diff --check` - passed with line-ending warnings only.
+
 ## 2026-06-17 - Bulk Link Existing Lore
 
 Environment:

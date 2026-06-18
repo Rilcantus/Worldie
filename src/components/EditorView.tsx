@@ -268,6 +268,7 @@ export const EditorView = memo(function EditorView({
   const [linkMentionsPrompt, setLinkMentionsPrompt] = useState<LinkMentionsPromptState | null>(null);
   const [bulkLoreScanPrompt, setBulkLoreScanPrompt] = useState<BulkLoreScanPromptState | null>(null);
   const [selectedBulkLorePageIds, setSelectedBulkLorePageIds] = useState<string[]>([]);
+  const [expandedBulkLoreSnippetPageIds, setExpandedBulkLoreSnippetPageIds] = useState<string[]>([]);
   const isTypewriterMode = editorMode === "typewriter";
   const hasPendingTypewriterDraft = isTypewriterMode && trimTypewriterCommit(typewriterDraft).length > 0;
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
@@ -330,6 +331,7 @@ export const EditorView = memo(function EditorView({
     setLinkMentionsPrompt(null);
     setBulkLoreScanPrompt(null);
     setSelectedBulkLorePageIds([]);
+    setExpandedBulkLoreSnippetPageIds([]);
     previewDocumentIdRef.current = activeDocumentId;
     setPreviewContentSnapshot(null);
   }, [activeDocumentId]);
@@ -724,6 +726,7 @@ export const EditorView = memo(function EditorView({
     updateSelectionSnapshot(next.selection);
     setBulkLoreScanPrompt(null);
     setSelectedBulkLorePageIds([]);
+    setExpandedBulkLoreSnippetPageIds([]);
     if (isTypewriterMode) {
       setTypewriterDraft(sanitizedText);
     } else {
@@ -970,6 +973,7 @@ export const EditorView = memo(function EditorView({
     setLinkMentionsPrompt(null);
     setBulkLoreScanPrompt(result);
     setSelectedBulkLorePageIds(result.items.map((item) => item.page.id));
+    setExpandedBulkLoreSnippetPageIds([]);
   };
 
   const linkAllBulkLoreMentions = () => {
@@ -984,6 +988,7 @@ export const EditorView = memo(function EditorView({
     });
     setBulkLoreScanPrompt(null);
     setSelectedBulkLorePageIds([]);
+    setExpandedBulkLoreSnippetPageIds([]);
   };
 
   const toggleBulkLoreScanItem = (pageId: string, checked: boolean) => {
@@ -993,6 +998,12 @@ export const EditorView = memo(function EditorView({
       }
       return current.filter((id) => id !== pageId);
     });
+  };
+
+  const toggleBulkLoreScanSnippets = (pageId: string) => {
+    setExpandedBulkLoreSnippetPageIds((current) =>
+      current.includes(pageId) ? current.filter((id) => id !== pageId) : [...current, pageId],
+    );
   };
 
   const requestOpenDocument = (doc: Document) => {
@@ -1697,22 +1708,56 @@ export const EditorView = memo(function EditorView({
                       {bulkLoreScanPrompt.items.length} lore {bulkLoreScanPrompt.items.length === 1 ? "item" : "items"}.
                     </span>
                     <div className="bulk-lore-scan-list">
-                      {bulkLoreScanPrompt.items.map((item) => (
-                        <label key={item.page.id} className="bulk-lore-scan-item">
-                          <input
-                            type="checkbox"
-                            checked={selectedBulkLorePageIds.includes(item.page.id)}
-                            onChange={(event) => toggleBulkLoreScanItem(item.page.id, event.target.checked)}
-                          />
-                          <span className="bulk-lore-scan-item-title">{item.title}</span>
-                          {item.page.type ? (
-                            <span className="bulk-lore-scan-item-type">{item.page.type}</span>
-                          ) : null}
-                          <span className="bulk-lore-scan-item-count">
-                            {item.count} {item.count === 1 ? "mention" : "mentions"}
-                          </span>
-                        </label>
-                      ))}
+                      {bulkLoreScanPrompt.items.map((item) => {
+                        const isExpanded = expandedBulkLoreSnippetPageIds.includes(item.page.id);
+                        const visibleSnippets = isExpanded ? item.snippets : item.snippets.slice(0, 3);
+                        const hiddenSnippetCount = Math.max(0, item.snippets.length - visibleSnippets.length);
+
+                        return (
+                          <div key={item.page.id} className="bulk-lore-scan-item">
+                            <label className="bulk-lore-scan-item-header">
+                              <input
+                                type="checkbox"
+                                checked={selectedBulkLorePageIds.includes(item.page.id)}
+                                onChange={(event) => toggleBulkLoreScanItem(item.page.id, event.target.checked)}
+                              />
+                              <span className="bulk-lore-scan-item-title">{item.title}</span>
+                              {item.page.type ? (
+                                <span className="bulk-lore-scan-item-type">{item.page.type}</span>
+                              ) : null}
+                              <span className="bulk-lore-scan-item-count">
+                                {item.count} {item.count === 1 ? "mention" : "mentions"}
+                              </span>
+                            </label>
+                            {visibleSnippets.length > 0 ? (
+                              <div className="bulk-lore-scan-snippets" aria-label={`Snippets for ${item.title}`}>
+                                {visibleSnippets.map((snippet, index) => (
+                                  <div className="bulk-lore-scan-snippet" key={`${item.page.id}-${snippet.start}-${index}`}>
+                                    {snippet.leadingTruncated ? (
+                                      <span className="bulk-lore-scan-snippet-ellipsis">...</span>
+                                    ) : null}
+                                    <span>{snippet.before}</span>
+                                    <mark>{snippet.match}</mark>
+                                    <span>{snippet.after}</span>
+                                    {snippet.trailingTruncated ? (
+                                      <span className="bulk-lore-scan-snippet-ellipsis">...</span>
+                                    ) : null}
+                                  </div>
+                                ))}
+                                {item.snippets.length > 3 ? (
+                                  <button
+                                    type="button"
+                                    className="bulk-lore-scan-snippet-toggle"
+                                    onClick={() => toggleBulkLoreScanSnippets(item.page.id)}
+                                  >
+                                    {isExpanded ? "Show fewer" : `+${hiddenSnippetCount} more`}
+                                  </button>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 ) : (
@@ -1746,6 +1791,7 @@ export const EditorView = memo(function EditorView({
                   onClick={() => {
                     setBulkLoreScanPrompt(null);
                     setSelectedBulkLorePageIds([]);
+                    setExpandedBulkLoreSnippetPageIds([]);
                   }}
                 >
                   Dismiss

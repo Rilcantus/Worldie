@@ -368,10 +368,21 @@ export type LoreMentionMatch = {
   text: string;
 };
 
+export type BulkLoreMentionSnippet = {
+  before: string;
+  match: string;
+  after: string;
+  start: number;
+  end: number;
+  leadingTruncated: boolean;
+  trailingTruncated: boolean;
+};
+
 export type BulkLoreMentionItem = {
   page: Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>;
   title: string;
   count: number;
+  snippets: BulkLoreMentionSnippet[];
 };
 
 export type BulkLoreAmbiguousTitle = {
@@ -396,6 +407,7 @@ type BulkLoreMentionCandidateMatch = BulkLoreMentionCandidate & {
 };
 
 const MIN_BULK_LORE_TITLE_LENGTH = 3;
+const BULK_LORE_SNIPPET_CONTEXT_CHARS = 60;
 
 function getLoreLinkRanges(text: string) {
   const ranges: Array<{ start: number; end: number }> = [];
@@ -505,6 +517,21 @@ function collectBulkLoreMentionMatches(
   return { matchedCandidates, ambiguousTitles };
 }
 
+function buildBulkLoreMentionSnippet(text: string, match: LoreMentionMatch): BulkLoreMentionSnippet {
+  const snippetStart = Math.max(0, match.start - BULK_LORE_SNIPPET_CONTEXT_CHARS);
+  const snippetEnd = Math.min(text.length, match.end + BULK_LORE_SNIPPET_CONTEXT_CHARS);
+
+  return {
+    before: text.slice(snippetStart, match.start),
+    match: text.slice(match.start, match.end),
+    after: text.slice(match.end, snippetEnd),
+    start: match.start,
+    end: match.end,
+    leadingTruncated: snippetStart > 0,
+    trailingTruncated: snippetEnd < text.length,
+  };
+}
+
 export function scanBulkLoreMentions(
   text: string,
   lorePages: Array<Pick<LorePage, "id" | "title"> & Partial<Pick<LorePage, "type">>>,
@@ -514,6 +541,7 @@ export function scanBulkLoreMentions(
     page,
     title,
     count: matches.length,
+    snippets: matches.map((match) => buildBulkLoreMentionSnippet(text, match)),
   }));
   const totalMentions = items.reduce((sum, item) => sum + item.count, 0);
 
