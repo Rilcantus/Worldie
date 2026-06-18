@@ -84,7 +84,7 @@ The editor has two document modes. Write mode is the editable source view and sh
 
 When you are writing a new document after lore pages already exist, use Scan Lore from the document editor toolbar. Worldie scans the active document for exact, unlinked mentions of lore pages in the current world and shows a review prompt before changing anything. Each matched lore item starts checked, and you can uncheck anything you do not want linked before using Link selected.
 
-The review list also shows short context snippets for each matched lore item, with the matched phrase highlighted. Use those snippets to confirm the mention is really a lore reference before linking. The first few snippets are shown by default, with more available when an item has many matches.
+The review list also shows short context snippets for each matched lore item, with the matched phrase highlighted. Use those snippets to confirm the mention is really a lore reference before linking. The first few snippets are shown by default, with more available when an item has many matches. You can uncheck a whole lore item or uncheck individual snippets when only some mentions should become links.
 
 The first version is intentionally conservative:
 

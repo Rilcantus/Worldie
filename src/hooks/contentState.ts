@@ -221,17 +221,19 @@ export function buildEditorToolbarDocumentState({
 
 export function buildBulkLoreScanSelectionState({
   items,
-  selectedPageIds,
+  selectedMentionIds,
 }: {
-  items: Array<{ page: { id: string }; count: number }>;
-  selectedPageIds?: Iterable<string> | null;
+  items: Array<{ page: { id: string }; snippets?: Array<{ id: string }>; count: number }>;
+  selectedMentionIds?: Iterable<string> | null;
 }) {
-  const itemIds = items.map((item) => item.page.id);
-  const selectedSet = selectedPageIds ? new Set(selectedPageIds) : new Set(itemIds);
-  const selectedItems = items.filter((item) => selectedSet.has(item.page.id));
-  const selectedMentionCount = selectedItems.reduce((sum, item) => sum + item.count, 0);
+  const allMentionIds = items.flatMap((item) => item.snippets?.map((snippet) => snippet.id) ?? []);
+  const selectedSet = selectedMentionIds ? new Set(selectedMentionIds) : new Set(allMentionIds);
+  const selectedMentionIdsInOrder = allMentionIds.filter((id) => selectedSet.has(id));
+  const selectedItems = items.filter((item) => item.snippets?.some((snippet) => selectedSet.has(snippet.id)));
+  const selectedMentionCount = selectedMentionIdsInOrder.length;
   return {
-    selectedPageIds: itemIds.filter((id) => selectedSet.has(id)),
+    selectedMentionIds: selectedMentionIdsInOrder,
+    selectedPageIds: selectedItems.map((item) => item.page.id),
     selectedMentionCount,
     selectedItemCount: selectedItems.length,
     canLinkSelected: selectedMentionCount > 0,

@@ -369,6 +369,7 @@ export type LoreMentionMatch = {
 };
 
 export type BulkLoreMentionSnippet = {
+  id: string;
   before: string;
   match: string;
   after: string;
@@ -517,11 +518,16 @@ function collectBulkLoreMentionMatches(
   return { matchedCandidates, ambiguousTitles };
 }
 
-function buildBulkLoreMentionSnippet(text: string, match: LoreMentionMatch): BulkLoreMentionSnippet {
+function buildBulkLoreMentionId(pageId: string, match: LoreMentionMatch) {
+  return `${pageId}:${match.start}:${match.end}`;
+}
+
+function buildBulkLoreMentionSnippet(pageId: string, text: string, match: LoreMentionMatch): BulkLoreMentionSnippet {
   const snippetStart = Math.max(0, match.start - BULK_LORE_SNIPPET_CONTEXT_CHARS);
   const snippetEnd = Math.min(text.length, match.end + BULK_LORE_SNIPPET_CONTEXT_CHARS);
 
   return {
+    id: buildBulkLoreMentionId(pageId, match),
     before: text.slice(snippetStart, match.start),
     match: text.slice(match.start, match.end),
     after: text.slice(match.end, snippetEnd),
@@ -541,7 +547,7 @@ export function scanBulkLoreMentions(
     page,
     title,
     count: matches.length,
-    snippets: matches.map((match) => buildBulkLoreMentionSnippet(text, match)),
+    snippets: matches.map((match) => buildBulkLoreMentionSnippet(page.id, text, match)),
   }));
   const totalMentions = items.reduce((sum, item) => sum + item.count, 0);
 
@@ -551,6 +557,44 @@ export function scanBulkLoreMentions(
     totalMentions,
     skippedAmbiguousCount: ambiguousTitles.length,
   };
+}
+
+export function linkSelectedBulkLoreMentions(text: string, items: BulkLoreMentionItem[], selectedMentionIds: Iterable<string>) {
+  const selectedMentionIdSet = new Set(selectedMentionIds);
+  const occupiedRanges: Array<{ start: number; end: number }> = [];
+  const replacements = items
+    .flatMap((item) =>
+      item.snippets
+        .filter((snippet) => selectedMentionIdSet.has(snippet.id))
+        .map((snippet) => ({
+          start: snippet.start,
+          end: snippet.end,
+          title: item.title,
+          length: snippet.end - snippet.start,
+          replacement: buildLoreLinkText(item.title),
+        })),
+    )
+    .sort((left, right) => {
+      const lengthDelta = right.length - left.length;
+      return lengthDelta || left.start - right.start;
+    })
+    .filter((replacement) => {
+      if (text.slice(replacement.start, replacement.end) !== replacement.title) return false;
+      if (occupiedRanges.some((range) => doRangesOverlap(replacement, range))) return false;
+      occupiedRanges.push({ start: replacement.start, end: replacement.end });
+      return true;
+    });
+
+  if (replacements.length === 0) {
+    return { text, count: 0 };
+  }
+
+  let nextText = text;
+  for (const replacement of [...replacements].sort((left, right) => right.start - left.start)) {
+    nextText = replaceRange(nextText, replacement.start, replacement.end, replacement.replacement);
+  }
+
+  return { text: nextText, count: replacements.length };
 }
 
 export function linkBulkLoreMentions(

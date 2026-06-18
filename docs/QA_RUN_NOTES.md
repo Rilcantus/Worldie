@@ -1,5 +1,54 @@
 # QA Run Notes
 
+## 2026-06-17 - Scan Lore Individual Mention Selection
+
+Environment:
+
+- Windows desktop development workspace
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+
+Pass/fail notes:
+
+- Scan Lore snippets now have individual mention checkboxes.
+- All mentions for non-ambiguous matched lore items start selected.
+- The lore-item checkbox selects or clears all snippets for that item.
+- If only some snippets are selected, the lore-item checkbox shows an indeterminate state.
+- Link selected now links only checked mentions and keeps unchecked mentions as plain text.
+
+Bugs found:
+
+- None during implementation.
+
+Bugs fixed:
+
+- Added mention-level review control so normal prose uses of a lore title can be skipped before linking.
+
+Deferred issues:
+
+- Project-wide and cross-world scanning remain deferred and should be explicit later.
+- Relationship metadata creation from linked mentions remains deferred.
+- Per-mention relationship or note metadata is not implemented.
+
+Manual QA checklist:
+
+- Create lore items `Urzoth`, `Valral`, and `Karzug`.
+- Write a document with several repeated mentions of each, plus an existing `[[Urzoth]]` link.
+- Click Scan Lore and confirm all lore items and snippets are selected by default.
+- Uncheck one `Urzoth` snippet while leaving the other `Urzoth` snippets checked.
+- Uncheck an entire lore item and confirm its snippets are cleared/disabled.
+- Recheck that lore item and confirm its snippets are selected again.
+- Link selected and confirm only checked snippets become `[[Lore Links]]`.
+- Save, close/reopen, and confirm linked document text persists.
+
+Verification commands:
+
+- `npm run test:frontend` - passed, 234 frontend tests.
+- `npm run test` - not available; `package.json` does not define a top-level `test` script.
+- `npm run typecheck` - passed.
+- `npm run build` - hit the known managed-shell Vite access issue.
+- Direct Vite build with `C:\Program Files\nodejs\node.exe` - passed.
+
 ## 2026-06-17 - Scan Lore Snippet Review
 
 Environment:

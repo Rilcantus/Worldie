@@ -21,6 +21,7 @@ import {
   getSlashCommandMatch,
   indentSelectedLines,
   linkBulkLoreMentions,
+  linkSelectedBulkLoreMentions,
   linkUnlinkedLoreMentions,
   isUnderlineElement,
   moveSelectedLineBlock,
@@ -280,6 +281,71 @@ test("scanBulkLoreMentions snippets handle regex-special titles and ignore large
     "Cask (North)": "Cask (North)",
   });
   assert.equal(result.totalMentions, 2);
+});
+
+test("linkSelectedBulkLoreMentions links only checked mentions for the same lore item", () => {
+  const source = "Urzoth entered. Urzoth stayed. Urzoth left.";
+  const scan = scanBulkLoreMentions(source, [{ id: "lore-urzoth", title: "Urzoth" }]);
+  const selectedMentionIds = [scan.items[0].snippets[0].id, scan.items[0].snippets[2].id];
+  const result = linkSelectedBulkLoreMentions(source, scan.items, selectedMentionIds);
+
+  assert.equal(result.count, 2);
+  assert.equal(result.text, "[[Urzoth]] entered. Urzoth stayed. [[Urzoth]] left.");
+  assert.equal(source, "Urzoth entered. Urzoth stayed. Urzoth left.");
+});
+
+test("linkSelectedBulkLoreMentions leaves unchecked lore item mentions plain", () => {
+  const source = "Urzoth met Valral. Urzoth nodded to Valral.";
+  const scan = scanBulkLoreMentions(source, [
+    { id: "lore-urzoth", title: "Urzoth" },
+    { id: "lore-valral", title: "Valral" },
+  ]);
+  const urzothItem = scan.items.find((item) => item.title === "Urzoth");
+  const result = linkSelectedBulkLoreMentions(source, scan.items, urzothItem.snippets.map((snippet) => snippet.id));
+
+  assert.equal(result.count, 2);
+  assert.equal(result.text, "[[Urzoth]] met Valral. [[Urzoth]] nodded to Valral.");
+});
+
+test("linkSelectedBulkLoreMentions with no checked mentions does not mutate source", () => {
+  const source = "Urzoth met Valral.";
+  const scan = scanBulkLoreMentions(source, [
+    { id: "lore-urzoth", title: "Urzoth" },
+    { id: "lore-valral", title: "Valral" },
+  ]);
+  const result = linkSelectedBulkLoreMentions(source, scan.items, []);
+
+  assert.equal(result.count, 0);
+  assert.equal(result.text, source);
+});
+
+test("linkSelectedBulkLoreMentions applies replacements from stable positions without shifting bugs", () => {
+  const source = "Urzoth, Valral, and Karzug saw Urzoth.";
+  const scan = scanBulkLoreMentions(source, [
+    { id: "lore-urzoth", title: "Urzoth" },
+    { id: "lore-valral", title: "Valral" },
+    { id: "lore-karzug", title: "Karzug" },
+  ]);
+  const selectedMentionIds = scan.items.flatMap((item) => item.snippets.map((snippet) => snippet.id));
+  const result = linkSelectedBulkLoreMentions(source, scan.items, selectedMentionIds);
+
+  assert.equal(result.count, 4);
+  assert.equal(result.text, "[[Urzoth]], [[Valral]], and [[Karzug]] saw [[Urzoth]].");
+});
+
+test("linkSelectedBulkLoreMentions preserves unicode emoji page breaks and existing links", () => {
+  const source = "\u201cUrzoth,\u201d Valral said. \ud83d\udd25\n***\n[[Urzoth]] watched Urzoth \u2014 again.";
+  const scan = scanBulkLoreMentions(source, [
+    { id: "lore-urzoth", title: "Urzoth" },
+    { id: "lore-valral", title: "Valral" },
+  ]);
+  const result = linkSelectedBulkLoreMentions(
+    source,
+    scan.items,
+    scan.items.flatMap((item) => item.snippets.map((snippet) => snippet.id)),
+  );
+
+  assert.equal(result.text, "\u201c[[Urzoth]],\u201d [[Valral]] said. \ud83d\udd25\n***\n[[Urzoth]] watched [[Urzoth]] \u2014 again.");
 });
 
 test("linkBulkLoreMentions links all found mentions while preserving punctuation unicode and page breaks", () => {

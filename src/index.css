@@ -1170,6 +1170,22 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   padding-left: 22px;
 }
 
+.bulk-lore-scan-snippet-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.bulk-lore-scan-snippet-row input {
+  accent-color: var(--accent-bright);
+  margin-top: 6px;
+}
+
+.bulk-lore-scan-snippet-row input:disabled + .bulk-lore-scan-snippet {
+  opacity: 0.62;
+}
+
 .bulk-lore-scan-snippet {
   border-left: 2px solid rgba(157, 125, 232, 0.32);
   border-radius: 5px;

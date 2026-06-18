@@ -314,13 +314,14 @@ test("editor toolbar document state keeps the active document visible across mod
 test("bulk lore scan selection defaults all matched items to selected", () => {
   const state = buildBulkLoreScanSelectionState({
     items: [
-      { page: { id: "lore-urzoth" }, count: 5 },
-      { page: { id: "lore-valral" }, count: 3 },
+      { page: { id: "lore-urzoth" }, count: 2, snippets: [{ id: "u-1" }, { id: "u-2" }] },
+      { page: { id: "lore-valral" }, count: 1, snippets: [{ id: "v-1" }] },
     ],
   });
 
+  assert.deepEqual(state.selectedMentionIds, ["u-1", "u-2", "v-1"]);
   assert.deepEqual(state.selectedPageIds, ["lore-urzoth", "lore-valral"]);
-  assert.equal(state.selectedMentionCount, 8);
+  assert.equal(state.selectedMentionCount, 3);
   assert.equal(state.selectedItemCount, 2);
   assert.equal(state.canLinkSelected, true);
 });
@@ -328,30 +329,32 @@ test("bulk lore scan selection defaults all matched items to selected", () => {
 test("bulk lore scan selection disables linking when none are selected", () => {
   const state = buildBulkLoreScanSelectionState({
     items: [
-      { page: { id: "lore-urzoth" }, count: 5 },
-      { page: { id: "lore-valral" }, count: 3 },
+      { page: { id: "lore-urzoth" }, count: 2, snippets: [{ id: "u-1" }, { id: "u-2" }] },
+      { page: { id: "lore-valral" }, count: 1, snippets: [{ id: "v-1" }] },
     ],
-    selectedPageIds: [],
+    selectedMentionIds: [],
   });
 
+  assert.deepEqual(state.selectedMentionIds, []);
   assert.deepEqual(state.selectedPageIds, []);
   assert.equal(state.selectedMentionCount, 0);
   assert.equal(state.selectedItemCount, 0);
   assert.equal(state.canLinkSelected, false);
 });
 
-test("bulk lore scan selection counts only checked items", () => {
+test("bulk lore scan selection counts only checked mentions", () => {
   const state = buildBulkLoreScanSelectionState({
     items: [
-      { page: { id: "lore-urzoth" }, count: 5 },
-      { page: { id: "lore-valral" }, count: 3 },
-      { page: { id: "lore-karzug" }, count: 2 },
+      { page: { id: "lore-urzoth" }, count: 2, snippets: [{ id: "u-1" }, { id: "u-2" }] },
+      { page: { id: "lore-valral" }, count: 2, snippets: [{ id: "v-1" }, { id: "v-2" }] },
+      { page: { id: "lore-karzug" }, count: 1, snippets: [{ id: "k-1" }] },
     ],
-    selectedPageIds: ["lore-valral", "lore-karzug"],
+    selectedMentionIds: ["v-2", "k-1"],
   });
 
+  assert.deepEqual(state.selectedMentionIds, ["v-2", "k-1"]);
   assert.deepEqual(state.selectedPageIds, ["lore-valral", "lore-karzug"]);
-  assert.equal(state.selectedMentionCount, 5);
+  assert.equal(state.selectedMentionCount, 2);
   assert.equal(state.selectedItemCount, 2);
   assert.equal(state.canLinkSelected, true);
 });
