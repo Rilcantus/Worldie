@@ -91,6 +91,7 @@ class ProjectStoreTests(unittest.TestCase):
             "The Quiet Arrival",
             event_date="847 AE",
             event_type="arrival",
+            track="Main History",
             linked_page_id=lore_id,
             description="Mara arrives in Duskfen.",
         )
@@ -98,6 +99,7 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0][0], event_id)
         self.assertEqual(events[0][3], "847 AE")
+        self.assertEqual(events[0][5], "Main History")
 
         copy_path = self.temp_path / "copies" / "iron-age-copy.worldie"
         reopened_uuid, reopened_title, reopened_path = self.db_manager.save_project_as(project_uuid, str(copy_path))
@@ -156,6 +158,7 @@ class ProjectStoreTests(unittest.TestCase):
             "The Quiet Arrival",
             event_date="847 AE",
             event_type="arrival",
+            track="Main History",
             linked_page_id=lore_id,
             description="Mara arrives in Duskfen.",
         )
@@ -186,6 +189,7 @@ class ProjectStoreTests(unittest.TestCase):
             event_id,
             event_date=None,
             event_type=None,
+            track=None,
             linked_page_id=None,
             description=None,
         )
@@ -194,6 +198,32 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIsNone(event[4])
         self.assertIsNone(event[5])
         self.assertIsNone(event[6])
+        self.assertIsNone(event[7])
+
+    def test_timeline_event_track_persists_and_updates(self):
+        project_uuid, project_path = self.db_manager.add_project("Chronicle Track", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+        event_id = self.db_manager.create_timeline_event(
+            project_uuid,
+            world_id,
+            "The River War",
+            event_date="921 AE",
+            event_type="war",
+            track="Wars",
+            description="The river kingdoms go to war.",
+        )
+
+        event = self.db_manager.list_timeline_events(project_uuid, world_id)[0]
+        self.assertEqual(event[0], event_id)
+        self.assertEqual(event[5], "Wars")
+
+        self.db_manager.update_timeline_event(project_uuid, event_id, track="Secret History")
+        updated = self.db_manager.list_timeline_events(project_uuid, world_id)[0]
+        self.assertEqual(updated[5], "Secret History")
+
+        reopened_uuid, _, _ = self.db_manager.open_project(project_path)
+        reopened = self.db_manager.list_timeline_events(reopened_uuid, world_id)[0]
+        self.assertEqual(reopened[5], "Secret History")
 
     def test_document_update_handles_large_unicode_pasted_content(self):
         project_uuid, project_path = self.db_manager.add_project("Large Paste", "")
@@ -766,6 +796,7 @@ class ProjectStoreTests(unittest.TestCase):
                     "eventId": event_id,
                     "eventDate": None,
                     "eventType": None,
+                    "track": None,
                     "linkedPageId": None,
                     "description": None,
                 },
@@ -776,6 +807,7 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIsNone(event[4])
         self.assertIsNone(event[5])
         self.assertIsNone(event[6])
+        self.assertIsNone(event[7])
 
     def test_sidecar_request_flow_persists_project_entities(self):
         create_response = self.sidecar._handle_request(
@@ -1358,6 +1390,7 @@ class ProjectStoreTests(unittest.TestCase):
             "Arrival",
             event_date="847 AE",
             event_type="arrival",
+            track="Main History",
             linked_page_id=mara_id,
             description="Mara reaches [[Red Harbor]].",
         )
@@ -1395,6 +1428,7 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIn("# Arrival", timeline_text)
         self.assertIn("Date: 847 AE", timeline_text)
         self.assertIn("Type: arrival", timeline_text)
+        self.assertIn("Track: Main History", timeline_text)
         self.assertIn("Linked lore: Mara Quill", timeline_text)
         self.assertIn("Mara reaches [[Red Harbor]].", timeline_text)
         self.assertIn("Linked lore: Missing lore (missing-lore)", timeline_text)

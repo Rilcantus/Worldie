@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import type { LorePage, TimelineEvent } from "../lib/data";
+import { getTimelineTrackLabel, groupTimelineEventsByTrack } from "../hooks/worldStructureState";
 import type { WorldUI } from "../types/ui";
 
 type TimelineViewProps = {
@@ -12,6 +13,7 @@ type TimelineViewProps = {
   timelineTitle: string;
   timelineDate: string;
   timelineType: string;
+  timelineTrack: string;
   timelineLinkedPageId: string;
   timelineDescription: string;
   lorePages: LorePage[];
@@ -27,6 +29,7 @@ type TimelineViewProps = {
     title?: string;
     eventDate?: string;
     eventType?: string;
+    track?: string;
     linkedPageId?: string;
     description?: string;
   }) => void;
@@ -36,6 +39,7 @@ type TimelineViewProps = {
   onTitleChange: (value: string) => void;
   onDateChange: (value: string) => void;
   onTypeChange: (value: string) => void;
+  onTrackChange: (value: string) => void;
   onLinkedPageChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onOpenLore: (page: LorePage) => void;
@@ -79,6 +83,7 @@ export const TimelineView = memo(function TimelineView({
   timelineTitle,
   timelineDate,
   timelineType,
+  timelineTrack,
   timelineLinkedPageId,
   timelineDescription,
   lorePages,
@@ -97,22 +102,27 @@ export const TimelineView = memo(function TimelineView({
   onTitleChange,
   onDateChange,
   onTypeChange,
+  onTrackChange,
   onLinkedPageChange,
   onDescriptionChange,
   onOpenLore,
 }: TimelineViewProps) {
   const [timelineSearch, setTimelineSearch] = useState("");
   const [timelineTypeFilter, setTimelineTypeFilter] = useState("all");
+  const [timelineTrackFilter, setTimelineTrackFilter] = useState("all");
   const [timelineLinkedFilter, setTimelineLinkedFilter] = useState("all");
   const [focusedTrackType, setFocusedTrackType] = useState<string | null>(null);
+  const [focusedTimelineTrack, setFocusedTimelineTrack] = useState<string | null>(null);
   const [focusedEra, setFocusedEra] = useState<string | null>(null);
   const titleInputId = "timeline-title";
   const dateInputId = "timeline-date";
   const typeInputId = "timeline-type";
+  const trackInputId = "timeline-track";
   const linkedPageInputId = "timeline-linked-page";
   const descriptionInputId = "timeline-description";
   const timelineSearchInputId = "timeline-search";
   const timelineTypeFilterId = "timeline-type-filter";
+  const timelineTrackFilterId = "timeline-track-filter";
   const timelineLinkedFilterId = "timeline-linked-filter";
   const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
   const getLorePageById = (pageId: string | null | undefined) => (pageId ? lorePagesById.get(pageId) ?? null : null);
@@ -126,20 +136,26 @@ export const TimelineView = memo(function TimelineView({
         event.title.toLowerCase().includes(query) ||
         (event.eventDate ?? "").toLowerCase().includes(query) ||
         (event.eventType ?? "").toLowerCase().includes(query) ||
+        (event.track ?? "").toLowerCase().includes(query) ||
         (event.description ?? "").toLowerCase().includes(query) ||
         linkedTitle.toLowerCase().includes(query);
       const matchesType = timelineTypeFilter === "all" || (event.eventType || "event") === timelineTypeFilter;
+      const matchesTrack = timelineTrackFilter === "all" || getTimelineTrackLabel(event) === timelineTrackFilter;
       const matchesLinked =
         timelineLinkedFilter === "all" ||
         (timelineLinkedFilter === "unlinked" ? !event.linkedPageId : event.linkedPageId === timelineLinkedFilter);
-      return matchesQuery && matchesType && matchesLinked;
+      return matchesQuery && matchesType && matchesTrack && matchesLinked;
     });
-  }, [lorePagesById, timelineEvents, timelineLinkedFilter, timelineSearch, timelineTypeFilter]);
+  }, [lorePagesById, timelineEvents, timelineLinkedFilter, timelineSearch, timelineTrackFilter, timelineTypeFilter]);
 
   const orderedEvents = useMemo(() => sortTimelineEvents(filteredTimelineEvents), [filteredTimelineEvents]);
   const activeLinkedPage = getLorePageById(timelineLinkedPageId);
   const allTimelineTypes = useMemo(
     () => [...new Set(timelineEvents.map((event) => event.eventType || "event"))].sort((a, b) => a.localeCompare(b)),
+    [timelineEvents],
+  );
+  const allTimelineTracks = useMemo(
+    () => [...new Set(timelineEvents.map((event) => getTimelineTrackLabel(event)))].sort((a, b) => a.localeCompare(b)),
     [timelineEvents],
   );
 
@@ -181,10 +197,15 @@ export const TimelineView = memo(function TimelineView({
     }
     return [...groups.entries()];
   }, [orderedEvents]);
+  const groupedTimelineTracks = useMemo(() => groupTimelineEventsByTrack(orderedEvents), [orderedEvents]);
   const focusedTrackEvents = useMemo(() => {
     if (!focusedTrackType) return [];
     return groupedTimelineEvents.find(([label]) => label === focusedTrackType)?.[1] ?? [];
   }, [focusedTrackType, groupedTimelineEvents]);
+  const focusedTimelineTrackEvents = useMemo(() => {
+    if (!focusedTimelineTrack) return [];
+    return groupedTimelineTracks.find(([label]) => label === focusedTimelineTrack)?.[1] ?? [];
+  }, [focusedTimelineTrack, groupedTimelineTracks]);
   const focusedEraEvents = useMemo(() => {
     if (!focusedEra) return [];
     return groupedTimelineEras.find(([label]) => label === focusedEra)?.[1] ?? [];
@@ -400,6 +421,24 @@ export const TimelineView = memo(function TimelineView({
             </select>
           </div>
           <div className="structure-filter-field">
+            <label className="lore-label" htmlFor={timelineTrackFilterId}>
+              Track
+            </label>
+            <select
+              id={timelineTrackFilterId}
+              className="lore-input"
+              value={timelineTrackFilter}
+              onChange={(event) => setTimelineTrackFilter(event.target.value)}
+            >
+              <option value="all">All tracks</option>
+              {allTimelineTracks.map((track) => (
+                <option key={track} value={track}>
+                  {track}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="structure-filter-field">
             <label className="lore-label" htmlFor={timelineLinkedFilterId}>
               Linked lore
             </label>
@@ -424,8 +463,10 @@ export const TimelineView = memo(function TimelineView({
             onClick={() => {
               setTimelineSearch("");
               setTimelineTypeFilter("all");
+              setTimelineTrackFilter("all");
               setTimelineLinkedFilter("all");
               setFocusedTrackType(null);
+              setFocusedTimelineTrack(null);
               setFocusedEra(null);
             }}
           >
@@ -479,6 +520,13 @@ export const TimelineView = memo(function TimelineView({
               Date clusters inferred from your event labels and eras
             </div>
           </div>
+          <div className="structure-card">
+            <div className="structure-card-label">Tracks</div>
+            <div className="structure-card-value">{groupedTimelineTracks.length}</div>
+            <div className="structure-card-meta">
+              Chronicle lanes for arcs, factions, wars, and plot threads
+            </div>
+          </div>
         </div>
 
         <div className="structure-grid">
@@ -510,7 +558,7 @@ export const TimelineView = memo(function TimelineView({
                           <div className="timeline-rail-date">{event.eventDate || "Undated"}</div>
                           <div className="timeline-rail-title">{event.title || "Untitled event"}</div>
                           <div className="timeline-rail-meta">
-                            <span>{event.eventType || "General"}</span>
+                            <span>{getTimelineTrackLabel(event)}</span>
                           </div>
                         </div>
                       </button>
@@ -718,7 +766,63 @@ export const TimelineView = memo(function TimelineView({
 
         <div className="lore-panel">
           <div className="lore-panel-header">
-            <div className="linked-lore-label">Focused Track</div>
+            <div className="linked-lore-label">Track View</div>
+          </div>
+          {groupedTimelineTracks.length === 0 ? (
+            <div className="rp-empty">Chronicle tracks will appear as you assign events to lanes.</div>
+          ) : (
+            <div className="timeline-track-groups">
+              {groupedTimelineTracks.map(([label, events]) => (
+                <div key={label} className="timeline-track-group">
+                  <div className="timeline-track-header">
+                    <button
+                      className={`timeline-track-chip ${
+                        timelineTrackFilter === label || focusedTimelineTrack === label ? "active" : ""
+                      }`}
+                      type="button"
+                      onClick={() => {
+                        setTimelineTrackFilter(label);
+                        setFocusedTimelineTrack((current) => (current === label ? null : label));
+                      }}
+                    >
+                      {label}
+                    </button>
+                    <span className="timeline-track-count">{events.length} events</span>
+                  </div>
+                  <div className="timeline-track-list">
+                    {events.map((event) => {
+                      const linkedPage = getLorePageById(event.linkedPageId);
+                      return (
+                        <div key={`${label}-${event.id}-chronicle-track`} className="timeline-track-row">
+                          <button
+                            className={`timeline-track-item ${event.id === activeTimelineEventId ? "active" : ""}`}
+                            type="button"
+                            onClick={() => onSelectTimelineEvent(event)}
+                          >
+                            <span className="timeline-track-item-date">{event.eventDate || "Undated"}</span>
+                            <span className="timeline-track-item-title">{event.title}</span>
+                            <span className="timeline-track-item-meta">
+                              {linkedPage ? linkedPage.title : event.eventType || "General"}
+                            </span>
+                          </button>
+                          {linkedPage ? (
+                            <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(linkedPage)}>
+                              Open
+                            </button>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="lore-panel">
+          <div className="lore-panel-header">
+            <div className="linked-lore-label">Focused Type Track</div>
           </div>
           {!focusedTrackType ? (
             <div className="rp-empty">Choose an event type or track chip to inspect a single track.</div>
@@ -757,6 +861,65 @@ export const TimelineView = memo(function TimelineView({
                         <span className="timeline-track-item-title">{event.title}</span>
                         <span className="timeline-track-item-meta">
                           {linkedPage ? linkedPage.title : "No linked page"}
+                        </span>
+                      </button>
+                      {linkedPage ? (
+                        <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(linkedPage)}>
+                          Open
+                        </button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="lore-panel">
+          <div className="lore-panel-header">
+            <div className="linked-lore-label">Focused Chronicle Track</div>
+          </div>
+          {!focusedTimelineTrack ? (
+            <div className="rp-empty">Choose a Chronicle track chip to inspect one lane.</div>
+          ) : focusedTimelineTrackEvents.length === 0 ? (
+            <div className="rp-empty">{focusedTimelineTrack} has no visible events in the current filters.</div>
+          ) : (
+            <>
+              <div className="advanced-json-note">
+                {focusedTimelineTrack} contains {focusedTimelineTrackEvents.length} visible events.
+              </div>
+              <div className="relationship-action-row">
+                <button
+                  className="tb-btn"
+                  type="button"
+                  onClick={() =>
+                    onAddTimelineEventWithSeed({
+                      title: `New ${focusedTimelineTrack} Event`,
+                      track: focusedTimelineTrack,
+                    })
+                  }
+                >
+                  Add event to {focusedTimelineTrack}
+                </button>
+                <button className="tb-btn" type="button" onClick={() => setFocusedTimelineTrack(null)}>
+                  Clear track focus
+                </button>
+              </div>
+              <div className="timeline-track-list">
+                {focusedTimelineTrackEvents.slice(0, 6).map((event) => {
+                  const linkedPage = getLorePageById(event.linkedPageId);
+                  return (
+                    <div key={`chronicle-focus-${event.id}`} className="timeline-track-row">
+                      <button
+                        className={`timeline-track-item ${event.id === activeTimelineEventId ? "active" : ""}`}
+                        type="button"
+                        onClick={() => onSelectTimelineEvent(event)}
+                      >
+                        <span className="timeline-track-item-date">{event.eventDate || "Undated"}</span>
+                        <span className="timeline-track-item-title">{event.title}</span>
+                        <span className="timeline-track-item-meta">
+                          {event.eventType || linkedPage?.title || "General"}
                         </span>
                       </button>
                       {linkedPage ? (
@@ -847,6 +1010,17 @@ export const TimelineView = memo(function TimelineView({
               placeholder="event, war, discovery..."
             />
 
+            <label className="lore-label" htmlFor={trackInputId}>
+              Track
+            </label>
+            <input
+              id={trackInputId}
+              className="lore-input"
+              value={timelineTrack}
+              onChange={(event) => onTrackChange(event.target.value)}
+              placeholder="Main History, Character Arcs, Wars..."
+            />
+
             <label className="lore-label" htmlFor={linkedPageInputId}>
               Linked lore page
             </label>
@@ -888,6 +1062,10 @@ export const TimelineView = memo(function TimelineView({
               <div className="structure-list-item">
                 <span>Type</span>
                 <span>{timelineType || "General"}</span>
+              </div>
+              <div className="structure-list-item">
+                <span>Track</span>
+                <span>{timelineTrack || "Uses type/default track"}</span>
               </div>
               <div className="structure-list-item">
                 <span>Linked page</span>

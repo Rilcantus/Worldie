@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  getTimelineTrackLabel,
+  groupTimelineEventsByTrack,
   hasUnsavedRelationshipChanges,
   hasUnsavedTimelineChanges,
   removeItemWithFallback,
@@ -42,12 +44,39 @@ test("hasUnsavedTimelineChanges detects edits against the active event", () => {
   };
 
   assert.equal(
-    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1000 AR", "event", "lore-1", "old"),
+    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1000 AR", "event", "", "lore-1", "old"),
     false,
   );
   assert.equal(
-    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1001 AR", "event", "lore-1", "old"),
+    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1001 AR", "event", "", "lore-1", "old"),
     true,
+  );
+  assert.equal(
+    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1000 AR", "event", "Main History", "lore-1", "old"),
+    true,
+  );
+});
+
+test("timeline track helpers group explicit tracks and fallback labels", () => {
+  const events = [
+    { id: "event-1", track: "Main History", eventType: "history", title: "Founding" },
+    { id: "event-2", track: "Main History", eventType: "war", title: "Siege" },
+    { id: "event-3", track: "", eventType: "character", title: "Departure" },
+    { id: "event-4", eventType: "", title: "Omen" },
+  ];
+
+  assert.equal(getTimelineTrackLabel(events[0]), "Main History");
+  assert.equal(getTimelineTrackLabel(events[2]), "character Track");
+  assert.equal(getTimelineTrackLabel(events[3]), "General Track");
+
+  const groups = groupTimelineEventsByTrack(events);
+  assert.deepEqual(
+    groups.map(([label, groupedEvents]) => [label, groupedEvents.map((event) => event.id)]),
+    [
+      ["Main History", ["event-1", "event-2"]],
+      ["character Track", ["event-3"]],
+      ["General Track", ["event-4"]],
+    ],
   );
 });
 

@@ -32,6 +32,7 @@ type UseMainContentActionsArgs = {
     title?: string;
     eventDate?: string;
     eventType?: string;
+    track?: string;
     linkedPageId?: string;
     description?: string;
   }) => Promise<unknown>;
@@ -51,6 +52,7 @@ type TimelineSeed = {
   title?: string;
   eventDate?: string;
   eventType?: string;
+  track?: string;
   linkedPageId?: string;
   description?: string;
 };

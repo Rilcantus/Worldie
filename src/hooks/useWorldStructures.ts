@@ -61,6 +61,7 @@ export function useWorldStructures({
   const [timelineTitle, setTimelineTitle] = useState("");
   const [timelineDate, setTimelineDate] = useState("");
   const [timelineType, setTimelineType] = useState("event");
+  const [timelineTrack, setTimelineTrack] = useState("");
   const [timelineLinkedPageId, setTimelineLinkedPageId] = useState("");
   const [timelineDescription, setTimelineDescription] = useState("");
   const [timelineSaveState, setTimelineSaveState] = useState<SaveState>("idle");
@@ -100,6 +101,7 @@ export function useWorldStructures({
     setTimelineTitle((current) => (current === "" ? current : ""));
     setTimelineDate((current) => (current === "" ? current : ""));
     setTimelineType((current) => (current === "event" ? current : "event"));
+    setTimelineTrack((current) => (current === "" ? current : ""));
     setTimelineLinkedPageId((current) => (current === "" ? current : ""));
     setTimelineDescription((current) => (current === "" ? current : ""));
     setTimelineSaveState((current) => (current === saveState ? current : saveState));
@@ -153,6 +155,7 @@ export function useWorldStructures({
     timelineTitle,
     timelineDate,
     timelineType,
+    timelineTrack,
     timelineLinkedPageId,
     timelineDescription,
   ), [
@@ -161,6 +164,7 @@ export function useWorldStructures({
     timelineDescription,
     timelineLinkedPageId,
     timelineTitle,
+    timelineTrack,
     timelineType,
   ]);
 
@@ -251,6 +255,7 @@ export function useWorldStructures({
         setTimelineTitle(first?.title ?? "");
         setTimelineDate(first?.eventDate ?? "");
         setTimelineType(first?.eventType ?? "event");
+        setTimelineTrack(first?.track ?? "");
         setTimelineLinkedPageId(first?.linkedPageId ?? "");
         setTimelineDescription(first?.description ?? "");
         markTimelineSaved();
@@ -432,6 +437,7 @@ export function useWorldStructures({
   const selectTimelineEvent = useCallback(async (event: TimelineEvent, options?: SelectionOptions) => {
     if (!options?.skipGuard && !(await canLeaveTimelineDraft(event.id))) return;
     const nextType = event.eventType ?? "event";
+    const nextTrack = event.track ?? "";
     const nextLinkedPageId = event.linkedPageId ?? "";
     const nextDescription = event.description ?? "";
     const changed =
@@ -439,12 +445,14 @@ export function useWorldStructures({
       timelineTitle !== event.title ||
       timelineDate !== event.eventDate ||
       timelineType !== nextType ||
+      timelineTrack !== nextTrack ||
       timelineLinkedPageId !== nextLinkedPageId ||
       timelineDescription !== nextDescription;
     setActiveTimelineEventId((current) => (current === event.id ? current : event.id));
     setTimelineTitle((current) => (current === event.title ? current : event.title));
     setTimelineDate((current) => (current === event.eventDate ? current : event.eventDate));
     setTimelineType((current) => (current === nextType ? current : nextType));
+    setTimelineTrack((current) => (current === nextTrack ? current : nextTrack));
     setTimelineLinkedPageId((current) => (current === nextLinkedPageId ? current : nextLinkedPageId));
     setTimelineDescription((current) => (current === nextDescription ? current : nextDescription));
     if (!changed) return;
@@ -457,6 +465,7 @@ export function useWorldStructures({
     timelineDescription,
     timelineLinkedPageId,
     timelineTitle,
+    timelineTrack,
     timelineType,
   ]);
 
@@ -468,6 +477,7 @@ export function useWorldStructures({
     title?: string;
     eventDate?: string;
     eventType?: string;
+    track?: string;
     linkedPageId?: string;
     description?: string;
   }) => {
@@ -481,6 +491,7 @@ export function useWorldStructures({
         title: seed?.title?.trim() || `New Event ${timelineEvents.length + 1}`,
         eventDate: seed?.eventDate ?? "",
         eventType: seed?.eventType?.trim() || "event",
+        track: seed?.track?.trim() || "",
         linkedPageId: seed?.linkedPageId ?? "",
         description: seed?.description ?? "",
       });
@@ -507,6 +518,7 @@ export function useWorldStructures({
       title: `${sourceEvent.title} Copy`,
       eventDate: sourceEvent.eventDate,
       eventType: sourceEvent.eventType ?? "event",
+      track: sourceEvent.track ?? "",
       linkedPageId: sourceEvent.linkedPageId ?? "",
       description: sourceEvent.description ?? "",
     });
@@ -530,6 +542,7 @@ export function useWorldStructures({
         title: timelineTitle.trim(),
         eventDate: timelineDate.trim(),
         eventType: timelineType.trim() || "event",
+        track: timelineTrack.trim(),
         linkedPageId: timelineLinkedPageId,
         description: timelineDescription,
       });
@@ -555,6 +568,7 @@ export function useWorldStructures({
               title: timelineTitle.trim(),
               eventDate: timelineDate.trim(),
               eventType: timelineType.trim() || "event",
+              track: timelineTrack.trim(),
               linkedPageId: timelineLinkedPageId,
               description: timelineDescription,
             }
@@ -588,6 +602,7 @@ export function useWorldStructures({
       setTimelineTitle(first?.title ?? "");
       setTimelineDate(first?.eventDate ?? "");
       setTimelineType(first?.eventType ?? "event");
+      setTimelineTrack(first?.track ?? "");
       setTimelineLinkedPageId(first?.linkedPageId ?? "");
       setTimelineDescription(first?.description ?? "");
       if (first) {
@@ -663,6 +678,15 @@ export function useWorldStructures({
     });
   }, []);
 
+  const updateTimelineTrack = useCallback((value: string) => {
+    setTimelineTrack((current) => {
+      if (current === value) return current;
+      currentTimelineSaveVersionRef.current += 1;
+      setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
   const updateTimelineLinkedPageId = useCallback((value: string) => {
     setTimelineLinkedPageId((current) => {
       if (current === value) return current;
@@ -694,6 +718,7 @@ export function useWorldStructures({
       timelineTitle,
       timelineDate,
       timelineType,
+      timelineTrack,
       timelineLinkedPageId,
       timelineDescription,
       hasUnsavedChanges: hasUnsavedRelationshipDraftChanges || hasUnsavedTimelineDraftChanges,
@@ -708,6 +733,7 @@ export function useWorldStructures({
       setTimelineTitle: updateTimelineTitle,
       setTimelineDate: updateTimelineDate,
       setTimelineType: updateTimelineType,
+      setTimelineTrack: updateTimelineTrack,
       setTimelineLinkedPageId: updateTimelineLinkedPageId,
       setTimelineDescription: updateTimelineDescription,
       selectRelationship,
@@ -734,6 +760,7 @@ export function useWorldStructures({
       timelineTitle,
       timelineDate,
       timelineType,
+      timelineTrack,
       timelineLinkedPageId,
       timelineDescription,
       hasUnsavedRelationshipDraftChanges,
@@ -749,6 +776,7 @@ export function useWorldStructures({
       updateTimelineTitle,
       updateTimelineDate,
       updateTimelineType,
+      updateTimelineTrack,
       updateTimelineLinkedPageId,
       updateTimelineDescription,
       selectRelationship,

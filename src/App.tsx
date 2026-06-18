@@ -396,6 +396,7 @@ export default function App() {
           timelineTitle={worldStructures.timelineTitle}
           timelineDate={worldStructures.timelineDate}
           timelineType={worldStructures.timelineType}
+          timelineTrack={worldStructures.timelineTrack}
           timelineLinkedPageId={worldStructures.timelineLinkedPageId}
           timelineDescription={worldStructures.timelineDescription}
           totalWordCount={content.totalWordCount}
@@ -480,6 +481,7 @@ export default function App() {
           onTimelineTitleChange={worldStructures.setTimelineTitle}
           onTimelineDateChange={worldStructures.setTimelineDate}
           onTimelineTypeChange={worldStructures.setTimelineType}
+          onTimelineTrackChange={worldStructures.setTimelineTrack}
           onTimelineLinkedPageChange={worldStructures.setTimelineLinkedPageId}
           onTimelineDescriptionChange={worldStructures.setTimelineDescription}
           onSelectSearchResult={search.selectSearchResult}

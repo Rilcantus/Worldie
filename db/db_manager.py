@@ -187,6 +187,7 @@ def _init_project_db(db_path, create_if_missing=False):
             title TEXT NOT NULL,
             date_text TEXT,
             event_type TEXT,
+            track TEXT,
             linked_page_id TEXT,
             description TEXT,
             links_json TEXT,
@@ -254,6 +255,7 @@ def _init_project_db(db_path, create_if_missing=False):
     _ensure_column(conn, "relationships", "notes", "TEXT")
     _ensure_column(conn, "relationships", "updated_at", "TEXT")
     _ensure_column(conn, "timeline_events", "event_type", "TEXT")
+    _ensure_column(conn, "timeline_events", "track", "TEXT")
     _ensure_column(conn, "timeline_events", "linked_page_id", "TEXT")
     _ensure_column(conn, "lore_types", "icon", "TEXT")
     _ensure_column(conn, "lore_types", "field_definitions_json", "TEXT")
@@ -543,12 +545,14 @@ def _timeline_sort_key(event):
 
 
 def _build_timeline_markdown(event, lore_titles_by_id):
-    _, _, title, date_text, event_type, linked_page_id, description, created_at, updated_at = event
+    _, _, title, date_text, event_type, track, linked_page_id, description, created_at, updated_at = event
     lines = [f"# {title}", ""]
     if date_text:
         lines.append(f"Date: {date_text}")
     if event_type:
         lines.append(f"Type: {event_type}")
+    if track:
+        lines.append(f"Track: {track}")
     if linked_page_id:
         lines.append(f"Linked lore: {_lore_title(lore_titles_by_id, linked_page_id)}")
     if created_at or updated_at:
@@ -838,7 +842,7 @@ def _fetch_world_export_data(conn, project_uuid, world_id):
     relationships = c.fetchall()
     c.execute(
         """
-        SELECT id, world_id, title, date_text, event_type, linked_page_id, description, created_at, updated_at
+        SELECT id, world_id, title, date_text, event_type, track, linked_page_id, description, created_at, updated_at
         FROM timeline_events
         WHERE world_id = ?
         ORDER BY title COLLATE NOCASE, id
@@ -930,7 +934,7 @@ def _write_world_markdown_export(project_title, world_data, export_path):
 
     timeline_root = os.path.join(export_path, "Timeline")
     for event in sorted(timeline_events, key=_timeline_sort_key):
-        _, _, title, date_text, _, linked_page_id, _, _, _ = event
+        _, _, title, date_text, _, _, linked_page_id, _, _, _ = event
         filename = f"{_safe_export_name(title, 'timeline-event')}.md"
         file_path = _dedupe_export_path(timeline_root, filename, used_paths)
         _write_text_file(file_path, _build_timeline_markdown(event, lore_titles_by_id))
@@ -1419,27 +1423,37 @@ def delete_relationship(project_uuid, relationship_id):
     _touch_project(project_uuid)
 
 
-def create_timeline_event(project_uuid, world_id, title, event_date=None, event_type=None, linked_page_id=None, description=None):
+def create_timeline_event(
+    project_uuid,
+    world_id,
+    title,
+    event_date=None,
+    event_type=None,
+    track=None,
+    linked_page_id=None,
+    description=None,
+):
     db_path = _get_project_filepath(project_uuid)
     conn = _project_conn(db_path)
     c = conn.cursor()
     now = _now_iso()
     event_id = str(uuid.uuid4())
-    title, event_date, event_type, linked_page_id, description = _sanitize_text_values(
+    title, event_date, event_type, track, linked_page_id, description = _sanitize_text_values(
         title,
         event_date,
         event_type,
+        track,
         linked_page_id,
         description,
     )
     c.execute(
         """
         INSERT INTO timeline_events (
-            id, world_id, title, date_text, event_type, linked_page_id, description, links_json, created_at, updated_at
+            id, world_id, title, date_text, event_type, track, linked_page_id, description, links_json, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (event_id, world_id, title, event_date, event_type, linked_page_id, description, None, now, now),
+        (event_id, world_id, title, event_date, event_type, track, linked_page_id, description, None, now, now),
     )
     conn.commit()
     conn.close()
@@ -1453,7 +1467,7 @@ def list_timeline_events(project_uuid, world_id):
     c = conn.cursor()
     c.execute(
         """
-        SELECT id, world_id, title, date_text, event_type, linked_page_id, description, created_at, updated_at
+        SELECT id, world_id, title, date_text, event_type, track, linked_page_id, description, created_at, updated_at
         FROM timeline_events
         WHERE world_id = ?
         ORDER BY updated_at DESC
@@ -1471,6 +1485,7 @@ def update_timeline_event(
     title=OMITTED,
     event_date=OMITTED,
     event_type=OMITTED,
+    track=OMITTED,
     linked_page_id=OMITTED,
     description=OMITTED,
 ):
@@ -1485,6 +1500,7 @@ def update_timeline_event(
             ("title", title),
             ("date_text", event_date),
             ("event_type", event_type),
+            ("track", track),
             ("linked_page_id", linked_page_id),
             ("description", description),
         ],

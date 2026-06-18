@@ -40,6 +40,7 @@ export function hasUnsavedTimelineChanges(
   timelineTitle: string,
   timelineDate: string,
   timelineType: string,
+  timelineTrack: string,
   timelineLinkedPageId: string,
   timelineDescription: string,
 ) {
@@ -48,9 +49,28 @@ export function hasUnsavedTimelineChanges(
     activeTimelineEvent.title !== timelineTitle ||
     activeTimelineEvent.eventDate !== timelineDate ||
     (activeTimelineEvent.eventType ?? "event") !== timelineType ||
+    (activeTimelineEvent.track ?? "") !== timelineTrack ||
     (activeTimelineEvent.linkedPageId ?? "") !== timelineLinkedPageId ||
     (activeTimelineEvent.description ?? "") !== timelineDescription
   );
+}
+
+export function getTimelineTrackLabel(event: Pick<TimelineEvent, "track" | "eventType">) {
+  const track = (event.track ?? "").trim();
+  if (track) return track;
+  const type = (event.eventType ?? "").trim();
+  return type ? `${type} Track` : "General Track";
+}
+
+export function groupTimelineEventsByTrack<T extends Pick<TimelineEvent, "track" | "eventType">>(events: T[]) {
+  const groups = new Map<string, T[]>();
+  for (const event of events) {
+    const label = getTimelineTrackLabel(event);
+    const existing = groups.get(label) ?? [];
+    existing.push(event);
+    groups.set(label, existing);
+  }
+  return [...groups.entries()];
 }
 
 export function getAlternateLorePage(allLorePages: LorePage[], excludedId: string | undefined) {

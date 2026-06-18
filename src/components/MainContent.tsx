@@ -62,6 +62,7 @@ type MainContentProps = {
   timelineTitle: string;
   timelineDate: string;
   timelineType: string;
+  timelineTrack: string;
   timelineLinkedPageId: string;
   timelineDescription: string;
   totalWordCount: number;
@@ -169,6 +170,7 @@ type MainContentProps = {
     title?: string;
     eventDate?: string;
     eventType?: string;
+    track?: string;
     linkedPageId?: string;
     description?: string;
   }) => void;
@@ -178,6 +180,7 @@ type MainContentProps = {
   onTimelineTitleChange: (value: string) => void;
   onTimelineDateChange: (value: string) => void;
   onTimelineTypeChange: (value: string) => void;
+  onTimelineTrackChange: (value: string) => void;
   onTimelineLinkedPageChange: (value: string) => void;
   onTimelineDescriptionChange: (value: string) => void;
   onSelectSearchResult: (result: SearchResult) => void;
@@ -449,6 +452,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               timelineTitle={props.timelineTitle}
               timelineDate={props.timelineDate}
               timelineType={props.timelineType}
+              timelineTrack={props.timelineTrack}
               timelineLinkedPageId={props.timelineLinkedPageId}
               timelineDescription={props.timelineDescription}
               lorePages={props.allLorePages}
@@ -467,6 +471,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onTitleChange={props.onTimelineTitleChange}
               onDateChange={props.onTimelineDateChange}
               onTypeChange={props.onTimelineTypeChange}
+              onTrackChange={props.onTimelineTrackChange}
               onLinkedPageChange={props.onTimelineLinkedPageChange}
               onDescriptionChange={props.onTimelineDescriptionChange}
               onOpenLore={props.onOpenLore}

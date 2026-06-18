@@ -498,10 +498,11 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
                     "title": row[2],
                     "eventDate": row[3],
                     "eventType": row[4],
-                    "linkedPageId": row[5],
-                    "description": row[6],
-                    "createdAt": row[7],
-                    "updatedAt": row[8],
+                    "track": row[5],
+                    "linkedPageId": row[6],
+                    "description": row[7],
+                    "createdAt": row[8],
+                    "updatedAt": row[9],
                 }
                 for row in rows
             ],
@@ -519,6 +520,7 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
             title,
             event_date=data.get("eventDate"),
             event_type=data.get("eventType"),
+            track=data.get("track"),
             linked_page_id=data.get("linkedPageId"),
             description=data.get("description"),
         )
@@ -535,6 +537,7 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
             title=_optional(data, "title"),
             event_date=_optional(data, "eventDate"),
             event_type=_optional(data, "eventType"),
+            track=_optional(data, "track"),
             linked_page_id=_optional(data, "linkedPageId"),
             description=_optional(data, "description"),
         )
