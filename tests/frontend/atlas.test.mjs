@@ -6,6 +6,8 @@ import {
   buildAtlasMarkerUpdate,
   clampAtlasPoint,
   getAtlasPointFromClientPosition,
+  hasUnsavedAtlasMarkerDraft,
+  resolveAtlasMarkerSaveState,
 } from "../../.tmp-frontend-tests/src/lib/atlas.js";
 
 test("clampAtlasPoint keeps marker coordinates inside map bounds", () => {
@@ -61,3 +63,30 @@ test("atlas marker draft helpers preserve lore links and normalize empty values"
   );
 });
 
+test("atlas marker dirty detection watches title type notes and lore links", () => {
+  const marker = {
+    id: "marker-1",
+    worldId: "world-1",
+    mapId: "map-1",
+    title: "Red Harbor",
+    description: "Port city",
+    x: 10,
+    y: 20,
+    markerType: "city",
+    lorePageId: "lore-1",
+  };
+
+  assert.equal(hasUnsavedAtlasMarkerDraft(marker, buildAtlasMarkerDraft(marker)), false);
+  assert.equal(hasUnsavedAtlasMarkerDraft(marker, { ...buildAtlasMarkerDraft(marker), title: "Blue Harbor" }), true);
+  assert.equal(hasUnsavedAtlasMarkerDraft(marker, { ...buildAtlasMarkerDraft(marker), markerType: "landmark" }), true);
+  assert.equal(hasUnsavedAtlasMarkerDraft(marker, { ...buildAtlasMarkerDraft(marker), description: "Changed" }), true);
+  assert.equal(hasUnsavedAtlasMarkerDraft(marker, { ...buildAtlasMarkerDraft(marker), lorePageId: "" }), true);
+});
+
+test("atlas marker save state keeps dirty and error states visible", () => {
+  assert.equal(resolveAtlasMarkerSaveState(true, "idle"), "dirty");
+  assert.equal(resolveAtlasMarkerSaveState(true, "saved"), "dirty");
+  assert.equal(resolveAtlasMarkerSaveState(true, "saving"), "saving");
+  assert.equal(resolveAtlasMarkerSaveState(false, "error"), "error");
+  assert.equal(resolveAtlasMarkerSaveState(false, "saved"), "saved");
+});

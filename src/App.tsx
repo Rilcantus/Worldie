@@ -117,7 +117,7 @@ export default function App() {
       const template = templateId ? loreTemplatesById.get(templateId) ?? null : null;
       return (async () => {
         const hasUnsavedChanges =
-          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges || atlas.hasUnsavedChanges;
         if (hasUnsavedChanges) {
           const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
             confirmLabel: "Continue",
@@ -135,6 +135,7 @@ export default function App() {
     [
       content.createLoreItem,
       content.hasUnsavedChanges,
+      atlas.hasUnsavedChanges,
       feedback.confirmAction,
       hasPendingEditorDraft,
       loreTemplatesById,
@@ -161,7 +162,7 @@ export default function App() {
     }) => {
       const template = templateId ? loreTemplatesById.get(templateId) ?? null : null;
       return (async () => {
-        const hasUnsavedChanges = worldStructures.hasUnsavedChanges;
+        const hasUnsavedChanges = worldStructures.hasUnsavedChanges || atlas.hasUnsavedChanges;
         if (hasUnsavedChanges) {
           const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
             confirmLabel: "Continue",
@@ -174,6 +175,7 @@ export default function App() {
     },
     [
       content.createLoreItem,
+      atlas.hasUnsavedChanges,
       feedback.confirmAction,
       loreTemplatesById,
       worldStructures.hasUnsavedChanges,
@@ -184,7 +186,7 @@ export default function App() {
     ({ loreTypeId, drafts }: { loreTypeId: string; drafts: LoreTableCsvImportDraft[] }) => {
       return (async () => {
         const hasUnsavedChanges =
-          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges || atlas.hasUnsavedChanges;
         if (hasUnsavedChanges) {
           const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
             confirmLabel: "Continue",
@@ -198,6 +200,7 @@ export default function App() {
     [
       content.hasUnsavedChanges,
       content.importLoreItemsFromCsv,
+      atlas.hasUnsavedChanges,
       feedback.confirmAction,
       hasPendingEditorDraft,
       worldStructures.hasUnsavedChanges,
@@ -208,7 +211,7 @@ export default function App() {
     ({ loreTypeId, drafts }: { loreTypeId: string; drafts: LoreTableCsvUpdateDraft[] }) => {
       return (async () => {
         const hasUnsavedChanges =
-          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+          hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges || atlas.hasUnsavedChanges;
         if (hasUnsavedChanges) {
           const canContinue = await feedback.confirmAction("You have unsaved changes in the current view. Continue anyway?", {
             confirmLabel: "Continue",
@@ -222,6 +225,7 @@ export default function App() {
     [
       content.hasUnsavedChanges,
       content.updateLoreItemsFromCsv,
+      atlas.hasUnsavedChanges,
       feedback.confirmAction,
       hasPendingEditorDraft,
       worldStructures.hasUnsavedChanges,
@@ -412,6 +416,8 @@ export default function App() {
           activeMarker={atlas.activeMarker}
           activeMapId={atlas.activeMapId}
           activeMarkerId={atlas.activeMarkerId}
+          atlasMarkerDraft={atlas.markerDraft}
+          atlasMarkerSaveState={atlas.markerSaveState}
           atlasIsLoading={atlas.isLoading}
           totalWordCount={content.totalWordCount}
           recentDocuments={content.recentDocuments}
@@ -499,15 +505,16 @@ export default function App() {
           onTimelineTrackChange={worldStructures.setTimelineTrack}
           onTimelineLinkedPageChange={worldStructures.setTimelineLinkedPageId}
           onTimelineDescriptionChange={worldStructures.setTimelineDescription}
-          onSelectMap={atlas.setActiveMapId}
-          onSelectMapMarker={atlas.setActiveMarkerId}
+          onSelectMap={atlas.selectMap}
+          onSelectMapMarker={atlas.selectMarker}
           onAddMap={atlas.addMap}
           onUpdateMap={atlas.reviseMap}
           onRemoveMap={atlas.removeMap}
           onAddMapMarker={atlas.addMarker}
-          onUpdateMapMarker={atlas.reviseMarker}
           onMoveMapMarker={atlas.moveMarker}
           onRemoveMapMarker={atlas.removeMarker}
+          onMapMarkerDraftChange={atlas.setMarkerDraft}
+          onSaveMapMarkerDraft={atlas.saveMarkerDraft}
           onSelectSearchResult={search.selectSearchResult}
           onStartDocListResize={handleStartDocListResize}
           onStartRightPanelResize={handleStartRightPanelResize}

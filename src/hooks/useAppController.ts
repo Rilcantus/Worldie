@@ -86,7 +86,7 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
   );
 
   const hasUnsavedProjectChanges =
-    hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges;
+    hasPendingEditorDraft || content.hasUnsavedChanges || worldStructures.hasUnsavedChanges || atlas.hasUnsavedChanges;
   const activeProjectIdRef = useRef(projectWorlds.activeProjectId);
 
   useEffect(() => {
@@ -251,6 +251,8 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
             ? worldStructures.relationshipSaveState
             : tabs.activeNav === "timeline"
               ? worldStructures.timelineSaveState
+              : tabs.activeNav === "atlas"
+                ? atlas.markerSaveState
               : "saved",
     saveTimestamp:
       tabs.activeNav === "editor"
@@ -261,6 +263,8 @@ export function useAppController({ hasPendingEditorDraft = false }: UseAppContro
             ? worldStructures.relationshipLastSavedAt
             : tabs.activeNav === "timeline"
               ? worldStructures.timelineLastSavedAt
+              : tabs.activeNav === "atlas"
+                ? atlas.markerLastSavedAt
               : null,
   });
 

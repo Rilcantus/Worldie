@@ -1,7 +1,8 @@
-import { memo, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { buildAtlasMarkerDraft, buildAtlasMarkerUpdate, getAtlasPointFromClientPosition } from "../lib/atlas";
+import { memo, useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent as ReactMouseEvent, type SetStateAction } from "react";
+import { getAtlasPointFromClientPosition, type AtlasMarkerDraft } from "../lib/atlas";
 import type { LorePage, MapMarker, WorldMap } from "../lib/data";
 import type { WorldUI } from "../types/ui";
+import type { SaveState } from "../hooks/dirtyState";
 
 type AtlasViewProps = {
   isDocListCollapsed: boolean;
@@ -14,6 +15,8 @@ type AtlasViewProps = {
   activeMarker: MapMarker | null;
   activeMapId: string | null;
   activeMarkerId: string | null;
+  markerDraft: AtlasMarkerDraft;
+  markerSaveState: SaveState;
   lorePages: LorePage[];
   activeWorld?: WorldUI;
   isLoading: boolean;
@@ -28,12 +31,10 @@ type AtlasViewProps = {
   onUpdateMap: (mapId: string, updates: Partial<Pick<WorldMap, "name" | "description" | "backgroundType">>) => Promise<boolean>;
   onRemoveMap: (mapId: string) => void;
   onAddMarker: (point: { x: number; y: number }) => void;
-  onUpdateMarker: (
-    markerId: string,
-    updates: Partial<Pick<MapMarker, "title" | "description" | "x" | "y" | "markerType" | "lorePageId">>,
-  ) => Promise<boolean>;
   onMoveMarker: (markerId: string, point: { x: number; y: number }) => Promise<boolean>;
   onRemoveMarker: (markerId: string) => void;
+  onMarkerDraftChange: Dispatch<SetStateAction<AtlasMarkerDraft>>;
+  onSaveMarkerDraft: () => Promise<boolean>;
   onOpenLore: (page: LorePage) => void;
 };
 
@@ -48,6 +49,8 @@ export const AtlasView = memo(function AtlasView({
   activeMarker,
   activeMapId,
   activeMarkerId,
+  markerDraft,
+  markerSaveState,
   lorePages,
   activeWorld,
   isLoading,
@@ -62,9 +65,10 @@ export const AtlasView = memo(function AtlasView({
   onUpdateMap,
   onRemoveMap,
   onAddMarker,
-  onUpdateMarker,
   onMoveMarker,
   onRemoveMarker,
+  onMarkerDraftChange,
+  onSaveMarkerDraft,
   onOpenLore,
 }: AtlasViewProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +77,6 @@ export const AtlasView = memo(function AtlasView({
   const [mapNameDraft, setMapNameDraft] = useState("");
   const [mapDescriptionDraft, setMapDescriptionDraft] = useState("");
   const [mapBackgroundDraft, setMapBackgroundDraft] = useState<WorldMap["backgroundType"]>("grid");
-  const [markerDraft, setMarkerDraft] = useState(() => buildAtlasMarkerDraft(null));
   const [dragPreview, setDragPreview] = useState<{ markerId: string; point: { x: number; y: number } } | null>(null);
 
   const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
@@ -85,10 +88,6 @@ export const AtlasView = memo(function AtlasView({
     setMapDescriptionDraft(activeMap?.description ?? "");
     setMapBackgroundDraft(activeMap?.backgroundType ?? "grid");
   }, [activeMap]);
-
-  useEffect(() => {
-    setMarkerDraft(buildAtlasMarkerDraft(activeMarker));
-  }, [activeMarker]);
 
   const getCanvasPoint = (event: ReactMouseEvent<HTMLElement>) => {
     if (!activeMap || !canvasRef.current) return null;
@@ -106,7 +105,7 @@ export const AtlasView = memo(function AtlasView({
 
   const saveMarker = () => {
     if (!activeMarker) return;
-    void onUpdateMarker(activeMarker.id, buildAtlasMarkerUpdate(markerDraft));
+    void onSaveMarkerDraft();
   };
 
   const finishMarkerDrag = () => {
@@ -350,7 +349,7 @@ export const AtlasView = memo(function AtlasView({
                     id="atlas-marker-title"
                     className="lore-input"
                     value={markerDraft.title}
-                    onChange={(event) => setMarkerDraft((current) => ({ ...current, title: event.target.value }))}
+                    onChange={(event) => onMarkerDraftChange((current) => ({ ...current, title: event.target.value }))}
                     onBlur={saveMarker}
                   />
                   <label className="lore-label" htmlFor="atlas-marker-type">
@@ -360,7 +359,7 @@ export const AtlasView = memo(function AtlasView({
                     id="atlas-marker-type"
                     className="lore-input"
                     value={markerDraft.markerType}
-                    onChange={(event) => setMarkerDraft((current) => ({ ...current, markerType: event.target.value }))}
+                    onChange={(event) => onMarkerDraftChange((current) => ({ ...current, markerType: event.target.value }))}
                     onBlur={saveMarker}
                   >
                     <option value="">No type</option>
@@ -377,7 +376,7 @@ export const AtlasView = memo(function AtlasView({
                     id="atlas-marker-lore"
                     className="lore-input"
                     value={markerDraft.lorePageId}
-                    onChange={(event) => setMarkerDraft((current) => ({ ...current, lorePageId: event.target.value }))}
+                    onChange={(event) => onMarkerDraftChange((current) => ({ ...current, lorePageId: event.target.value }))}
                     onBlur={saveMarker}
                   >
                     <option value="">No linked lore</option>
@@ -394,10 +393,19 @@ export const AtlasView = memo(function AtlasView({
                     id="atlas-marker-notes"
                     className="lore-textarea"
                     value={markerDraft.description}
-                    onChange={(event) => setMarkerDraft((current) => ({ ...current, description: event.target.value }))}
+                    onChange={(event) => onMarkerDraftChange((current) => ({ ...current, description: event.target.value }))}
                     onBlur={saveMarker}
                     placeholder="What is here?"
                   />
+                  {markerSaveState === "dirty" || markerSaveState === "saving" || markerSaveState === "error" ? (
+                    <div className={`save-pill ${markerSaveState}`}>
+                      {markerSaveState === "dirty"
+                        ? "Unsaved marker changes"
+                        : markerSaveState === "saving"
+                          ? "Saving marker..."
+                          : "Marker save failed. Keep changes and retry."}
+                    </div>
+                  ) : null}
                   <div className="structure-list">
                     <div className="structure-list-item">
                       <span>Position</span>

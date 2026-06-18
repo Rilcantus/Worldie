@@ -1,10 +1,12 @@
-import { memo, useCallback, type MouseEvent as ReactMouseEvent } from "react";
+import { memo, useCallback, type Dispatch, type MouseEvent as ReactMouseEvent, type SetStateAction } from "react";
 import type { Document, LorePage, LoreTableView, MapMarker, Relationship, TimelineEvent, WorldMap } from "../lib/data";
 import type { LoreCustomFields, LoreCustomFieldValue } from "../lib/loreItems";
 import type { LoreTemplate } from "../lib/loreTemplates";
 import type { CustomFieldDefinition, LoreType } from "../lib/loreTypes";
 import type { LoreTableCsvImportDraft, LoreTableCsvUpdateDraft } from "../lib/loreTable";
 import type { SearchResult } from "../hooks/useSearch";
+import type { SaveState } from "../hooks/dirtyState";
+import type { AtlasMarkerDraft } from "../lib/atlas";
 import type { TabItem, TabKind, WorldUI } from "../types/ui";
 import { TabBar } from "./TabBar";
 import { WorkbenchView } from "./WorkbenchView";
@@ -72,6 +74,8 @@ type MainContentProps = {
   activeMarker: MapMarker | null;
   activeMapId: string | null;
   activeMarkerId: string | null;
+  atlasMarkerDraft: AtlasMarkerDraft;
+  atlasMarkerSaveState: SaveState;
   atlasIsLoading: boolean;
   totalWordCount: number;
   recentDocuments: Document[];
@@ -198,12 +202,10 @@ type MainContentProps = {
   onUpdateMap: (mapId: string, updates: Partial<Pick<WorldMap, "name" | "description" | "backgroundType">>) => Promise<boolean>;
   onRemoveMap: (mapId: string) => void;
   onAddMapMarker: (point: { x: number; y: number }) => void;
-  onUpdateMapMarker: (
-    markerId: string,
-    updates: Partial<Pick<MapMarker, "title" | "description" | "x" | "y" | "markerType" | "lorePageId">>,
-  ) => Promise<boolean>;
   onMoveMapMarker: (markerId: string, point: { x: number; y: number }) => Promise<boolean>;
   onRemoveMapMarker: (markerId: string) => void;
+  onMapMarkerDraftChange: Dispatch<SetStateAction<AtlasMarkerDraft>>;
+  onSaveMapMarkerDraft: () => Promise<boolean>;
   onSelectSearchResult: (result: SearchResult) => void;
   onStartDocListResize: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onStartRightPanelResize: (event: ReactMouseEvent<HTMLDivElement>) => void;
@@ -511,6 +513,8 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               activeMarker={props.activeMarker}
               activeMapId={props.activeMapId}
               activeMarkerId={props.activeMarkerId}
+              markerDraft={props.atlasMarkerDraft}
+              markerSaveState={props.atlasMarkerSaveState}
               lorePages={props.allLorePages}
               activeWorld={props.activeWorld}
               isLoading={props.atlasIsLoading}
@@ -525,9 +529,10 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onUpdateMap={props.onUpdateMap}
               onRemoveMap={props.onRemoveMap}
               onAddMarker={props.onAddMapMarker}
-              onUpdateMarker={props.onUpdateMapMarker}
               onMoveMarker={props.onMoveMapMarker}
               onRemoveMarker={props.onRemoveMapMarker}
+              onMarkerDraftChange={props.onMapMarkerDraftChange}
+              onSaveMarkerDraft={props.onSaveMapMarkerDraft}
               onOpenLore={props.onOpenLore}
             />
           ) : null}

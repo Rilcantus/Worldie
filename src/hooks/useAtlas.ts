@@ -11,7 +11,16 @@ import {
   type MapMarker,
   type WorldMap,
 } from "../lib/data";
-import { clampAtlasPoint, type AtlasPoint } from "../lib/atlas";
+import {
+  buildAtlasMarkerDraft,
+  buildAtlasMarkerUpdate,
+  clampAtlasPoint,
+  hasUnsavedAtlasMarkerDraft,
+  resolveAtlasMarkerSaveState,
+  type AtlasMarkerDraft,
+  type AtlasPoint,
+} from "../lib/atlas";
+import type { SaveState } from "./dirtyState";
 
 type UseAtlasArgs = {
   activeProjectId: string | null;
@@ -36,6 +45,9 @@ export function useAtlas({
   const [activeMapId, setActiveMapId] = useState<string | null>(null);
   const [activeMarkerId, setActiveMarkerId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [markerDraft, setMarkerDraft] = useState<AtlasMarkerDraft>(() => buildAtlasMarkerDraft(null));
+  const [markerSaveState, setMarkerSaveState] = useState<SaveState>("idle");
+  const [markerLastSavedAt, setMarkerLastSavedAt] = useState<number | null>(null);
   const loadRequestId = useRef(0);
   const markerLoadRequestId = useRef(0);
   const currentScopeRef = useRef({ projectId: activeProjectId, worldId: activeWorldId });
@@ -52,6 +64,19 @@ export function useAtlas({
     () => (activeMarkerId ? markers.find((marker) => marker.id === activeMarkerId) ?? null : null),
     [activeMarkerId, markers],
   );
+  const hasUnsavedMarkerDraft = useMemo(
+    () => hasUnsavedAtlasMarkerDraft(activeMarker, markerDraft),
+    [activeMarker, markerDraft],
+  );
+  const resolvedMarkerSaveState = useMemo(
+    () => resolveAtlasMarkerSaveState(hasUnsavedMarkerDraft, markerSaveState),
+    [hasUnsavedMarkerDraft, markerSaveState],
+  );
+
+  useEffect(() => {
+    setMarkerDraft(buildAtlasMarkerDraft(activeMarker));
+    setMarkerSaveState("idle");
+  }, [activeMarkerId]);
 
   useEffect(() => {
     if (!activeProjectId || !activeWorldId) {
@@ -61,6 +86,9 @@ export function useAtlas({
       setMarkers([]);
       setActiveMapId(null);
       setActiveMarkerId(null);
+      setMarkerDraft(buildAtlasMarkerDraft(null));
+      setMarkerSaveState("idle");
+      setMarkerLastSavedAt(null);
       setIsLoading(false);
       return;
     }
@@ -69,6 +97,8 @@ export function useAtlas({
     setIsLoading(true);
     setMarkers([]);
     setActiveMarkerId(null);
+    setMarkerDraft(buildAtlasMarkerDraft(null));
+    setMarkerSaveState("idle");
 
     const load = async () => {
       try {
@@ -94,6 +124,8 @@ export function useAtlas({
       markerLoadRequestId.current += 1;
       setMarkers([]);
       setActiveMarkerId(null);
+      setMarkerDraft(buildAtlasMarkerDraft(null));
+      setMarkerSaveState("idle");
       return;
     }
 
@@ -115,8 +147,44 @@ export function useAtlas({
     void load();
   }, [activeMapId, activeProjectId, recoverActiveProjectError]);
 
+  const confirmDiscardMarkerDraft = useCallback(async () => {
+    if (!hasUnsavedMarkerDraft && markerSaveState !== "error") return true;
+    const confirmed = await confirmAction("You have unsaved marker changes. Continue anyway?", {
+      confirmLabel: "Continue",
+      tone: "default",
+    });
+    if (confirmed) {
+      setMarkerDraft(buildAtlasMarkerDraft(activeMarker));
+      setMarkerSaveState("idle");
+    }
+    return confirmed;
+  }, [activeMarker, confirmAction, hasUnsavedMarkerDraft, markerSaveState]);
+
+  const selectMap = useCallback(
+    async (mapId: string) => {
+      if (mapId === activeMapId) return true;
+      if (!(await confirmDiscardMarkerDraft())) return false;
+      setActiveMapId(mapId);
+      setMarkers([]);
+      setActiveMarkerId(null);
+      return true;
+    },
+    [activeMapId, confirmDiscardMarkerDraft],
+  );
+
+  const selectMarker = useCallback(
+    async (markerId: string) => {
+      if (markerId === activeMarkerId) return true;
+      if (!(await confirmDiscardMarkerDraft())) return false;
+      setActiveMarkerId(markerId);
+      return true;
+    },
+    [activeMarkerId, confirmDiscardMarkerDraft],
+  );
+
   const addMap = useCallback(async () => {
     if (!activeProjectId || !activeWorldId) return null;
+    if (!(await confirmDiscardMarkerDraft())) return null;
     const actionProjectId = activeProjectId;
     const actionWorldId = activeWorldId;
     try {
@@ -142,7 +210,7 @@ export function useAtlas({
       await recoverActiveProjectError(error, "Worldie could not create the Atlas map.");
       return null;
     }
-  }, [activeProjectId, activeWorldId, maps.length, recoverActiveProjectError]);
+  }, [activeProjectId, activeWorldId, confirmDiscardMarkerDraft, maps.length, recoverActiveProjectError]);
 
   const reviseMap = useCallback(
     async (mapId: string, updates: Partial<Pick<WorldMap, "name" | "description" | "backgroundType">>) => {
@@ -162,6 +230,7 @@ export function useAtlas({
   const removeMap = useCallback(
     async (mapId: string) => {
       if (!activeProjectId) return false;
+      if (mapId === activeMapId && !(await confirmDiscardMarkerDraft())) return false;
       const confirmed = await confirmAction("Delete this map and its markers?", {
         confirmLabel: "Delete Map",
         tone: "danger",
@@ -182,7 +251,7 @@ export function useAtlas({
       setActiveMarkerId((current) => (activeMapId === mapId ? null : current));
       return true;
     },
-    [activeMapId, activeProjectId, confirmAction, recoverActiveProjectError],
+    [activeMapId, activeProjectId, confirmAction, confirmDiscardMarkerDraft, recoverActiveProjectError],
   );
 
   const addMarker = useCallback(
@@ -191,6 +260,7 @@ export function useAtlas({
         showToast("Create or select a map before adding markers.");
         return null;
       }
+      if (!(await confirmDiscardMarkerDraft())) return null;
       const nextPoint = clampAtlasPoint(point, activeMap);
       try {
         const created = await createMapMarker(activeProjectId, activeWorldId, activeMap.id, {
@@ -209,7 +279,7 @@ export function useAtlas({
         return null;
       }
     },
-    [activeMap, activeProjectId, activeWorldId, markers.length, recoverActiveProjectError, showToast],
+    [activeMap, activeProjectId, activeWorldId, confirmDiscardMarkerDraft, markers.length, recoverActiveProjectError, showToast],
   );
 
   const reviseMarker = useCallback(
@@ -227,6 +297,25 @@ export function useAtlas({
     [activeProjectId, recoverActiveProjectError],
   );
 
+  const saveMarkerDraft = useCallback(async () => {
+    if (!activeMarker || !activeProjectId) return false;
+    const updates = buildAtlasMarkerUpdate(markerDraft);
+    setMarkerSaveState("saving");
+    try {
+      await updateMapMarker(activeProjectId, activeMarker.id, updates);
+    } catch (error) {
+      setMarkerSaveState("error");
+      await recoverActiveProjectError(error, "Worldie could not save the Atlas marker.");
+      return false;
+    }
+    const savedMarker = { ...activeMarker, ...updates };
+    setMarkers((current) => current.map((marker) => (marker.id === activeMarker.id ? savedMarker : marker)));
+    setMarkerDraft(buildAtlasMarkerDraft(savedMarker));
+    setMarkerSaveState("saved");
+    setMarkerLastSavedAt(Date.now());
+    return true;
+  }, [activeMarker, activeProjectId, markerDraft, recoverActiveProjectError]);
+
   const moveMarker = useCallback(
     async (markerId: string, point: AtlasPoint) => {
       if (!activeMap) return false;
@@ -239,6 +328,7 @@ export function useAtlas({
   const removeMarker = useCallback(
     async (markerId: string) => {
       if (!activeProjectId) return false;
+      if (markerId === activeMarkerId && !(await confirmDiscardMarkerDraft())) return false;
       const confirmed = await confirmAction("Delete this marker?", {
         confirmLabel: "Delete Marker",
         tone: "danger",
@@ -257,7 +347,7 @@ export function useAtlas({
       });
       return true;
     },
-    [activeProjectId, confirmAction, recoverActiveProjectError],
+    [activeMarkerId, activeProjectId, confirmAction, confirmDiscardMarkerDraft, recoverActiveProjectError],
   );
 
   return useMemo(
@@ -269,13 +359,19 @@ export function useAtlas({
       activeMapId,
       activeMarkerId,
       isLoading,
-      setActiveMapId,
-      setActiveMarkerId,
+      markerDraft,
+      markerSaveState: resolvedMarkerSaveState,
+      markerLastSavedAt,
+      hasUnsavedChanges: hasUnsavedMarkerDraft || markerSaveState === "error" || markerSaveState === "saving",
+      setMarkerDraft,
+      selectMap,
+      selectMarker,
       addMap,
       reviseMap,
       removeMap,
       addMarker,
       reviseMarker,
+      saveMarkerDraft,
       moveMarker,
       removeMarker,
     }),
@@ -287,14 +383,21 @@ export function useAtlas({
       activeMapId,
       activeMarkerId,
       isLoading,
+      markerDraft,
+      resolvedMarkerSaveState,
+      markerLastSavedAt,
+      hasUnsavedMarkerDraft,
+      markerSaveState,
+      selectMap,
+      selectMarker,
       addMap,
       reviseMap,
       removeMap,
       addMarker,
       reviseMarker,
+      saveMarkerDraft,
       moveMarker,
       removeMarker,
     ],
   );
 }
-

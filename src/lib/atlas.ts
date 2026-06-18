@@ -1,4 +1,5 @@
 import type { MapMarker, WorldMap } from "./data";
+import type { SaveState } from "../hooks/dirtyState";
 
 export type AtlasPoint = {
   x: number;
@@ -56,3 +57,17 @@ export function buildAtlasMarkerUpdate(draft: AtlasMarkerDraft) {
   };
 }
 
+export function hasUnsavedAtlasMarkerDraft(marker: MapMarker | null | undefined, draft: AtlasMarkerDraft) {
+  if (!marker) return false;
+  return (
+    marker.title !== draft.title ||
+    (marker.description ?? "") !== draft.description ||
+    (marker.markerType ?? "") !== draft.markerType ||
+    (marker.lorePageId ?? "") !== draft.lorePageId
+  );
+}
+
+export function resolveAtlasMarkerSaveState(hasUnsavedDraft: boolean, saveState: SaveState): SaveState {
+  if (saveState === "saving" || saveState === "error") return saveState;
+  return hasUnsavedDraft ? "dirty" : saveState;
+}

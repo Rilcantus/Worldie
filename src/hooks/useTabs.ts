@@ -462,7 +462,7 @@ export function useTabs({
     }
     if (
       isAlreadyActiveTab &&
-      (tab.kind === "rels" || tab.kind === "timeline") &&
+      (tab.kind === "rels" || tab.kind === "timeline" || tab.kind === "atlas") &&
       (!tab.worldId || tab.worldId === activeWorldId)
     ) {
       return;
@@ -474,7 +474,11 @@ export function useTabs({
     if (!currentTab) return;
 
     setActiveTabId(currentTab.id);
-    if ((currentTab.kind === "rels" || currentTab.kind === "timeline") && currentTab.worldId && currentTab.worldId !== activeWorldIdRef.current) {
+    if (
+      (currentTab.kind === "rels" || currentTab.kind === "timeline" || currentTab.kind === "atlas") &&
+      currentTab.worldId &&
+      currentTab.worldId !== activeWorldIdRef.current
+    ) {
       pendingWorldScopedTabId.current = currentTab.id;
       setActiveWorldId(currentTab.worldId);
       return;
