@@ -9,6 +9,7 @@ import {
   getLoreSelectionActionState,
   getLoreSelectionCreateState,
   getDocumentEditorModeState,
+  resolveDocumentPreviewContent,
   buildInitialLoreFields,
   buildLoreTypeCounts,
   collectLoreStats,
@@ -220,6 +221,15 @@ test("document editor mode state scopes readable links to preview", () => {
     canUseReadableLinks: true,
     readableLoreLinksActive: true,
   });
+});
+
+test("document preview content uses live write snapshot without mutating active document source", () => {
+  const savedContent = "Saved [[Urzoth]] source";
+  const unsavedSnapshot = "Unsaved \u201cWhite Touch\u201d draft with [[Urzoth]]";
+
+  assert.equal(resolveDocumentPreviewContent(savedContent, unsavedSnapshot), unsavedSnapshot);
+  assert.equal(resolveDocumentPreviewContent(savedContent, null), savedContent);
+  assert.equal(savedContent, "Saved [[Urzoth]] source");
 });
 
 test("new lore draft payload uses entered title selected type template and tags", () => {

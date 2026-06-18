@@ -179,6 +179,13 @@ export function getDocumentEditorModeState({
   };
 }
 
+export function resolveDocumentPreviewContent(
+  documentContent: string,
+  previewContentSnapshot: string | null | undefined,
+) {
+  return previewContentSnapshot ?? documentContent;
+}
+
 export function buildLoreEditorDraftPage(
   page: LorePage,
   updates: Pick<LorePage, "title" | "type"> & { tagsJson: string; fieldsJson: string },

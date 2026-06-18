@@ -21,6 +21,7 @@ import {
   buildLoreCreateDraftPayload,
   getLoreSelectionActionState,
   getLoreSelectionCreateState,
+  resolveDocumentPreviewContent,
   setLoreCreateCustomFieldValue,
 } from "../hooks/contentState";
 import type { WorldUI } from "../types/ui";
@@ -225,6 +226,7 @@ export const EditorView = memo(function EditorView({
   const pendingSelectionRef = useRef<SelectionOffsets | null>(null);
   const lastEditorSelectionRef = useRef<SelectionOffsets | null>(null);
   const suppressNextEditorBlurSaveRef = useRef(false);
+  const previewDocumentIdRef = useRef<string | null>(activeDocumentId);
   const focusStateRef = useRef<{
     sidebarCollapsed: boolean;
     docListCollapsed: boolean;
@@ -240,6 +242,7 @@ export const EditorView = memo(function EditorView({
   const [isDocumentMenuOpen, setIsDocumentMenuOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewContentSnapshot, setPreviewContentSnapshot] = useState<string | null>(null);
   const [readableLoreLinks, setReadableLoreLinks] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [editorWidth, setEditorWidth] = useState<EditorWidth>("standard");
@@ -317,7 +320,16 @@ export const EditorView = memo(function EditorView({
   useEffect(() => {
     setIsDocumentMenuOpen(false);
     setLinkMentionsPrompt(null);
+    previewDocumentIdRef.current = activeDocumentId;
+    setPreviewContentSnapshot(null);
   }, [activeDocumentId]);
+
+  useEffect(() => {
+    if (!isPreviewOpen) return;
+    if (previewDocumentIdRef.current === activeDocumentId) return;
+    previewDocumentIdRef.current = activeDocumentId;
+    setPreviewContentSnapshot(documentContent);
+  }, [activeDocumentId, documentContent, isPreviewOpen]);
 
   useEffect(() => {
     if (!isDocumentMenuOpen) return;
@@ -579,9 +591,10 @@ export const EditorView = memo(function EditorView({
       .filter(({ searchText }) => searchText.includes(normalizedQuery))
       .map(({ command }) => command);
   }, [slashCommandMatch, slashCommandSearchIndex, slashCommands]);
+  const previewContent = resolveDocumentPreviewContent(documentContent, previewContentSnapshot);
   const renderedPreview = useMemo(
-    () => renderPreviewContent(documentContent, linkedLoreByTitle, onOpenLore, { readableLoreLinks }),
-    [documentContent, linkedLoreByTitle, onOpenLore, readableLoreLinks],
+    () => renderPreviewContent(previewContent, linkedLoreByTitle, onOpenLore, { readableLoreLinks }),
+    [previewContent, linkedLoreByTitle, onOpenLore, readableLoreLinks],
   );
   const typewriterRenderedPreview = useMemo(() => {
     const composedText = appendTypewriterCommit(documentContent, typewriterDraft);
@@ -970,6 +983,13 @@ export const EditorView = memo(function EditorView({
     if (isOpen === isPreviewOpen) return;
     if (isOpen && !isTypewriterMode) {
       suppressNextEditorBlurSaveRef.current = true;
+      previewDocumentIdRef.current = activeDocumentId;
+      const editor = editorRef.current;
+      setPreviewContentSnapshot(
+        editor ? sanitizeInvalidUnicodeSurrogates(serializeEditorDom(editor)) : documentContent,
+      );
+    } else if (!isOpen) {
+      setPreviewContentSnapshot(null);
     }
     setIsPreviewOpen(isOpen);
   };
