@@ -318,3 +318,33 @@ Verification commands:
 - `npm run build` - failed with the documented managed-shell Vite access issue.
 - `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
 - `git diff --check` - passed with line-ending warnings only.
+
+## 2026-06-17 - Mojibake Recovery Utility
+
+Environment: Windows desktop development workspace, Python project-store tests.
+
+Pass/fail notes:
+- Existing saved mojibake in the active `White Touch` document is treated as a separate recovery problem from the future paste-path fix.
+- Added a standalone recovery utility that previews and repairs one selected document only.
+
+Bugs found:
+- Earlier corruption can already be saved inside a document's `content_json`; preventing future paste corruption does not repair those existing bytes.
+
+Bugs fixed:
+- Added a dry-run-first mojibake recovery utility for one document.
+- Apply mode creates a timestamped backup beside the `.worldie` file before writing.
+- Apply mode updates only the selected document's body content and leaves unrelated project data alone.
+
+Deferred issues:
+- The utility is not integrated into the app UI.
+- The active user project has not been repaired. Apply requires explicit user confirmation after reviewing dry-run samples.
+
+Verification commands:
+- `npm run test:python` - passed, 55 Python tests.
+- `python scripts\repair_mojibake.py "C:\Users\admin\Documents\Cosmidol.worldie" --title "White Touch"` - dry-run only, found 5,150 suspicious sequences, would change the selected document, and printed before/after samples.
+- `git diff --check` - pending final run.
+
+Dry-run sample highlights:
+- `Ãƒ...Ã…â€œfucking filthy...Ã‚Â½` -> `“fucking filthy”`
+- `[[Urzoth]]` stayed intact in repaired preview samples.
+- No apply command was run.

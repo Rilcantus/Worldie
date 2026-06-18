@@ -3,10 +3,17 @@ import io
 import json
 import os
 import shutil
+import sqlite3
 import unittest
 import uuid
 from pathlib import Path
 from unittest.mock import patch
+
+from scripts.repair_mojibake import (
+    apply_document_repair,
+    preview_document_repair,
+    repair_mojibake_text,
+)
 
 
 class ProjectStoreTests(unittest.TestCase):
@@ -339,6 +346,82 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertEqual(document[3], expected_text)
         self.assertIn("\n***\n", document[3])
         self.assertIn("\U0001f496", document[3])
+
+    def test_mojibake_repair_text_preserves_worldie_markers(self):
+        text = "â€œhelloâ€\x9d youâ€™re Iâ€™d word â€” word â€¦ [[Urzoth]]\n***\n🔥"
+
+        repaired = repair_mojibake_text(text)
+
+        self.assertEqual(repaired, "“hello” you’re I’d word — word … [[Urzoth]]\n***\n🔥")
+
+    def test_mojibake_repair_leaves_valid_unicode_unchanged(self):
+        text = "“hello” you’re I’d word — word … [[Urzoth]]\n***\n🔥"
+
+        self.assertEqual(repair_mojibake_text(text), text)
+
+    def test_mojibake_repair_collapses_nested_quote_runs(self):
+        text = (
+            "wall. ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬"
+            "ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œfucking filthy"
+            "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬"
+            "ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¿Ãƒâ€šÃ‚Â½ he muttered."
+        )
+
+        self.assertEqual(repair_mojibake_text(text), "wall. “fucking filthy” he muttered.")
+
+    def test_mojibake_repair_dry_run_does_not_write(self):
+        project_uuid, project_path = self.db_manager.add_project("Dry Run Mojibake", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        document_id = self.db_manager.create_document(project_uuid, world_id, "White Touch")
+        self.db_manager.create_document(project_uuid, world_id, "Other Document")
+        original = "â€œhelloâ€\x9d [[Urzoth]]\n***"
+        self.db_manager.update_document(project_uuid, document_id, content_json=original)
+
+        preview = preview_document_repair(Path(project_path), title="White Touch")
+
+        document = self.db_manager.list_documents(project_uuid, world_id)[0]
+        self.assertTrue(preview.would_change)
+        self.assertGreater(preview.suspicious_count, 0)
+        self.assertEqual(document[3], original)
+
+    def test_mojibake_repair_apply_creates_backup_and_updates_only_selected_document(self):
+        project_uuid, project_path = self.db_manager.add_project("Apply Mojibake", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        target_id = self.db_manager.create_document(project_uuid, world_id, "White Touch")
+        other_id = self.db_manager.create_document(project_uuid, world_id, "Other Document")
+        self.db_manager.update_document(project_uuid, target_id, content_json="â€œhelloâ€\x9d [[Urzoth]]\n***")
+        self.db_manager.update_document(project_uuid, other_id, content_json="â€œdo not repairâ€\x9d")
+
+        preview, backup_path = apply_document_repair(Path(project_path), title="White Touch")
+
+        self.assertTrue(preview.would_change)
+        self.assertTrue(backup_path.exists())
+        with sqlite3.connect(backup_path) as backup_conn:
+            backup_content = backup_conn.execute(
+                "SELECT content_json FROM documents WHERE id = ?",
+                (target_id,),
+            ).fetchone()[0]
+        self.assertEqual(backup_content, "â€œhelloâ€\x9d [[Urzoth]]\n***")
+
+        documents = {row[0]: row for row in self.db_manager.list_documents(project_uuid, world_id)}
+        self.assertEqual(documents[target_id][3], "“hello” [[Urzoth]]\n***")
+        self.assertEqual(documents[other_id][3], "â€œdo not repairâ€\x9d")
+
+    def test_mojibake_repair_apply_aborts_if_backup_fails(self):
+        project_uuid, project_path = self.db_manager.add_project("Backup Failure Mojibake", "")
+        world_id = self.db_manager.create_world(project_uuid, "Draft World")
+        target_id = self.db_manager.create_document(project_uuid, world_id, "White Touch")
+        original = "â€œhelloâ€\x9d"
+        self.db_manager.update_document(project_uuid, target_id, content_json=original)
+
+        def fail_backup(_src, _dst):
+            raise OSError("backup failed")
+
+        with self.assertRaisesRegex(OSError, "backup failed"):
+            apply_document_repair(Path(project_path), title="White Touch", backup_copy=fail_backup)
+
+        document = self.db_manager.list_documents(project_uuid, world_id)[0]
+        self.assertEqual(document[3], original)
 
     def test_missing_document_update_returns_clear_error(self):
         project_uuid, _ = self.db_manager.add_project("Missing Document", "")

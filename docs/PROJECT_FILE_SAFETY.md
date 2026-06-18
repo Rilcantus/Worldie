@@ -65,3 +65,8 @@ Backend tests cover:
 - Recovery flows do not yet offer a "locate moved project file" path.
 - There is no automatic rotating backup policy for ordinary in-place entity saves.
 - There is no compaction or vacuum policy for large future media-heavy project files.
+
+## Manual Recovery Utilities
+
+- `scripts/repair_mojibake.py` provides a dry-run-first, one-document repair path for already-saved mojibake text. See `docs/RECOVERY.md`.
+- Recovery utilities must not run automatically on app launch and must create a backup before applying changes.
