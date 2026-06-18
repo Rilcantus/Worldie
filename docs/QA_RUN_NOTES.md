@@ -1,5 +1,39 @@
 # QA Run Notes
 
+## 2026-06-17 - Cross-World Scan Lore Design
+
+Environment:
+
+- Windows desktop development workspace
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+
+Pass/fail notes:
+
+- Added `docs/CROSS_WORLD_SCAN_LORE_DESIGN.md`.
+- Current-world Scan Lore remains unchanged.
+- Project-wide and cross-world scanning remain design-only in this pass.
+- Recommended first implementation keeps current-world linking as the default and makes other-world linking explicit.
+
+Bugs found:
+
+- None. Design-only pass.
+
+Bugs fixed:
+
+- None. No runtime behavior changed.
+
+Deferred issues:
+
+- Project-wide scanning implementation.
+- Cross-world reference metadata.
+- ID-backed or target-mapped lore link syntax.
+- Project-wide rename/update link tooling.
+
+Verification commands:
+
+- `git diff --check` - passed with line-ending warnings only.
+
 ## 2026-06-17 - Scan Lore Individual Mention Selection
 
 Environment:
