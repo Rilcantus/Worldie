@@ -1,5 +1,55 @@
 # QA Run Notes
 
+## 2026-06-17 - Bulk Link Existing Lore
+
+Environment:
+
+- Windows desktop development workspace
+- Branch: `72hrbranch`
+- App stack: React + Vite frontend, Python sidecar, SQLite-backed `.worldie` files
+
+Pass/fail notes:
+
+- Added a current-world-only Scan Lore action for the document editor.
+- Scan results are review-first and do not mutate the active document until Link all is clicked.
+- Existing `[[Lore Links]]` are skipped so they are not double-linked.
+- Longer lore titles are matched before shorter overlapping titles.
+- Duplicate lore page titles in the same world are reported as ambiguous and skipped.
+
+Bugs found:
+
+- None during implementation; this was a new workflow slice.
+
+Bugs fixed:
+
+- None.
+
+Deferred issues:
+
+- Project-wide and cross-world lore scanning are not implemented yet.
+- Future cross-world scanning should be opt-in, separate current-world matches from other-world matches, require explicit confirmation, and eventually report cross-world connection metadata.
+- No per-item checkbox review UI yet; first slice provides Link all or Dismiss.
+
+Manual QA checklist:
+
+- Create lore items `Urzoth`, `Valral`, and `Karzug` in the active world.
+- Write a document with plain mentions of each title.
+- Include an existing `[[Urzoth]]` link and confirm Scan Lore does not count it.
+- Add overlapping titles such as `Blacktooth` and `Blacktooth clan`; confirm `Blacktooth clan` links as the longer phrase.
+- Add duplicate lore titles and confirm that title is reported as ambiguous/skipped.
+- Click Scan Lore, review counts, then Link all.
+- Confirm punctuation, Unicode, emoji, `***` page breaks, and existing links are preserved.
+- Save, close/reopen, and confirm linked document text persists.
+
+Verification commands:
+
+- `npm run test:frontend` - passed, 219 frontend tests.
+- `npm run test` - not defined in `package.json`; returned `Missing script: "test"`.
+- `npm run typecheck` - passed.
+- `npm run build` - failed with the documented managed-shell Vite access issue.
+- `& 'C:\Program Files\nodejs\node.exe' '.\node_modules\vite\bin\vite.js' build` - passed.
+- `git diff --check` - passed with line-ending warnings only.
+
 ## 2026-06-17 Write/Preview Unicode Display Regression
 
 Environment:

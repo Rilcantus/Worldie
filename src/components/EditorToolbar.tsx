@@ -20,6 +20,8 @@ type EditorToolbarProps = {
   onInsertLoreLink: () => void;
   onCreateLoreFromSelection: () => void;
   canCreateLoreFromSelection: boolean;
+  onScanLoreMentions: () => void;
+  canScanLoreMentions: boolean;
   selectedLorePageId: string;
   availableLorePages: LorePage[];
   onSelectLorePageId: (value: string) => void;
@@ -61,6 +63,8 @@ export const EditorToolbar = memo(function EditorToolbar({
   onInsertLoreLink,
   onCreateLoreFromSelection,
   canCreateLoreFromSelection,
+  onScanLoreMentions,
+  canScanLoreMentions,
   selectedLorePageId,
   availableLorePages,
   onSelectLorePageId,
@@ -252,6 +256,16 @@ export const EditorToolbar = memo(function EditorToolbar({
           title="Create lore from selected text"
         >
           Create Lore
+        </button>
+        <button
+          className="tb-btn"
+          type="button"
+          onMouseDown={preserveEditorSelection}
+          onClick={onScanLoreMentions}
+          disabled={!canScanLoreMentions}
+          title="Scan this document for existing current-world lore"
+        >
+          Scan Lore
         </button>
         <select
           className="tb-select tb-select-compact toolbar-compact-hide"

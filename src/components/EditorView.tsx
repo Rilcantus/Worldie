@@ -49,6 +49,7 @@ import {
   getSelectionText,
   getSlashCommandMatch,
   indentSelectedLines,
+  linkBulkLoreMentions,
   linkUnlinkedLoreMentions,
   normalizeEditorText,
   moveSelectedLineBlock,
@@ -59,9 +60,11 @@ import {
   resolvePastedEditorText,
   serializeEditorDom,
   setSelectionOffsets,
+  scanBulkLoreMentions,
   sourceSelectionToDisplay,
   toggleLinePrefix,
   trimTypewriterCommit,
+  type BulkLoreScanResult,
   type EditorFormattingState,
   type SelectionOffsets,
   type SlashCommandMatch,
@@ -129,6 +132,8 @@ type LinkMentionsPromptState = {
   title: string;
   count: number;
 };
+
+type BulkLoreScanPromptState = BulkLoreScanResult;
 
 type FloatingActionPosition = {
   top: number;
@@ -260,6 +265,7 @@ export const EditorView = memo(function EditorView({
   const [isCreatingSelectionLore, setIsCreatingSelectionLore] = useState(false);
   const [selectionLoreActionPosition, setSelectionLoreActionPosition] = useState<FloatingActionPosition | null>(null);
   const [linkMentionsPrompt, setLinkMentionsPrompt] = useState<LinkMentionsPromptState | null>(null);
+  const [bulkLoreScanPrompt, setBulkLoreScanPrompt] = useState<BulkLoreScanPromptState | null>(null);
   const isTypewriterMode = editorMode === "typewriter";
   const hasPendingTypewriterDraft = isTypewriterMode && trimTypewriterCommit(typewriterDraft).length > 0;
   const activeEditorText = isTypewriterMode ? typewriterDraft : documentContent;
@@ -320,6 +326,7 @@ export const EditorView = memo(function EditorView({
   useEffect(() => {
     setIsDocumentMenuOpen(false);
     setLinkMentionsPrompt(null);
+    setBulkLoreScanPrompt(null);
     previewDocumentIdRef.current = activeDocumentId;
     setPreviewContentSnapshot(null);
   }, [activeDocumentId]);
@@ -708,6 +715,7 @@ export const EditorView = memo(function EditorView({
     const sanitizedText = sanitizeInvalidUnicodeSurrogates(next.text);
     pendingSelectionRef.current = next.selection;
     updateSelectionSnapshot(next.selection);
+    setBulkLoreScanPrompt(null);
     if (isTypewriterMode) {
       setTypewriterDraft(sanitizedText);
     } else {
@@ -947,6 +955,31 @@ export const EditorView = memo(function EditorView({
       };
     });
     setLinkMentionsPrompt(null);
+  };
+
+  const scanCurrentDocumentLoreMentions = () => {
+    const result = scanBulkLoreMentions(activeEditorText, availableLorePages);
+    setLinkMentionsPrompt(null);
+    setBulkLoreScanPrompt(
+      result.totalMentions > 0 || result.ambiguousTitles.length > 0
+        ? result
+        : {
+            ...result,
+            items: [],
+          },
+    );
+  };
+
+  const linkAllBulkLoreMentions = () => {
+    if (!bulkLoreScanPrompt || bulkLoreScanPrompt.totalMentions === 0) return;
+    applyEditorUpdate((content, selection) => {
+      const result = linkBulkLoreMentions(content, availableLorePages);
+      return {
+        text: result.text,
+        selection,
+      };
+    });
+    setBulkLoreScanPrompt(null);
   };
 
   const requestOpenDocument = (doc: Document) => {
@@ -1593,6 +1626,8 @@ export const EditorView = memo(function EditorView({
             onInsertLoreLink={insertLoreLink}
             onCreateLoreFromSelection={openCreateLoreFromSelectionDialog}
             canCreateLoreFromSelection={selectionLoreCreateState.canOpen && loreTypes.length > 0}
+            onScanLoreMentions={scanCurrentDocumentLoreMentions}
+            canScanLoreMentions={Boolean(activeDocumentId && activeEditorText.trim() && availableLorePages.length > 0)}
             selectedLorePageId={selectedLorePageId}
             availableLorePages={availableLorePages}
             onSelectLorePageId={setSelectedLorePageId}
@@ -1633,6 +1668,50 @@ export const EditorView = memo(function EditorView({
                   Link all in this document
                 </button>
                 <button type="button" className="link-mentions-btn ghost" onClick={() => setLinkMentionsPrompt(null)}>
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {bulkLoreScanPrompt ? (
+            <div className="link-mentions-prompt bulk-lore-scan-prompt" role="status">
+              <div className="bulk-lore-scan-summary">
+                {bulkLoreScanPrompt.totalMentions > 0 ? (
+                  <>
+                    <span>
+                      Found {bulkLoreScanPrompt.totalMentions} unlinked{" "}
+                      {bulkLoreScanPrompt.totalMentions === 1 ? "mention" : "mentions"} across{" "}
+                      {bulkLoreScanPrompt.items.length} lore {bulkLoreScanPrompt.items.length === 1 ? "item" : "items"}.
+                    </span>
+                    <div className="bulk-lore-scan-list">
+                      {bulkLoreScanPrompt.items.map((item) => (
+                        <span key={item.page.id} className="bulk-lore-scan-chip">
+                          {item.title} - {item.count}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <span>No unlinked current-world lore mentions found.</span>
+                )}
+                {bulkLoreScanPrompt.ambiguousTitles.length > 0 ? (
+                  <div className="bulk-lore-scan-warning">
+                    Skipped ambiguous duplicate{" "}
+                    {bulkLoreScanPrompt.ambiguousTitles.length === 1 ? "title" : "titles"}:{" "}
+                    {bulkLoreScanPrompt.ambiguousTitles.map((item) => item.title).join(", ")}
+                  </div>
+                ) : null}
+              </div>
+              <div className="link-mentions-actions">
+                <button
+                  type="button"
+                  className="link-mentions-btn"
+                  onClick={linkAllBulkLoreMentions}
+                  disabled={bulkLoreScanPrompt.totalMentions === 0}
+                >
+                  Link all
+                </button>
+                <button type="button" className="link-mentions-btn ghost" onClick={() => setBulkLoreScanPrompt(null)}>
                   Dismiss
                 </button>
               </div>

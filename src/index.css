@@ -1100,6 +1100,40 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-b
   border-color: var(--text-muted);
 }
 
+.link-mentions-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bulk-lore-scan-prompt {
+  align-items: flex-start;
+}
+
+.bulk-lore-scan-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bulk-lore-scan-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bulk-lore-scan-chip {
+  border: 1px solid rgba(157, 125, 232, 0.28);
+  border-radius: 999px;
+  background: rgba(157, 125, 232, 0.12);
+  color: var(--text-secondary);
+  padding: 3px 7px;
+}
+
+.bulk-lore-scan-warning {
+  color: var(--text-muted);
+}
+
 .doc-title {
   font-family: 'Cinzel', serif;
   font-size: 28px; font-weight: 700;

@@ -20,12 +20,14 @@ import {
   getFormattingState,
   getSlashCommandMatch,
   indentSelectedLines,
+  linkBulkLoreMentions,
   linkUnlinkedLoreMentions,
   isUnderlineElement,
   moveSelectedLineBlock,
   normalizePastedText,
   outdentSelectedLines,
   resolvePastedEditorText,
+  scanBulkLoreMentions,
   serializeFormattedInlineContent,
   sourceSelectionToDisplay,
   toggleLinePrefix,
@@ -198,6 +200,88 @@ test("linkUnlinkedLoreMentions handles titles with regex-special characters safe
   const plus = linkUnlinkedLoreMentions("A+B appears near [[A+B]].", "A+B");
   assert.equal(plus.count, 1);
   assert.equal(plus.text, "[[A+B]] appears near [[A+B]].");
+});
+
+test("scanBulkLoreMentions finds one current-world lore title without mutating source", () => {
+  const source = "Urzoth waited beside the gate.";
+  const result = scanBulkLoreMentions(source, [{ id: "lore-urzoth", title: "Urzoth" }]);
+
+  assert.equal(result.totalMentions, 1);
+  assert.deepEqual(result.items.map((item) => [item.title, item.count]), [["Urzoth", 1]]);
+  assert.equal(source, "Urzoth waited beside the gate.");
+});
+
+test("scanBulkLoreMentions counts multiple lore titles and skips existing links", () => {
+  const source = "Urzoth met Valral. [[Urzoth]] watched Karzug.";
+  const result = scanBulkLoreMentions(source, [
+    { id: "lore-urzoth", title: "Urzoth" },
+    { id: "lore-valral", title: "Valral" },
+    { id: "lore-karzug", title: "Karzug" },
+  ]);
+
+  assert.equal(result.totalMentions, 3);
+  assert.deepEqual(Object.fromEntries(result.items.map((item) => [item.title, item.count])), {
+    Urzoth: 1,
+    Valral: 1,
+    Karzug: 1,
+  });
+});
+
+test("scanBulkLoreMentions avoids larger-word matches", () => {
+  const result = scanBulkLoreMentions("Urzoth Urzothian OldUrzoth.", [
+    { id: "lore-urzoth", title: "Urzoth" },
+  ]);
+
+  assert.equal(result.totalMentions, 1);
+});
+
+test("linkBulkLoreMentions links all found mentions while preserving punctuation unicode and page breaks", () => {
+  const result = linkBulkLoreMentions(
+    "\u201cUrzoth,\u201d Valral said.\n***\nKarzug \u2014 Urzoth \ud83d\udd25",
+    [
+      { id: "lore-urzoth", title: "Urzoth" },
+      { id: "lore-valral", title: "Valral" },
+      { id: "lore-karzug", title: "Karzug" },
+    ],
+  );
+
+  assert.equal(result.count, 4);
+  assert.equal(
+    result.text,
+    "\u201c[[Urzoth]],\u201d [[Valral]] said.\n***\n[[Karzug]] \u2014 [[Urzoth]] \ud83d\udd25",
+  );
+});
+
+test("linkBulkLoreMentions prefers longer titles before shorter overlapping titles", () => {
+  const result = linkBulkLoreMentions("Blacktooth clan met Blacktooth.", [
+    { id: "lore-blacktooth", title: "Blacktooth" },
+    { id: "lore-blacktooth-clan", title: "Blacktooth clan" },
+  ]);
+
+  assert.equal(result.count, 2);
+  assert.equal(result.text, "[[Blacktooth clan]] met [[Blacktooth]].");
+});
+
+test("scanBulkLoreMentions skips ambiguous duplicate titles", () => {
+  const result = scanBulkLoreMentions("Urzoth waited. Valral watched.", [
+    { id: "lore-urzoth-1", title: "Urzoth" },
+    { id: "lore-urzoth-2", title: "Urzoth" },
+    { id: "lore-valral", title: "Valral" },
+  ]);
+
+  assert.equal(result.totalMentions, 1);
+  assert.deepEqual(result.items.map((item) => item.title), ["Valral"]);
+  assert.deepEqual(result.ambiguousTitles, [{ title: "Urzoth", count: 2 }]);
+});
+
+test("linkBulkLoreMentions handles regex-special lore titles safely", () => {
+  const result = linkBulkLoreMentions("A+B met Cask (North). [[A+B]] stayed linked.", [
+    { id: "lore-plus", title: "A+B" },
+    { id: "lore-cask", title: "Cask (North)" },
+  ]);
+
+  assert.equal(result.count, 2);
+  assert.equal(result.text, "[[A+B]] met [[Cask (North)]]. [[A+B]] stayed linked.");
 });
 
 test("renderPreviewContent can show raw or readable lore link labels without changing source", () => {

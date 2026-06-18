@@ -368,6 +368,35 @@ export type LoreMentionMatch = {
   text: string;
 };
 
+export type BulkLoreMentionItem = {
+  page: Pick<LorePage, "id" | "title">;
+  title: string;
+  count: number;
+};
+
+export type BulkLoreAmbiguousTitle = {
+  title: string;
+  count: number;
+};
+
+export type BulkLoreScanResult = {
+  items: BulkLoreMentionItem[];
+  ambiguousTitles: BulkLoreAmbiguousTitle[];
+  totalMentions: number;
+  skippedAmbiguousCount: number;
+};
+
+type BulkLoreMentionCandidate = {
+  page: Pick<LorePage, "id" | "title">;
+  title: string;
+};
+
+type BulkLoreMentionCandidateMatch = BulkLoreMentionCandidate & {
+  matches: LoreMentionMatch[];
+};
+
+const MIN_BULK_LORE_TITLE_LENGTH = 3;
+
 function getLoreLinkRanges(text: string) {
   const ranges: Array<{ start: number; end: number }> = [];
   const linkPattern = /\[\[[\s\S]*?\]\]/g;
@@ -418,6 +447,113 @@ export function linkUnlinkedLoreMentions(text: string, title: string) {
     nextText = replaceRange(nextText, match.start, match.end, linkText);
   }
   return { text: nextText, count: matches.length };
+}
+
+function doRangesOverlap(left: { start: number; end: number }, right: { start: number; end: number }) {
+  return left.start < right.end && right.start < left.end;
+}
+
+function getBulkLoreMentionCandidates(lorePages: Array<Pick<LorePage, "id" | "title">>) {
+  const pagesByTitle = new Map<string, Array<Pick<LorePage, "id" | "title">>>();
+  for (const page of lorePages) {
+    const title = page.title.trim();
+    if (title.length < MIN_BULK_LORE_TITLE_LENGTH) continue;
+    pagesByTitle.set(title, [...(pagesByTitle.get(title) ?? []), page]);
+  }
+
+  const ambiguousTitles: BulkLoreAmbiguousTitle[] = [];
+  const candidates: BulkLoreMentionCandidate[] = [];
+  for (const [title, pages] of pagesByTitle) {
+    if (pages.length > 1) {
+      ambiguousTitles.push({ title, count: pages.length });
+      continue;
+    }
+    const page = pages[0];
+    if (page) {
+      candidates.push({ page, title });
+    }
+  }
+
+  candidates.sort((left, right) => {
+    const lengthDelta = right.title.length - left.title.length;
+    return lengthDelta || left.title.localeCompare(right.title);
+  });
+  ambiguousTitles.sort((left, right) => left.title.localeCompare(right.title));
+
+  return { candidates, ambiguousTitles };
+}
+
+function collectBulkLoreMentionMatches(
+  text: string,
+  lorePages: Array<Pick<LorePage, "id" | "title">>,
+) {
+  const { candidates, ambiguousTitles } = getBulkLoreMentionCandidates(lorePages);
+  const occupiedRanges: Array<{ start: number; end: number }> = [];
+  const matchedCandidates: BulkLoreMentionCandidateMatch[] = [];
+
+  for (const candidate of candidates) {
+    const matches = findUnlinkedLoreMentions(text, candidate.title).filter(
+      (match) => !occupiedRanges.some((range) => doRangesOverlap(match, range)),
+    );
+    if (matches.length === 0) continue;
+    occupiedRanges.push(...matches.map((match) => ({ start: match.start, end: match.end })));
+    matchedCandidates.push({ ...candidate, matches });
+  }
+
+  return { matchedCandidates, ambiguousTitles };
+}
+
+export function scanBulkLoreMentions(
+  text: string,
+  lorePages: Array<Pick<LorePage, "id" | "title">>,
+): BulkLoreScanResult {
+  const { matchedCandidates, ambiguousTitles } = collectBulkLoreMentionMatches(text, lorePages);
+  const items = matchedCandidates.map(({ page, title, matches }) => ({
+    page,
+    title,
+    count: matches.length,
+  }));
+  const totalMentions = items.reduce((sum, item) => sum + item.count, 0);
+
+  return {
+    items,
+    ambiguousTitles,
+    totalMentions,
+    skippedAmbiguousCount: ambiguousTitles.length,
+  };
+}
+
+export function linkBulkLoreMentions(
+  text: string,
+  lorePages: Array<Pick<LorePage, "id" | "title">>,
+) {
+  const { matchedCandidates, ambiguousTitles } = collectBulkLoreMentionMatches(text, lorePages);
+  const replacements = matchedCandidates.flatMap((candidate) =>
+    candidate.matches.map((match) => ({
+      start: match.start,
+      end: match.end,
+      replacement: buildLoreLinkText(candidate.title),
+    })),
+  );
+
+  if (replacements.length === 0) {
+    return {
+      text,
+      count: 0,
+      ambiguousTitles,
+    };
+  }
+
+  let nextText = text;
+  for (const replacement of [...replacements].sort((left, right) => right.start - left.start)) {
+    nextText = replaceRange(nextText, replacement.start, replacement.end, replacement.replacement);
+  }
+
+  return {
+    text: nextText,
+    count: replacements.length,
+    ambiguousTitles,
+  };
 }
 
 const WRITER_INDENT = "  ";

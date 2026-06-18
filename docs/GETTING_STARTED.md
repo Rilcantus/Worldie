@@ -80,6 +80,20 @@ If the link option is enabled, the highlighted text is replaced with a `[[Lore L
 
 The editor has two document modes. Write mode is the editable source view and shows the saved wiki-style `[[Lore Link]]` text. Preview mode is the rendered reading view. In Preview, use Readable Links to switch between raw `[[Lore Link]]` text and cleaner linked title text for easier reading. This display option does not change the saved document content.
 
+## Scan Existing Lore In A Document
+
+When you are writing a new document after lore pages already exist, use Scan Lore from the document editor toolbar. Worldie scans the active document for exact, unlinked mentions of lore pages in the current world and shows a review prompt before changing anything.
+
+The first version is intentionally conservative:
+
+- It scans current-world lore only.
+- It skips text that is already inside `[[Lore Links]]`.
+- It avoids matching inside larger words.
+- It matches longer lore titles before shorter ones.
+- It skips duplicate lore titles as ambiguous instead of guessing.
+
+Use Link all when the review counts look right, or Dismiss to leave the document unchanged. Future project-wide scanning should be opt-in, separate current-world matches from other-world matches, require explicit confirmation for cross-world lore links, and eventually report any cross-world connection metadata.
+
 ## How To Use CSV Export And Import Safely
 
 Worldie supports CSV as a bridge to spreadsheet tools, not as a replacement database.
