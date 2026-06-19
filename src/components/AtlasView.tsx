@@ -6,7 +6,7 @@ import {
   type AtlasMarkerDraft,
   type AtlasMarkerFilterMode,
 } from "../lib/atlas";
-import type { LorePage, MapMarker, WorldMap } from "../lib/data";
+import type { LorePage, MapMarker, TimelineEvent, WorldMap } from "../lib/data";
 import type { WorldUI } from "../types/ui";
 import type { SaveState } from "../hooks/dirtyState";
 
@@ -17,6 +17,7 @@ type AtlasViewProps = {
   docListWidth: number;
   maps: WorldMap[];
   markers: MapMarker[];
+  timelineEvents: TimelineEvent[];
   activeMap: WorldMap | null;
   activeMarker: MapMarker | null;
   activeMapId: string | null;
@@ -51,6 +52,7 @@ export const AtlasView = memo(function AtlasView({
   docListWidth,
   maps,
   markers,
+  timelineEvents,
   activeMap,
   activeMarker,
   activeMapId,
@@ -90,6 +92,10 @@ export const AtlasView = memo(function AtlasView({
 
   const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
   const linkedLorePage = activeMarker?.lorePageId ? lorePagesById.get(activeMarker.lorePageId) ?? null : null;
+  const linkedTimelineEvents = useMemo(
+    () => (activeMarker ? timelineEvents.filter((event) => event.mapMarkerId === activeMarker.id) : []),
+    [activeMarker, timelineEvents],
+  );
   const markerTypes = useMemo(() => buildAtlasMarkerTypeOptions(markers), [markers]);
   const filteredMarkers = useMemo(
     () =>
@@ -520,6 +526,19 @@ export const AtlasView = memo(function AtlasView({
                       <span>{linkedLorePage?.title ?? "None"}</span>
                     </div>
                   </div>
+                  {linkedTimelineEvents.length > 0 ? (
+                    <div className="lore-panel-subsection">
+                      <div className="linked-lore-label">Linked timeline events</div>
+                      <div className="structure-list">
+                        {linkedTimelineEvents.map((event) => (
+                          <div key={event.id} className="structure-list-item">
+                            <span>{event.title}</span>
+                            <span>{event.eventDate || event.eventType || "Timeline"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="relationship-action-row">
                     {linkedLorePage ? (
                       <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(linkedLorePage)}>

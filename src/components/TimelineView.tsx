@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import type { LorePage, TimelineEvent } from "../lib/data";
+import type { LorePage, MapMarker, TimelineEvent } from "../lib/data";
 import { getTimelineTrackLabel, groupTimelineEventsByTrack } from "../hooks/worldStructureState";
 import type { WorldUI } from "../types/ui";
 
@@ -15,8 +15,10 @@ type TimelineViewProps = {
   timelineType: string;
   timelineTrack: string;
   timelineLinkedPageId: string;
+  timelineMapMarkerId: string;
   timelineDescription: string;
   lorePages: LorePage[];
+  mapMarkers: MapMarker[];
   activeWorld?: WorldUI;
   onCollapseDocList: () => void;
   onExpandDocList: () => void;
@@ -31,6 +33,7 @@ type TimelineViewProps = {
     eventType?: string;
     track?: string;
     linkedPageId?: string;
+    mapMarkerId?: string;
     description?: string;
   }) => void;
   onDuplicateTimelineEvent: (eventId: string) => void;
@@ -41,8 +44,10 @@ type TimelineViewProps = {
   onTypeChange: (value: string) => void;
   onTrackChange: (value: string) => void;
   onLinkedPageChange: (value: string) => void;
+  onMapMarkerChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onOpenLore: (page: LorePage) => void;
+  onOpenAtlasMarker?: (markerId: string) => void;
 };
 
 const sortTimelineEvents = (events: TimelineEvent[]) =>
@@ -85,8 +90,10 @@ export const TimelineView = memo(function TimelineView({
   timelineType,
   timelineTrack,
   timelineLinkedPageId,
+  timelineMapMarkerId,
   timelineDescription,
   lorePages,
+  mapMarkers,
   activeWorld,
   onCollapseDocList,
   onExpandDocList,
@@ -104,8 +111,10 @@ export const TimelineView = memo(function TimelineView({
   onTypeChange,
   onTrackChange,
   onLinkedPageChange,
+  onMapMarkerChange,
   onDescriptionChange,
   onOpenLore,
+  onOpenAtlasMarker,
 }: TimelineViewProps) {
   const [timelineSearch, setTimelineSearch] = useState("");
   const [timelineTypeFilter, setTimelineTypeFilter] = useState("all");
@@ -119,18 +128,22 @@ export const TimelineView = memo(function TimelineView({
   const typeInputId = "timeline-type";
   const trackInputId = "timeline-track";
   const linkedPageInputId = "timeline-linked-page";
+  const mapMarkerInputId = "timeline-map-marker";
   const descriptionInputId = "timeline-description";
   const timelineSearchInputId = "timeline-search";
   const timelineTypeFilterId = "timeline-type-filter";
   const timelineTrackFilterId = "timeline-track-filter";
   const timelineLinkedFilterId = "timeline-linked-filter";
   const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
+  const mapMarkersById = useMemo(() => new Map(mapMarkers.map((marker) => [marker.id, marker])), [mapMarkers]);
   const getLorePageById = (pageId: string | null | undefined) => (pageId ? lorePagesById.get(pageId) ?? null : null);
+  const getMapMarkerById = (markerId: string | null | undefined) => (markerId ? mapMarkersById.get(markerId) ?? null : null);
 
   const filteredTimelineEvents = useMemo(() => {
     const query = timelineSearch.trim().toLowerCase();
     return timelineEvents.filter((event) => {
       const linkedTitle = getLorePageById(event.linkedPageId)?.title ?? "";
+      const markerTitle = getMapMarkerById(event.mapMarkerId)?.title ?? "";
       const matchesQuery =
         !query ||
         event.title.toLowerCase().includes(query) ||
@@ -138,7 +151,8 @@ export const TimelineView = memo(function TimelineView({
         (event.eventType ?? "").toLowerCase().includes(query) ||
         (event.track ?? "").toLowerCase().includes(query) ||
         (event.description ?? "").toLowerCase().includes(query) ||
-        linkedTitle.toLowerCase().includes(query);
+        linkedTitle.toLowerCase().includes(query) ||
+        markerTitle.toLowerCase().includes(query);
       const matchesType = timelineTypeFilter === "all" || (event.eventType || "event") === timelineTypeFilter;
       const matchesTrack = timelineTrackFilter === "all" || getTimelineTrackLabel(event) === timelineTrackFilter;
       const matchesLinked =
@@ -146,10 +160,11 @@ export const TimelineView = memo(function TimelineView({
         (timelineLinkedFilter === "unlinked" ? !event.linkedPageId : event.linkedPageId === timelineLinkedFilter);
       return matchesQuery && matchesType && matchesTrack && matchesLinked;
     });
-  }, [lorePagesById, timelineEvents, timelineLinkedFilter, timelineSearch, timelineTrackFilter, timelineTypeFilter]);
+  }, [lorePagesById, mapMarkersById, timelineEvents, timelineLinkedFilter, timelineSearch, timelineTrackFilter, timelineTypeFilter]);
 
   const orderedEvents = useMemo(() => sortTimelineEvents(filteredTimelineEvents), [filteredTimelineEvents]);
   const activeLinkedPage = getLorePageById(timelineLinkedPageId);
+  const activeMapMarker = getMapMarkerById(timelineMapMarkerId);
   const allTimelineTypes = useMemo(
     () => [...new Set(timelineEvents.map((event) => event.eventType || "event"))].sort((a, b) => a.localeCompare(b)),
     [timelineEvents],
@@ -1038,6 +1053,23 @@ export const TimelineView = memo(function TimelineView({
               ))}
             </select>
 
+            <label className="lore-label" htmlFor={mapMarkerInputId}>
+              Map marker
+            </label>
+            <select
+              id={mapMarkerInputId}
+              className="lore-input"
+              value={timelineMapMarkerId}
+              onChange={(event) => onMapMarkerChange(event.target.value)}
+            >
+              <option value="">No map marker</option>
+              {mapMarkers.map((marker) => (
+                <option key={marker.id} value={marker.id}>
+                  {marker.title}{marker.markerType ? ` - ${marker.markerType}` : ""}
+                </option>
+              ))}
+            </select>
+
             <label className="lore-label" htmlFor={descriptionInputId}>
               Description
             </label>
@@ -1071,6 +1103,10 @@ export const TimelineView = memo(function TimelineView({
                 <span>Linked page</span>
                 <span>{activeLinkedPage?.title ?? "None"}</span>
               </div>
+              <div className="structure-list-item">
+                <span>Map marker</span>
+                <span>{activeMapMarker?.title ?? "None"}</span>
+              </div>
             </div>
             <div className="relationship-action-row">
               {activeTimelineEventId ? (
@@ -1101,6 +1137,11 @@ export const TimelineView = memo(function TimelineView({
                     Open linked lore page
                   </button>
                 </>
+              ) : null}
+              {activeMapMarker && onOpenAtlasMarker ? (
+                <button className="linked-lore-chip" type="button" onClick={() => onOpenAtlasMarker(activeMapMarker.id)}>
+                  Open in Atlas
+                </button>
               ) : null}
             </div>
           </div>

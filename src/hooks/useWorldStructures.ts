@@ -63,6 +63,7 @@ export function useWorldStructures({
   const [timelineType, setTimelineType] = useState("event");
   const [timelineTrack, setTimelineTrack] = useState("");
   const [timelineLinkedPageId, setTimelineLinkedPageId] = useState("");
+  const [timelineMapMarkerId, setTimelineMapMarkerId] = useState("");
   const [timelineDescription, setTimelineDescription] = useState("");
   const [timelineSaveState, setTimelineSaveState] = useState<SaveState>("idle");
   const [timelineLastSavedAt, setTimelineLastSavedAt] = useState<number | null>(null);
@@ -103,6 +104,7 @@ export function useWorldStructures({
     setTimelineType((current) => (current === "event" ? current : "event"));
     setTimelineTrack((current) => (current === "" ? current : ""));
     setTimelineLinkedPageId((current) => (current === "" ? current : ""));
+    setTimelineMapMarkerId((current) => (current === "" ? current : ""));
     setTimelineDescription((current) => (current === "" ? current : ""));
     setTimelineSaveState((current) => (current === saveState ? current : saveState));
     setTimelineLastSavedAt((current) => (current === null ? current : null));
@@ -157,12 +159,14 @@ export function useWorldStructures({
     timelineType,
     timelineTrack,
     timelineLinkedPageId,
+    timelineMapMarkerId,
     timelineDescription,
   ), [
     activeTimelineEvent,
     timelineDate,
     timelineDescription,
     timelineLinkedPageId,
+    timelineMapMarkerId,
     timelineTitle,
     timelineTrack,
     timelineType,
@@ -439,6 +443,7 @@ export function useWorldStructures({
     const nextType = event.eventType ?? "event";
     const nextTrack = event.track ?? "";
     const nextLinkedPageId = event.linkedPageId ?? "";
+    const nextMapMarkerId = event.mapMarkerId ?? "";
     const nextDescription = event.description ?? "";
     const changed =
       activeTimelineEventId !== event.id ||
@@ -447,6 +452,7 @@ export function useWorldStructures({
       timelineType !== nextType ||
       timelineTrack !== nextTrack ||
       timelineLinkedPageId !== nextLinkedPageId ||
+      timelineMapMarkerId !== nextMapMarkerId ||
       timelineDescription !== nextDescription;
     setActiveTimelineEventId((current) => (current === event.id ? current : event.id));
     setTimelineTitle((current) => (current === event.title ? current : event.title));
@@ -454,6 +460,7 @@ export function useWorldStructures({
     setTimelineType((current) => (current === nextType ? current : nextType));
     setTimelineTrack((current) => (current === nextTrack ? current : nextTrack));
     setTimelineLinkedPageId((current) => (current === nextLinkedPageId ? current : nextLinkedPageId));
+    setTimelineMapMarkerId((current) => (current === nextMapMarkerId ? current : nextMapMarkerId));
     setTimelineDescription((current) => (current === nextDescription ? current : nextDescription));
     if (!changed) return;
     markTimelineSaved();
@@ -464,6 +471,7 @@ export function useWorldStructures({
     timelineDate,
     timelineDescription,
     timelineLinkedPageId,
+    timelineMapMarkerId,
     timelineTitle,
     timelineTrack,
     timelineType,
@@ -479,6 +487,7 @@ export function useWorldStructures({
     eventType?: string;
     track?: string;
     linkedPageId?: string;
+    mapMarkerId?: string;
     description?: string;
   }) => {
     if (!activeProjectId || !activeWorldId) return null;
@@ -493,6 +502,7 @@ export function useWorldStructures({
         eventType: seed?.eventType?.trim() || "event",
         track: seed?.track?.trim() || "",
         linkedPageId: seed?.linkedPageId ?? "",
+        mapMarkerId: seed?.mapMarkerId ?? "",
         description: seed?.description ?? "",
       });
     } catch (error) {
@@ -520,6 +530,7 @@ export function useWorldStructures({
       eventType: sourceEvent.eventType ?? "event",
       track: sourceEvent.track ?? "",
       linkedPageId: sourceEvent.linkedPageId ?? "",
+      mapMarkerId: sourceEvent.mapMarkerId ?? "",
       description: sourceEvent.description ?? "",
     });
   };
@@ -544,6 +555,7 @@ export function useWorldStructures({
         eventType: timelineType.trim() || "event",
         track: timelineTrack.trim(),
         linkedPageId: timelineLinkedPageId,
+        mapMarkerId: timelineMapMarkerId,
         description: timelineDescription,
       });
       const currentTarget = currentTimelineSaveTargetRef.current;
@@ -570,6 +582,7 @@ export function useWorldStructures({
               eventType: timelineType.trim() || "event",
               track: timelineTrack.trim(),
               linkedPageId: timelineLinkedPageId,
+              mapMarkerId: timelineMapMarkerId,
               description: timelineDescription,
             }
           : item,
@@ -604,6 +617,7 @@ export function useWorldStructures({
       setTimelineType(first?.eventType ?? "event");
       setTimelineTrack(first?.track ?? "");
       setTimelineLinkedPageId(first?.linkedPageId ?? "");
+      setTimelineMapMarkerId(first?.mapMarkerId ?? "");
       setTimelineDescription(first?.description ?? "");
       if (first) {
         markTimelineSaved();
@@ -696,6 +710,15 @@ export function useWorldStructures({
     });
   }, []);
 
+  const updateTimelineMapMarkerId = useCallback((value: string) => {
+    setTimelineMapMarkerId((current) => {
+      if (current === value) return current;
+      currentTimelineSaveVersionRef.current += 1;
+      setTimelineSaveState((saveState) => (saveState === "dirty" ? saveState : "dirty"));
+      return value;
+    });
+  }, []);
+
   const updateTimelineDescription = useCallback((value: string) => {
     setTimelineDescription((current) => {
       if (current === value) return current;
@@ -720,6 +743,7 @@ export function useWorldStructures({
       timelineType,
       timelineTrack,
       timelineLinkedPageId,
+      timelineMapMarkerId,
       timelineDescription,
       hasUnsavedChanges: hasUnsavedRelationshipDraftChanges || hasUnsavedTimelineDraftChanges,
       relationshipSaveState,
@@ -735,6 +759,7 @@ export function useWorldStructures({
       setTimelineType: updateTimelineType,
       setTimelineTrack: updateTimelineTrack,
       setTimelineLinkedPageId: updateTimelineLinkedPageId,
+      setTimelineMapMarkerId: updateTimelineMapMarkerId,
       setTimelineDescription: updateTimelineDescription,
       selectRelationship,
       addRelationship,
@@ -762,6 +787,7 @@ export function useWorldStructures({
       timelineType,
       timelineTrack,
       timelineLinkedPageId,
+      timelineMapMarkerId,
       timelineDescription,
       hasUnsavedRelationshipDraftChanges,
       hasUnsavedTimelineDraftChanges,
@@ -778,6 +804,7 @@ export function useWorldStructures({
       updateTimelineType,
       updateTimelineTrack,
       updateTimelineLinkedPageId,
+      updateTimelineMapMarkerId,
       updateTimelineDescription,
       selectRelationship,
       addRelationship,

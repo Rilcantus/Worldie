@@ -291,6 +291,20 @@ export default function App() {
     ],
   );
 
+  const handleOpenAtlasMarker = useCallback(
+    (markerId: string) => {
+      void (async () => {
+        const focused = await atlas.focusMarker(markerId);
+        if (!focused) {
+          feedback.showToast("Worldie could not find that Atlas marker in this world.");
+          return;
+        }
+        mainContentActions.openAtlas();
+      })();
+    },
+    [atlas, feedback, mainContentActions],
+  );
+
   return (
     <div className="window">
       <div className="noise-overlay"></div>
@@ -409,9 +423,11 @@ export default function App() {
           timelineType={worldStructures.timelineType}
           timelineTrack={worldStructures.timelineTrack}
           timelineLinkedPageId={worldStructures.timelineLinkedPageId}
+          timelineMapMarkerId={worldStructures.timelineMapMarkerId}
           timelineDescription={worldStructures.timelineDescription}
           maps={atlas.maps}
           mapMarkers={atlas.markers}
+          allMapMarkers={atlas.allMarkers}
           activeMap={atlas.activeMap}
           activeMarker={atlas.activeMarker}
           activeMapId={atlas.activeMapId}
@@ -504,9 +520,11 @@ export default function App() {
           onTimelineTypeChange={worldStructures.setTimelineType}
           onTimelineTrackChange={worldStructures.setTimelineTrack}
           onTimelineLinkedPageChange={worldStructures.setTimelineLinkedPageId}
+          onTimelineMapMarkerChange={worldStructures.setTimelineMapMarkerId}
           onTimelineDescriptionChange={worldStructures.setTimelineDescription}
           onSelectMap={atlas.selectMap}
           onSelectMapMarker={atlas.selectMarker}
+          onOpenAtlasMarker={handleOpenAtlasMarker}
           onAddMap={atlas.addMap}
           onUpdateMap={atlas.reviseMap}
           onRemoveMap={atlas.removeMap}

@@ -42,6 +42,7 @@ export function useAtlas({
 }: UseAtlasArgs) {
   const [maps, setMaps] = useState<WorldMap[]>([]);
   const [markers, setMarkers] = useState<MapMarker[]>([]);
+  const [allMarkers, setAllMarkers] = useState<MapMarker[]>([]);
   const [activeMapId, setActiveMapId] = useState<string | null>(null);
   const [activeMarkerId, setActiveMarkerId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -84,6 +85,7 @@ export function useAtlas({
       markerLoadRequestId.current += 1;
       setMaps([]);
       setMarkers([]);
+      setAllMarkers([]);
       setActiveMapId(null);
       setActiveMarkerId(null);
       setMarkerDraft(buildAtlasMarkerDraft(null));
@@ -96,6 +98,7 @@ export function useAtlas({
     const requestId = ++loadRequestId.current;
     setIsLoading(true);
     setMarkers([]);
+    setAllMarkers([]);
     setActiveMarkerId(null);
     setMarkerDraft(buildAtlasMarkerDraft(null));
     setMarkerSaveState("idle");
@@ -103,8 +106,10 @@ export function useAtlas({
     const load = async () => {
       try {
         const nextMaps = await listMaps(activeProjectId, activeWorldId);
+        const nextAllMarkers = (await Promise.all(nextMaps.map((map) => listMapMarkers(activeProjectId, map.id)))).flat();
         if (requestId !== loadRequestId.current) return;
         setMaps(nextMaps);
+        setAllMarkers(nextAllMarkers);
         setActiveMapId((current) => (current && nextMaps.some((map) => map.id === current) ? current : nextMaps[0]?.id ?? null));
       } catch (error) {
         if (requestId !== loadRequestId.current) return;
@@ -135,6 +140,10 @@ export function useAtlas({
         const nextMarkers = await listMapMarkers(activeProjectId, activeMapId);
         if (requestId !== markerLoadRequestId.current) return;
         setMarkers(nextMarkers);
+        setAllMarkers((current) => [
+          ...current.filter((marker) => marker.mapId !== activeMapId),
+          ...nextMarkers,
+        ]);
         setActiveMarkerId((current) =>
           current && nextMarkers.some((marker) => marker.id === current) ? current : nextMarkers[0]?.id ?? null,
         );
@@ -248,6 +257,7 @@ export function useAtlas({
         return next;
       });
       setMarkers((current) => (activeMapId === mapId ? [] : current));
+      setAllMarkers((current) => current.filter((marker) => marker.mapId !== mapId));
       setActiveMarkerId((current) => (activeMapId === mapId ? null : current));
       return true;
     },
@@ -272,6 +282,7 @@ export function useAtlas({
           lorePageId: null,
         });
         setMarkers((current) => [created, ...current]);
+        setAllMarkers((current) => [created, ...current]);
         setActiveMarkerId(created.id);
         return created;
       } catch (error) {
@@ -292,6 +303,7 @@ export function useAtlas({
         return false;
       }
       setMarkers((current) => current.map((marker) => (marker.id === markerId ? { ...marker, ...updates } : marker)));
+      setAllMarkers((current) => current.map((marker) => (marker.id === markerId ? { ...marker, ...updates } : marker)));
       return true;
     },
     [activeProjectId, recoverActiveProjectError],
@@ -310,6 +322,7 @@ export function useAtlas({
     }
     const savedMarker = { ...activeMarker, ...updates };
     setMarkers((current) => current.map((marker) => (marker.id === activeMarker.id ? savedMarker : marker)));
+    setAllMarkers((current) => current.map((marker) => (marker.id === activeMarker.id ? savedMarker : marker)));
     setMarkerDraft(buildAtlasMarkerDraft(savedMarker));
     setMarkerSaveState("saved");
     setMarkerLastSavedAt(Date.now());
@@ -323,6 +336,17 @@ export function useAtlas({
       return reviseMarker(markerId, nextPoint);
     },
     [activeMap, reviseMarker],
+  );
+
+  const focusMarker = useCallback(
+    async (markerId: string) => {
+      const marker = allMarkers.find((item) => item.id === markerId) ?? null;
+      if (!marker) return false;
+      if (marker.mapId !== activeMapId && !(await selectMap(marker.mapId))) return false;
+      setActiveMarkerId(marker.id);
+      return true;
+    },
+    [activeMapId, allMarkers, selectMap],
   );
 
   const removeMarker = useCallback(
@@ -345,6 +369,7 @@ export function useAtlas({
         setActiveMarkerId((currentMarkerId) => (currentMarkerId === markerId ? next[0]?.id ?? null : currentMarkerId));
         return next;
       });
+      setAllMarkers((current) => current.filter((marker) => marker.id !== markerId));
       return true;
     },
     [activeMarkerId, activeProjectId, confirmAction, confirmDiscardMarkerDraft, recoverActiveProjectError],
@@ -354,6 +379,7 @@ export function useAtlas({
     () => ({
       maps,
       markers,
+      allMarkers,
       activeMap,
       activeMarker,
       activeMapId,
@@ -373,11 +399,13 @@ export function useAtlas({
       reviseMarker,
       saveMarkerDraft,
       moveMarker,
+      focusMarker,
       removeMarker,
     }),
     [
       maps,
       markers,
+      allMarkers,
       activeMap,
       activeMarker,
       activeMapId,
@@ -397,6 +425,7 @@ export function useAtlas({
       reviseMarker,
       saveMarkerDraft,
       moveMarker,
+      focusMarker,
       removeMarker,
     ],
   );

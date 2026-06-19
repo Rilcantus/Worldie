@@ -34,6 +34,7 @@ type UseMainContentActionsArgs = {
     eventType?: string;
     track?: string;
     linkedPageId?: string;
+    mapMarkerId?: string;
     description?: string;
   }) => Promise<unknown>;
   duplicateTimelineEvent: (eventId: string) => Promise<unknown>;
@@ -54,6 +55,7 @@ type TimelineSeed = {
   eventType?: string;
   track?: string;
   linkedPageId?: string;
+  mapMarkerId?: string;
   description?: string;
 };
 

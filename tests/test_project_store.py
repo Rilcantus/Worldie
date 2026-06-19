@@ -152,6 +152,15 @@ class ProjectStoreTests(unittest.TestCase):
             "self",
             notes="Intentional test relationship",
         )
+        map_id = self.db_manager.create_map(project_uuid, world_id, "Duskfen Map")
+        marker_id = self.db_manager.create_map_marker(
+            project_uuid,
+            world_id,
+            map_id,
+            "Arrival Dock",
+            x=320,
+            y=180,
+        )
         event_id = self.db_manager.create_timeline_event(
             project_uuid,
             world_id,
@@ -160,6 +169,7 @@ class ProjectStoreTests(unittest.TestCase):
             event_type="arrival",
             track="Main History",
             linked_page_id=lore_id,
+            map_marker_id=marker_id,
             description="Mara arrives in Duskfen.",
         )
 
@@ -191,6 +201,7 @@ class ProjectStoreTests(unittest.TestCase):
             event_type=None,
             track=None,
             linked_page_id=None,
+            map_marker_id=None,
             description=None,
         )
         event = self.db_manager.list_timeline_events(project_uuid, world_id)[0]
@@ -199,6 +210,7 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIsNone(event[5])
         self.assertIsNone(event[6])
         self.assertIsNone(event[7])
+        self.assertIsNone(event[8])
 
     def test_timeline_event_track_persists_and_updates(self):
         project_uuid, project_path = self.db_manager.add_project("Chronicle Track", "")
@@ -224,6 +236,49 @@ class ProjectStoreTests(unittest.TestCase):
         reopened_uuid, _, _ = self.db_manager.open_project(project_path)
         reopened = self.db_manager.list_timeline_events(reopened_uuid, world_id)[0]
         self.assertEqual(reopened[5], "Secret History")
+
+    def test_timeline_event_map_marker_link_persists_and_updates(self):
+        project_uuid, project_path = self.db_manager.add_project("Chronicle Atlas Link", "")
+        world_id = self.db_manager.create_world(project_uuid, "Duskfen")
+        map_id = self.db_manager.create_map(project_uuid, world_id, "Duskfen Map")
+        first_marker_id = self.db_manager.create_map_marker(
+            project_uuid,
+            world_id,
+            map_id,
+            "Arrival Dock",
+            x=120,
+            y=240,
+        )
+        second_marker_id = self.db_manager.create_map_marker(
+            project_uuid,
+            world_id,
+            map_id,
+            "Old Shrine",
+            x=360,
+            y=420,
+        )
+        event_id = self.db_manager.create_timeline_event(
+            project_uuid,
+            world_id,
+            "The Quiet Arrival",
+            event_date="847 AE",
+            event_type="arrival",
+            track="Main History",
+            map_marker_id=first_marker_id,
+            description="Mara arrives at the dock.",
+        )
+
+        event = self.db_manager.list_timeline_events(project_uuid, world_id)[0]
+        self.assertEqual(event[0], event_id)
+        self.assertEqual(event[7], first_marker_id)
+
+        self.db_manager.update_timeline_event(project_uuid, event_id, map_marker_id=second_marker_id)
+        updated = self.db_manager.list_timeline_events(project_uuid, world_id)[0]
+        self.assertEqual(updated[7], second_marker_id)
+
+        reopened_uuid, _, _ = self.db_manager.open_project(project_path)
+        reopened = self.db_manager.list_timeline_events(reopened_uuid, world_id)[0]
+        self.assertEqual(reopened[7], second_marker_id)
 
     def test_atlas_map_and_marker_crud_persists_in_project_file(self):
         project_uuid, project_path = self.db_manager.add_project("Atlas Project", "")
@@ -877,6 +932,7 @@ class ProjectStoreTests(unittest.TestCase):
                     "eventType": None,
                     "track": None,
                     "linkedPageId": None,
+                    "mapMarkerId": None,
                     "description": None,
                 },
             }
@@ -887,6 +943,7 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIsNone(event[5])
         self.assertIsNone(event[6])
         self.assertIsNone(event[7])
+        self.assertIsNone(event[8])
 
     def test_sidecar_request_flow_persists_project_entities(self):
         create_response = self.sidecar._handle_request(
@@ -1463,6 +1520,16 @@ class ProjectStoreTests(unittest.TestCase):
             "rumored",
             "A missing source should not break export.",
         )
+        map_id = self.db_manager.create_map(project_uuid, world_id, "Harbor Map")
+        marker_id = self.db_manager.create_map_marker(
+            project_uuid,
+            world_id,
+            map_id,
+            "Arrival Dock",
+            x=320,
+            y=180,
+            lore_page_id=harbor_id,
+        )
         first_event = self.db_manager.create_timeline_event(
             project_uuid,
             world_id,
@@ -1471,6 +1538,7 @@ class ProjectStoreTests(unittest.TestCase):
             event_type="arrival",
             track="Main History",
             linked_page_id=mara_id,
+            map_marker_id=marker_id,
             description="Mara reaches [[Red Harbor]].",
         )
         self.db_manager.create_timeline_event(
@@ -1509,6 +1577,7 @@ class ProjectStoreTests(unittest.TestCase):
         self.assertIn("Type: arrival", timeline_text)
         self.assertIn("Track: Main History", timeline_text)
         self.assertIn("Linked lore: Mara Quill", timeline_text)
+        self.assertIn("Map marker: Arrival Dock", timeline_text)
         self.assertIn("Mara reaches [[Red Harbor]].", timeline_text)
         self.assertIn("Linked lore: Missing lore (missing-lore)", timeline_text)
         self.assertIn(first_event, [row[0] for row in self.db_manager.list_timeline_events(project_uuid, world_id)])

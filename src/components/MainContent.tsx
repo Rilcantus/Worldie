@@ -67,9 +67,11 @@ type MainContentProps = {
   timelineType: string;
   timelineTrack: string;
   timelineLinkedPageId: string;
+  timelineMapMarkerId: string;
   timelineDescription: string;
   maps: WorldMap[];
   mapMarkers: MapMarker[];
+  allMapMarkers: MapMarker[];
   activeMap: WorldMap | null;
   activeMarker: MapMarker | null;
   activeMapId: string | null;
@@ -185,6 +187,7 @@ type MainContentProps = {
     eventType?: string;
     track?: string;
     linkedPageId?: string;
+    mapMarkerId?: string;
     description?: string;
   }) => void;
   onDuplicateTimelineEvent: (eventId: string) => void;
@@ -195,9 +198,11 @@ type MainContentProps = {
   onTimelineTypeChange: (value: string) => void;
   onTimelineTrackChange: (value: string) => void;
   onTimelineLinkedPageChange: (value: string) => void;
+  onTimelineMapMarkerChange: (value: string) => void;
   onTimelineDescriptionChange: (value: string) => void;
   onSelectMap: (mapId: string) => void;
   onSelectMapMarker: (markerId: string) => void;
+  onOpenAtlasMarker: (markerId: string) => void;
   onAddMap: () => void;
   onUpdateMap: (mapId: string, updates: Partial<Pick<WorldMap, "name" | "description" | "backgroundType">>) => Promise<boolean>;
   onRemoveMap: (mapId: string) => void;
@@ -477,8 +482,10 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               timelineType={props.timelineType}
               timelineTrack={props.timelineTrack}
               timelineLinkedPageId={props.timelineLinkedPageId}
+              timelineMapMarkerId={props.timelineMapMarkerId}
               timelineDescription={props.timelineDescription}
               lorePages={props.allLorePages}
+              mapMarkers={props.allMapMarkers}
               activeWorld={props.activeWorld}
               onCollapseDocList={props.onCollapseDocList}
               onExpandDocList={props.onExpandDocList}
@@ -496,8 +503,10 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onTypeChange={props.onTimelineTypeChange}
               onTrackChange={props.onTimelineTrackChange}
               onLinkedPageChange={props.onTimelineLinkedPageChange}
+              onMapMarkerChange={props.onTimelineMapMarkerChange}
               onDescriptionChange={props.onTimelineDescriptionChange}
               onOpenLore={props.onOpenLore}
+              onOpenAtlasMarker={props.onOpenAtlasMarker}
             />
           ) : null}
 
@@ -509,6 +518,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               docListWidth={props.docListWidth}
               maps={props.maps}
               markers={props.mapMarkers}
+              timelineEvents={props.timelineEvents}
               activeMap={props.activeMap}
               activeMarker={props.activeMarker}
               activeMapId={props.activeMapId}

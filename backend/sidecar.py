@@ -508,9 +508,10 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
                     "eventType": row[4],
                     "track": row[5],
                     "linkedPageId": row[6],
-                    "description": row[7],
-                    "createdAt": row[8],
-                    "updatedAt": row[9],
+                    "mapMarkerId": row[7],
+                    "description": row[8],
+                    "createdAt": row[9],
+                    "updatedAt": row[10],
                 }
                 for row in rows
             ],
@@ -530,6 +531,7 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
             event_type=data.get("eventType"),
             track=data.get("track"),
             linked_page_id=data.get("linkedPageId"),
+            map_marker_id=data.get("mapMarkerId"),
             description=data.get("description"),
         )
         return {"status": "ok", "eventId": event_id}
@@ -547,6 +549,7 @@ def _dispatch_request(request: Dict[str, Any]) -> Dict[str, Any]:
             event_type=_optional(data, "eventType"),
             track=_optional(data, "track"),
             linked_page_id=_optional(data, "linkedPageId"),
+            map_marker_id=_optional(data, "mapMarkerId"),
             description=_optional(data, "description"),
         )
         return {"status": "ok"}

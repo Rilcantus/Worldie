@@ -39,20 +39,26 @@ test("hasUnsavedTimelineChanges detects edits against the active event", () => {
     title: "Founding",
     eventDate: "1000 AR",
     eventType: "event",
+    track: "",
     linkedPageId: "lore-1",
+    mapMarkerId: "marker-1",
     description: "old",
   };
 
   assert.equal(
-    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1000 AR", "event", "", "lore-1", "old"),
+    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1000 AR", "event", "", "lore-1", "marker-1", "old"),
     false,
   );
   assert.equal(
-    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1001 AR", "event", "", "lore-1", "old"),
+    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1001 AR", "event", "", "lore-1", "marker-1", "old"),
     true,
   );
   assert.equal(
-    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1000 AR", "event", "Main History", "lore-1", "old"),
+    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1000 AR", "event", "Main History", "lore-1", "marker-1", "old"),
+    true,
+  );
+  assert.equal(
+    hasUnsavedTimelineChanges(activeTimelineEvent, "Founding", "1000 AR", "event", "", "lore-1", "marker-2", "old"),
     true,
   );
 });

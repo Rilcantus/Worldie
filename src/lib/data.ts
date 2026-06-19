@@ -155,6 +155,7 @@ type TimelineEvent = {
   eventType?: string | null;
   track?: string | null;
   linkedPageId?: string | null;
+  mapMarkerId?: string | null;
   description?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -765,7 +766,7 @@ export async function listTimelineEvents(projectId: string, worldId: string): Pr
 export async function createTimelineEvent(
   projectId: string,
   worldId: string,
-  data: Pick<TimelineEvent, "title" | "eventDate" | "eventType" | "track" | "linkedPageId" | "description">,
+  data: Pick<TimelineEvent, "title" | "eventDate" | "eventType" | "track" | "linkedPageId" | "mapMarkerId" | "description">,
 ): Promise<TimelineEvent> {
   const response = await invokeProjectStore<{ eventId?: string }>("create_timeline_event", {
     projectId,
@@ -781,7 +782,7 @@ export async function createTimelineEvent(
 export async function updateTimelineEvent(
   projectId: string,
   eventId: string,
-  updates: Partial<Pick<TimelineEvent, "title" | "eventDate" | "eventType" | "track" | "linkedPageId" | "description">>,
+  updates: Partial<Pick<TimelineEvent, "title" | "eventDate" | "eventType" | "track" | "linkedPageId" | "mapMarkerId" | "description">>,
 ): Promise<void> {
   await invokeProjectStore("update_timeline_event", omitUndefined({ projectId, eventId, ...updates }));
 }

@@ -42,6 +42,7 @@ export function hasUnsavedTimelineChanges(
   timelineType: string,
   timelineTrack: string,
   timelineLinkedPageId: string,
+  timelineMapMarkerId: string,
   timelineDescription: string,
 ) {
   if (!activeTimelineEvent) return false;
@@ -51,6 +52,7 @@ export function hasUnsavedTimelineChanges(
     (activeTimelineEvent.eventType ?? "event") !== timelineType ||
     (activeTimelineEvent.track ?? "") !== timelineTrack ||
     (activeTimelineEvent.linkedPageId ?? "") !== timelineLinkedPageId ||
+    (activeTimelineEvent.mapMarkerId ?? "") !== timelineMapMarkerId ||
     (activeTimelineEvent.description ?? "") !== timelineDescription
   );
 }
