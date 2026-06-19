@@ -96,6 +96,11 @@ export const AtlasView = memo(function AtlasView({
     () => (activeMarker ? timelineEvents.filter((event) => event.mapMarkerId === activeMarker.id) : []),
     [activeMarker, timelineEvents],
   );
+  const formatTimelineEventMeta = (event: TimelineEvent) => {
+    const dateOrEra = event.eventDate?.trim() || "Undated";
+    const details = [dateOrEra, event.track, event.eventType].filter(Boolean);
+    return details.join(" - ");
+  };
   const markerTypes = useMemo(() => buildAtlasMarkerTypeOptions(markers), [markers]);
   const filteredMarkers = useMemo(
     () =>
@@ -533,7 +538,7 @@ export const AtlasView = memo(function AtlasView({
                         {linkedTimelineEvents.map((event) => (
                           <div key={event.id} className="structure-list-item">
                             <span>{event.title}</span>
-                            <span>{event.eventDate || event.eventType || "Timeline"}</span>
+                            <span>{formatTimelineEventMeta(event)}</span>
                           </div>
                         ))}
                       </div>

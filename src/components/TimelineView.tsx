@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import type { LorePage, MapMarker, TimelineEvent } from "../lib/data";
+import type { LorePage, MapMarker, TimelineEvent, WorldMap } from "../lib/data";
 import { getTimelineTrackLabel, groupTimelineEventsByTrack } from "../hooks/worldStructureState";
 import type { WorldUI } from "../types/ui";
 
@@ -18,6 +18,7 @@ type TimelineViewProps = {
   timelineMapMarkerId: string;
   timelineDescription: string;
   lorePages: LorePage[];
+  maps: WorldMap[];
   mapMarkers: MapMarker[];
   activeWorld?: WorldUI;
   onCollapseDocList: () => void;
@@ -93,6 +94,7 @@ export const TimelineView = memo(function TimelineView({
   timelineMapMarkerId,
   timelineDescription,
   lorePages,
+  maps,
   mapMarkers,
   activeWorld,
   onCollapseDocList,
@@ -135,9 +137,15 @@ export const TimelineView = memo(function TimelineView({
   const timelineTrackFilterId = "timeline-track-filter";
   const timelineLinkedFilterId = "timeline-linked-filter";
   const lorePagesById = useMemo(() => new Map(lorePages.map((page) => [page.id, page])), [lorePages]);
+  const mapsById = useMemo(() => new Map(maps.map((map) => [map.id, map])), [maps]);
   const mapMarkersById = useMemo(() => new Map(mapMarkers.map((marker) => [marker.id, marker])), [mapMarkers]);
   const getLorePageById = (pageId: string | null | undefined) => (pageId ? lorePagesById.get(pageId) ?? null : null);
   const getMapMarkerById = (markerId: string | null | undefined) => (markerId ? mapMarkersById.get(markerId) ?? null : null);
+  const formatMapMarkerLabel = (marker: MapMarker) => {
+    const mapName = mapsById.get(marker.mapId)?.name ?? "";
+    const details = [marker.markerType, mapName].filter(Boolean);
+    return details.length > 0 ? `${marker.title} (${details.join(" - ")})` : marker.title;
+  };
 
   const filteredTimelineEvents = useMemo(() => {
     const query = timelineSearch.trim().toLowerCase();
@@ -1065,7 +1073,7 @@ export const TimelineView = memo(function TimelineView({
               <option value="">No map marker</option>
               {mapMarkers.map((marker) => (
                 <option key={marker.id} value={marker.id}>
-                  {marker.title}{marker.markerType ? ` - ${marker.markerType}` : ""}
+                  {formatMapMarkerLabel(marker)}
                 </option>
               ))}
             </select>
@@ -1105,7 +1113,7 @@ export const TimelineView = memo(function TimelineView({
               </div>
               <div className="structure-list-item">
                 <span>Map marker</span>
-                <span>{activeMapMarker?.title ?? "None"}</span>
+                <span>{activeMapMarker ? formatMapMarkerLabel(activeMapMarker) : "None"}</span>
               </div>
             </div>
             <div className="relationship-action-row">

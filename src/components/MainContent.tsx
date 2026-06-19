@@ -485,6 +485,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               timelineMapMarkerId={props.timelineMapMarkerId}
               timelineDescription={props.timelineDescription}
               lorePages={props.allLorePages}
+              maps={props.maps}
               mapMarkers={props.allMapMarkers}
               activeWorld={props.activeWorld}
               onCollapseDocList={props.onCollapseDocList}
