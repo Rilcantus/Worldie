@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Document, LorePage } from "../lib/data";
+import type { NavigationResult } from "./navigationResult";
 
 type UseContentTabActionsArgs = {
   activeLore: LorePage | undefined;
@@ -7,10 +8,10 @@ type UseContentTabActionsArgs = {
   addDocument: () => Promise<Document | null>;
   removeDocument: (docId: string) => Promise<boolean>;
   removeLorePage: (loreId: string) => Promise<boolean>;
-  openDocumentTab: (doc: Document) => void;
-  openLoreTab: (page: LorePage) => void;
-  openLoreCreateTab: () => void;
-  openNewTab: () => void;
+  openDocumentTab: (doc: Document) => Promise<NavigationResult>;
+  openLoreTab: (page: LorePage) => Promise<NavigationResult>;
+  openLoreCreateTab: () => Promise<NavigationResult>;
+  openNewTab: () => Promise<NavigationResult>;
   removeTabById: (tabId: string, options?: { skipGuard?: boolean }) => void;
 };
 

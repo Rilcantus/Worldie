@@ -1,16 +1,17 @@
 import { useMemo } from "react";
+import type { NavigationResult } from "./navigationResult";
 
 type UseMainContentActionsArgs = {
   setIsSidebarCollapsed: (value: boolean) => void;
   setIsDocListCollapsed: (value: boolean) => void;
   setIsRightPanelCollapsed: (value: boolean) => void;
   canLeaveCurrentView: () => Promise<boolean>;
-  openSpecialTab: (kind: "rels" | "timeline" | "atlas") => void;
-  openNewTab: () => void;
-  openWorkbenchTab: () => void;
-  openLoreCreateTab: () => void;
-  openTemplatesTab: () => void;
-  openLoreTypesTab: () => void;
+  openSpecialTab: (kind: "rels" | "timeline" | "atlas") => Promise<NavigationResult>;
+  openNewTab: () => Promise<NavigationResult>;
+  openWorkbenchTab: () => Promise<NavigationResult>;
+  openLoreCreateTab: () => Promise<NavigationResult>;
+  openTemplatesTab: () => Promise<NavigationResult>;
+  openLoreTypesTab: () => Promise<NavigationResult>;
   handleAddDocument: () => Promise<void>;
   duplicateDocument: () => Promise<unknown>;
   handleRemoveDocument: (docId: string) => Promise<void>;

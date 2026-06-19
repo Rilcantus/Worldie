@@ -43,6 +43,7 @@ type AtlasViewProps = {
   onMarkerDraftChange: Dispatch<SetStateAction<AtlasMarkerDraft>>;
   onSaveMarkerDraft: () => Promise<boolean>;
   onOpenLore: (page: LorePage) => void;
+  onOpenTimelineEvent?: (event: TimelineEvent) => void;
 };
 
 export const AtlasView = memo(function AtlasView({
@@ -78,6 +79,7 @@ export const AtlasView = memo(function AtlasView({
   onMarkerDraftChange,
   onSaveMarkerDraft,
   onOpenLore,
+  onOpenTimelineEvent,
 }: AtlasViewProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const draggedMarkerIdRef = useRef<string | null>(null);
@@ -539,6 +541,11 @@ export const AtlasView = memo(function AtlasView({
                           <div key={event.id} className="structure-list-item">
                             <span>{event.title}</span>
                             <span>{formatTimelineEventMeta(event)}</span>
+                            {onOpenTimelineEvent ? (
+                              <button className="linked-lore-chip" type="button" onClick={() => onOpenTimelineEvent(event)}>
+                                Open in Chronicle
+                              </button>
+                            ) : null}
                           </div>
                         ))}
                       </div>

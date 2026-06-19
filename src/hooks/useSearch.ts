@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Document, LorePage } from "../lib/data";
+import type { NavigationResult } from "./navigationResult";
 import { buildQuickOpenResults, buildSearchResults, type SearchResult } from "./searchState";
 
 export type { SearchResult } from "./searchState";
@@ -8,8 +9,8 @@ type UseSearchArgs = {
   enabled: boolean;
   documents: Document[];
   allLorePages: LorePage[];
-  onOpenDocument: (doc: Document, options?: { skipGuard?: boolean }) => void;
-  onOpenLore: (page: LorePage, options?: { skipGuard?: boolean }) => void;
+  onOpenDocument: (doc: Document, options?: { skipGuard?: boolean }) => Promise<NavigationResult>;
+  onOpenLore: (page: LorePage, options?: { skipGuard?: boolean }) => Promise<NavigationResult>;
   canLeaveCurrentView: () => Promise<boolean>;
 };
 

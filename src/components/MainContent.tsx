@@ -180,6 +180,7 @@ type MainContentProps = {
   onRelationshipTypeChange: (value: string) => void;
   onRelationshipNotesChange: (value: string) => void;
   onSelectTimelineEvent: (event: TimelineEvent) => void;
+  onOpenTimelineEvent: (event: TimelineEvent) => void;
   onAddTimelineEvent: () => void;
   onAddTimelineEventWithSeed: (seed?: {
     title?: string;
@@ -545,6 +546,7 @@ export const MainContent = memo(function MainContent(props: MainContentProps) {
               onMarkerDraftChange={props.onMapMarkerDraftChange}
               onSaveMarkerDraft={props.onSaveMapMarkerDraft}
               onOpenLore={props.onOpenLore}
+              onOpenTimelineEvent={props.onOpenTimelineEvent}
             />
           ) : null}
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { NavigationResult } from "./navigationResult";
 
 type UseSidebarActionsArgs = {
   projectTitle: string;
@@ -11,7 +12,7 @@ type UseSidebarActionsArgs = {
   removeWorld: (worldId: string) => Promise<void>;
   activeWorldId: string | null;
   canLeaveCurrentView: () => Promise<boolean>;
-  openSpecialTab: (kind: "rels" | "timeline" | "atlas", worldId?: string | null) => Promise<void>;
+  openSpecialTab: (kind: "rels" | "timeline" | "atlas", worldId?: string | null) => Promise<NavigationResult>;
 };
 
 export function useSidebarActions({

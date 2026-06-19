@@ -6,6 +6,8 @@ import { AppStatusBar } from "./components/AppStatusBar";
 import { AppOverlays } from "./components/AppOverlays";
 import { StartScreen } from "./components/StartScreen";
 import { useAppController } from "./hooks/useAppController";
+import { shouldRunNavigationFollowUp } from "./hooks/navigationResult";
+import type { TimelineEvent } from "./lib/data";
 import type { LoreCustomFields } from "./lib/loreItems";
 import type { LoreTableCsvImportDraft, LoreTableCsvUpdateDraft } from "./lib/loreTable";
 
@@ -305,6 +307,17 @@ export default function App() {
     [atlas, feedback, mainContentActions],
   );
 
+  const handleOpenTimelineEvent = useCallback(
+    (event: TimelineEvent) => {
+      void (async () => {
+        const result = await tabs.openSpecialTab("timeline");
+        if (!shouldRunNavigationFollowUp(result)) return;
+        void worldStructures.selectTimelineEvent(event, { skipGuard: true });
+      })();
+    },
+    [tabs, worldStructures],
+  );
+
   return (
     <div className="window">
       <div className="noise-overlay"></div>
@@ -510,6 +523,7 @@ export default function App() {
           onRelationshipTypeChange={worldStructures.setRelationshipType}
           onRelationshipNotesChange={worldStructures.setRelationshipNotes}
           onSelectTimelineEvent={worldStructures.selectTimelineEvent}
+          onOpenTimelineEvent={handleOpenTimelineEvent}
           onAddTimelineEvent={mainContentActions.addTimelineEvent}
           onAddTimelineEventWithSeed={mainContentActions.addTimelineEventWithSeed}
           onDuplicateTimelineEvent={mainContentActions.duplicateTimelineEvent}

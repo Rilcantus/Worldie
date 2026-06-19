@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react";
 import type { Document, LorePage } from "../lib/data";
+import type { NavigationResult } from "./navigationResult";
 import {
   getEditorTargetForWorld,
   getFirstLorePageByWorld,
@@ -20,10 +21,10 @@ type UseWorkspaceNavigationArgs = {
   resolveLoreTypeId: (page: LorePage) => string | null;
   setActiveWorldId: Dispatch<SetStateAction<string | null>>;
   setActiveLoreTypeId: Dispatch<SetStateAction<string | null>>;
-  openDocumentTab: (doc: Document, options?: { skipGuard?: boolean }) => void;
-  openLoreTab: (page: LorePage, options?: { skipGuard?: boolean }) => void;
-  openLoreCreateTab: (options?: { skipGuard?: boolean }) => void;
-  openNewTab: (options?: { skipGuard?: boolean }) => void;
+  openDocumentTab: (doc: Document, options?: { skipGuard?: boolean }) => Promise<NavigationResult>;
+  openLoreTab: (page: LorePage, options?: { skipGuard?: boolean }) => Promise<NavigationResult>;
+  openLoreCreateTab: (options?: { skipGuard?: boolean }) => Promise<NavigationResult>;
+  openNewTab: (options?: { skipGuard?: boolean }) => Promise<NavigationResult>;
   canLeaveCurrentView: () => Promise<boolean>;
 };
 

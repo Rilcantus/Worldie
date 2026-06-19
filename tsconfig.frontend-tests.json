@@ -21,6 +21,7 @@
     "src/hooks/contextPanelState.ts",
     "src/hooks/dirtyState.ts",
     "src/hooks/exportFeedbackState.ts",
+    "src/hooks/navigationResult.ts",
     "src/hooks/panelLayoutState.ts",
     "src/hooks/projectRecovery.ts",
     "src/hooks/projectWorldState.ts",
