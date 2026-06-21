@@ -67,7 +67,12 @@ Current app features include:
 - Save-state feedback for editor and workspace flows
 - Dirty-state guard for project switching/navigation
 - Relationship workspace with filters, focus panels, summaries, linked-page actions, and lightweight network preview
-- Timeline workspace with filters, summary cards, linked lore visibility, visual canvas, chronological outline, type tracks, and era grouping
+- Chronicle/Timeline workspace with filters, summary cards, linked lore visibility, visual canvas, chronological outline, type tracks, era grouping, persisted Chronicle tracks, grouped Track View, focused track panel, dirty detection, duplication support, and Markdown export support
+- Atlas/Maps workspace with marker-only maps, map list, create/rename/delete map, blank/grid canvas, add/move/delete markers, marker title/type/notes editing, marker type presets, marker filtering/search, marker list, optional lore-page links, linked lore opening, marker dirty-state protection, save-failure feedback, and Markdown export support
+- Timeline events can link to Atlas map markers
+- Timeline -> Atlas and Atlas -> Chronicle navigation works through guarded navigation results so follow-up selection only runs after dirty-state navigation succeeds
+- Active-world and full-project Markdown exports include Chronicle tracks, timeline marker links, and Atlas maps/markers
+- Chronicle + Atlas focused QA pass is documented in `docs/CHRONICLE_ATLAS_QA_PASS.md`
 
 ## Important Files
 
@@ -87,6 +92,7 @@ Frontend:
 - `src/components/EditorView.tsx` - editor view
 - `src/components/RelationshipsView.tsx` - relationship workspace
 - `src/components/TimelineView.tsx` - timeline workspace
+- `src/components/AtlasView.tsx` - marker-only map workspace
 - `src/components/WorkbenchView.tsx` - project dashboard
 
 State/domain hooks:
@@ -97,6 +103,7 @@ State/domain hooks:
 - `src/hooks/useTabs.ts`
 - `src/hooks/useSearch.ts`
 - `src/hooks/useWorkspaceNavigation.ts`
+- `src/hooks/useAtlas.ts`
 - `src/hooks/useLoreTypes.ts`
 - `src/hooks/useLoreTemplates.ts`
 
@@ -132,12 +139,7 @@ If the direct build passes, treat the production bundle as healthy and the `npm 
 
 ## Existing Dirty Worktree Note
 
-At the time this brief was created, there were existing modified files:
-
-- `src/components/editorCore.tsx`
-- `tests/frontend/editor-core.test.mjs`
-
-The change appears to preserve indentation when converting an indented bullet into a note block, with a matching frontend editor test. Treat these as user/in-progress changes unless asked to commit or modify them.
+At the time this brief was updated, the branch was ahead of `origin/72hrbranch`. Check `git status` before editing and preserve any user or in-progress changes.
 
 ## Main Risks And Gaps
 
@@ -145,7 +147,6 @@ Highest-priority risks:
 
 - The custom contenteditable editor needs more reliability testing
 - Project switching and navigation with dirty state need more full-flow QA
-- Nullable fields in the database are updated with `COALESCE`, which means `null` currently means "leave unchanged" instead of "clear this value"
 - Media/cover image support has schema hints but no complete portable-file design
 - Export/Spaci boundaries are not implemented
 
@@ -153,7 +154,8 @@ Known product gaps:
 
 - No TipTap integration yet
 - No full graph editor for relationships yet
-- No full multi-track timeline system yet
+- Chronicle tracks are implemented, but there is no full advanced timeline scaling system yet
+- Atlas is marker-only; no routes, shapes, regions, drawing tools, map image/media storage, or timeline route/region links yet
 - No cover image/media workflow yet
 - No export bundle pipeline yet
 
@@ -161,14 +163,13 @@ Known product gaps:
 
 Best next sequence:
 
-1. Finish the current editor indentation fix if it is still pending
-2. Add more editor-core tests around indentation, nested blocks, paste, selection offsets, undo/redo assumptions, and formatting round trips
-3. Replace backend `COALESCE` update semantics with explicit partial-update handling so optional fields can be cleared
-4. Add tests for clearing optional document/lore/relationship/timeline fields
-5. Add workflow tests for dirty editor state during project switching, world switching, tab switching, and file recovery
-6. Decide whether to keep hardening the custom contenteditable path or migrate to TipTap
-7. Design media support before implementation: whether files are embedded in `.worldie`, copied into a sidecar assets folder, or referenced externally
-8. Start export bundle design for future Spaci import
+1. Run friend-test/pre-beta QA with real writing sessions and backed-up `.worldie` files
+2. Keep hardening editor reliability around paste, selection offsets, undo/redo assumptions, and formatting round trips
+3. Add workflow tests for dirty editor state during project switching, world switching, tab switching, and file recovery
+4. Polish Chronicle/Atlas copy and empty states based on tester feedback
+5. Decide whether to keep hardening the custom contenteditable path or migrate to TipTap
+6. Design media support before implementation: whether files are embedded in `.worldie`, copied into a sidecar assets folder, or referenced externally
+7. Start export bundle design for future Spaci import
 
 ## Development Principles
 
@@ -197,6 +198,5 @@ Suggested tasks that would move the project forward:
 ## Prompt To Paste Into ChatGPT
 
 ```text
-You are helping continue development on Worldie, an offline-first React + Tauri desktop app for fictional world-building. Read README.md, AGENTS.md, CHANGELOG.md, and CONTINUATION_BRIEF.md first. Preserve the offline-first `.worldie` SQLite project-file architecture. Project data belongs in `.worldie` files; browser storage is only for UI/session state. Current priorities are editor hardening, better QA around project switching and dirty state, fixing nullable-field persistence semantics, planning media support, and defining future export boundaries for Spaci. Start by checking git status and existing modified files before making changes.
+You are helping continue development on Worldie, an offline-first React + Tauri desktop app for fictional world-building. Read README.md, AGENTS.md, CHANGELOG.md, and CONTINUATION_BRIEF.md first. Preserve the offline-first `.worldie` SQLite project-file architecture. Project data belongs in `.worldie` files; browser storage is only for UI/session state. Current implemented work includes Chronicle tracks, marker-only Atlas maps, Atlas dirty-state protection, Atlas Markdown export, timeline-event-to-map-marker links, and guarded Timeline/Atlas navigation. Current priorities are pre-beta polish, editor hardening, friend-test QA, media design, and future export boundaries for Spaci. Start by checking git status and existing modified files before making changes.
 ```
-

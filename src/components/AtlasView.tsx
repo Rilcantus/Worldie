@@ -169,7 +169,7 @@ export const AtlasView = memo(function AtlasView({
         {!isDocListCollapsed ? (
           <>
             <div className="doc-list-header">
-              <div className="doc-list-title">Atlas</div>
+              <div className="doc-list-title">Atlas Maps</div>
               <div className="doc-list-actions">
                 <button className="panel-toggle" type="button" onClick={onCollapseDocList} title="Collapse list (Ctrl+2)">
                   &lt;
@@ -183,7 +183,7 @@ export const AtlasView = memo(function AtlasView({
               {isLoading ? (
                 <div className="doc-empty">Loading maps...</div>
               ) : maps.length === 0 ? (
-                <div className="doc-empty">No maps yet. Create a blank Atlas map for this world.</div>
+                <div className="doc-empty">No maps yet. Create an Atlas map to place markers for this world.</div>
               ) : (
                 maps.map((map) => (
                   <div key={map.id} className="doc-item-row">
@@ -232,7 +232,7 @@ export const AtlasView = memo(function AtlasView({
             ) : null}
             {isDocListCollapsed ? (
               <div className="collapsed-strip">
-                <span>Atlas</span>
+                <span>Atlas Maps</span>
                 <button className="panel-toggle" type="button" onClick={onExpandDocList} title="Expand list (Ctrl+2)">
                   &gt;
                 </button>
@@ -271,7 +271,7 @@ export const AtlasView = memo(function AtlasView({
           <div className="meta-tag">
             <div className="meta-dot"></div> {activeWorld?.name ?? "World"}
           </div>
-          <div className="meta-tag">Marker-only Atlas</div>
+          <div className="meta-tag">Atlas maps and markers</div>
           {activeMap ? (
             <div className="meta-tag">
               {filteredMarkers.length} of {markers.length} markers
@@ -283,7 +283,7 @@ export const AtlasView = memo(function AtlasView({
           <div className="atlas-map-panel">
             {!activeMap ? (
               <div className="rp-empty atlas-empty">
-                Create a map to start placing lore markers. This first Atlas slice uses blank/grid maps only.
+                Create a map to start placing lore markers. Atlas is marker-only for now: blank or grid maps, no drawing tools yet.
               </div>
             ) : (
               <div
@@ -420,11 +420,11 @@ export const AtlasView = memo(function AtlasView({
               />
               <div className="atlas-marker-list">
                 {!activeMap ? (
-                  <div className="rp-empty">Create a map before organizing markers.</div>
+                  <div className="rp-empty">Create or select a map before organizing markers.</div>
                 ) : markers.length === 0 ? (
-                  <div className="rp-empty">No markers yet.</div>
+                  <div className="rp-empty">No markers yet. Click the map or use Add Marker to pin a place.</div>
                 ) : filteredMarkers.length === 0 ? (
-                  <div className="rp-empty">No markers match this filter.</div>
+                  <div className="rp-empty">No markers match this filter. Clear filters to see the full map list.</div>
                 ) : (
                   filteredMarkers.map((marker) => {
                     const markerLorePage = marker.lorePageId ? lorePagesById.get(marker.lorePageId) ?? null : null;
@@ -452,7 +452,7 @@ export const AtlasView = memo(function AtlasView({
                 <div className="linked-lore-label">Marker Details</div>
               </div>
               {!activeMarker ? (
-                <div className="rp-empty">Select a marker or click the map to create one.</div>
+                <div className="rp-empty">Select a marker to edit it, or click the map to create one.</div>
               ) : (
                 <>
                   <label className="lore-label" htmlFor="atlas-marker-title">
@@ -550,7 +550,12 @@ export const AtlasView = memo(function AtlasView({
                         ))}
                       </div>
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="lore-panel-subsection">
+                      <div className="linked-lore-label">Linked timeline events</div>
+                      <div className="rp-empty">No Chronicle events point to this marker yet.</div>
+                    </div>
+                  )}
                   <div className="relationship-action-row">
                     {linkedLorePage ? (
                       <button className="linked-lore-chip" type="button" onClick={() => onOpenLore(linkedLorePage)}>

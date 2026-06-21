@@ -304,7 +304,7 @@ export const TimelineView = memo(function TimelineView({
         {!isDocListCollapsed ? (
           <>
             <div className="doc-list-header">
-              <div className="doc-list-title">Timeline</div>
+              <div className="doc-list-title">Chronicle Timeline</div>
               <div className="doc-list-actions">
                 <button
                   className="panel-toggle"
@@ -323,8 +323,8 @@ export const TimelineView = memo(function TimelineView({
               {orderedEvents.length === 0 ? (
                 <div className="doc-empty">
                   {timelineEvents.length === 0
-                    ? "No timeline events yet. Add the first milestone for this world."
-                    : "No timeline events match the current filters."}
+                    ? "No Chronicle events yet. Add the first timeline milestone for this world."
+                    : "No Chronicle events match the current filters."}
                 </div>
               ) : (
                 orderedEvents.map((item) => (
@@ -379,7 +379,7 @@ export const TimelineView = memo(function TimelineView({
             ) : null}
             {isDocListCollapsed ? (
               <div className="collapsed-strip">
-                <span>Timeline</span>
+                <span>Chronicle Timeline</span>
                 <button
                   className="panel-toggle"
                   type="button"
@@ -422,7 +422,7 @@ export const TimelineView = memo(function TimelineView({
               className="lore-input"
               value={timelineSearch}
               onChange={(event) => setTimelineSearch(event.target.value)}
-              placeholder="Filter by title, date, type, description, or linked lore"
+              placeholder="Filter by title, date, type, track, linked lore, or map marker"
             />
           </div>
           <div className="structure-filter-field">
@@ -509,16 +509,14 @@ export const TimelineView = memo(function TimelineView({
           <div className="meta-tag">
             <div className="meta-dot"></div> {activeWorld?.name ?? "World"}
           </div>
-          <div className="meta-tag">Timeline event</div>
+          <div className="meta-tag">Chronicle timeline event</div>
         </div>
 
         <div className="structure-summary-grid">
           <div className="structure-card">
             <div className="structure-card-label">Event Count</div>
             <div className="structure-card-value">{filteredTimelineEvents.length}</div>
-            <div className="structure-card-meta">
-              Matching milestones in {activeWorld?.name ?? "this world"}
-            </div>
+            <div className="structure-card-meta">Matching Chronicle milestones in {activeWorld?.name ?? "this world"}</div>
           </div>
           <div className="structure-card">
             <div className="structure-card-label">Linked Events</div>
@@ -547,7 +545,7 @@ export const TimelineView = memo(function TimelineView({
             <div className="structure-card-label">Tracks</div>
             <div className="structure-card-value">{groupedTimelineTracks.length}</div>
             <div className="structure-card-meta">
-              Chronicle lanes for arcs, factions, wars, and plot threads
+              Timeline lanes for arcs, factions, wars, and plot threads
             </div>
           </div>
         </div>
@@ -555,10 +553,10 @@ export const TimelineView = memo(function TimelineView({
         <div className="structure-grid">
           <div className="lore-panel">
             <div className="lore-panel-header">
-              <div className="linked-lore-label">Timeline Canvas</div>
+              <div className="linked-lore-label">Chronicle Timeline Canvas</div>
             </div>
             {orderedEvents.length === 0 ? (
-              <div className="rp-empty">Your timeline will build here as you add major beats.</div>
+              <div className="rp-empty">Your Chronicle timeline will build here as you add dated or undated story beats.</div>
             ) : (
                 <div className="timeline-canvas">
                   <div className="timeline-canvas-track" />
@@ -602,7 +600,7 @@ export const TimelineView = memo(function TimelineView({
               <div className="linked-lore-label">Event Types</div>
             </div>
             {timelineTypeCounts.length === 0 ? (
-              <div className="rp-empty">No patterns yet.</div>
+              <div className="rp-empty">No event type patterns yet. Add events with types like battle, discovery, or character arc.</div>
             ) : (
               <div className="structure-list">
                 {timelineTypeCounts.map(([label, count]) => (
@@ -624,7 +622,7 @@ export const TimelineView = memo(function TimelineView({
               </div>
             )}
             <div className="advanced-json-note">
-              This is still a compact narrative timeline, not the final multi-track visualization.
+              Chronicle is the timeline workspace. This view is still compact, with richer scaling planned later.
             </div>
             <div className="advanced-json-note">
               Shortcuts: Ctrl/Cmd+S save, Ctrl/Cmd+Alt+N new event, Ctrl/Cmd+Shift+[ or ] move
@@ -657,7 +655,7 @@ export const TimelineView = memo(function TimelineView({
             <div className="linked-lore-label">Chronological Outline</div>
           </div>
           {orderedEvents.length === 0 ? (
-            <div className="rp-empty">Saved events will appear here in reading order.</div>
+            <div className="rp-empty">Saved Chronicle events will appear here in reading order.</div>
           ) : (
             <div className="timeline-outline">
               {orderedEvents.map((event) => {
@@ -691,7 +689,7 @@ export const TimelineView = memo(function TimelineView({
             <div className="linked-lore-label">Era Groups</div>
           </div>
           {groupedTimelineEras.length === 0 ? (
-            <div className="rp-empty">Era groupings will appear as your timeline gets dates.</div>
+            <div className="rp-empty">Era groupings will appear as your Chronicle events get dates or era labels.</div>
           ) : (
             <div className="timeline-track-groups">
               {groupedTimelineEras.map(([label, events]) => (
@@ -742,7 +740,7 @@ export const TimelineView = memo(function TimelineView({
             <div className="linked-lore-label">Type Tracks</div>
           </div>
           {groupedTimelineEvents.length === 0 ? (
-            <div className="rp-empty">Grouped tracks will appear as the timeline grows.</div>
+            <div className="rp-empty">Type tracks will appear as you give Chronicle events event types.</div>
           ) : (
             <div className="timeline-track-groups">
               {groupedTimelineEvents.map(([label, events]) => (
@@ -792,7 +790,7 @@ export const TimelineView = memo(function TimelineView({
             <div className="linked-lore-label">Track View</div>
           </div>
           {groupedTimelineTracks.length === 0 ? (
-            <div className="rp-empty">Chronicle tracks will appear as you assign events to lanes.</div>
+            <div className="rp-empty">Chronicle tracks are timeline lanes. Add a track like Main Plot, Faction War, or Character Arc to an event.</div>
           ) : (
             <div className="timeline-track-groups">
               {groupedTimelineTracks.map(([label, events]) => (
@@ -848,7 +846,7 @@ export const TimelineView = memo(function TimelineView({
             <div className="linked-lore-label">Focused Type Track</div>
           </div>
           {!focusedTrackType ? (
-            <div className="rp-empty">Choose an event type or track chip to inspect a single track.</div>
+            <div className="rp-empty">Choose an event type chip to inspect one type lane.</div>
           ) : focusedTrackEvents.length === 0 ? (
             <div className="rp-empty">{focusedTrackType} has no visible events in the current filters.</div>
           ) : (
@@ -904,7 +902,7 @@ export const TimelineView = memo(function TimelineView({
             <div className="linked-lore-label">Focused Chronicle Track</div>
           </div>
           {!focusedTimelineTrack ? (
-            <div className="rp-empty">Choose a Chronicle track chip to inspect one lane.</div>
+            <div className="rp-empty">Choose a Chronicle track chip to inspect one timeline lane.</div>
           ) : focusedTimelineTrackEvents.length === 0 ? (
             <div className="rp-empty">{focusedTimelineTrack} has no visible events in the current filters.</div>
           ) : (
